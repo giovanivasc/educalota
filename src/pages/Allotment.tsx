@@ -98,7 +98,7 @@ const Allotment: React.FC = () => {
     const { data } = await supabase.from('students').select('*').eq('class_id', classId);
     setStudents(data?.map((s: any) => ({
       id: s.id, name: s.name, age: s.age, series: s.series, cid: s.cid,
-      specialGroup: s.special_group, needsSupport: s.needs_support || []
+      specialGroup: s.special_group, needsSupport: s.needs_support || [], additionalInfo: s.additional_info // Added additionalInfo
     })) || []);
   };
 
@@ -115,7 +115,8 @@ const Allotment: React.FC = () => {
         studentsCount: s.students_count, classesCount: s.classes_count, imageUrl: s.image_url,
         location: 'Endereço não informado', active: true
       })));
-      if (schoolsData.length > 0) setSelectedSchool(schoolsData[0].id);
+      // Only default select if none selected
+      if (schoolsData.length > 0 && !selectedSchool) setSelectedSchool(schoolsData[0].id);
     }
 
     // 2. Staff
@@ -439,8 +440,28 @@ const Allotment: React.FC = () => {
                       <span className="material-symbols-outlined text-slate-300 text-sm">check_circle</span>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-sm font-bold">{student.name}</p>
-                      <p className="text-xs text-slate-500">{student.series}</p>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <p className="text-sm font-bold flex items-center gap-1">
+                            {student.name}
+                            {student.additionalInfo && (
+                              <span
+                                className="material-symbols-outlined text-[16px] text-blue-400 cursor-help"
+                                title={student.additionalInfo} // Native browser tooltip
+                                onClick={() => alert(`Informações de ${student.name}:\n\n${student.additionalInfo}`)}
+                              >
+                                info
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-slate-500">{student.series}</p>
+                          {student.needsSupport && student.needsSupport.length > 0 && (
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block">
+                              Necessita Suporte
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-4">
                       <span className="inline-flex rounded px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">

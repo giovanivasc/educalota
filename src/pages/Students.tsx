@@ -375,7 +375,18 @@ const Students: React.FC = () => {
               {filteredStudents.map(student => (
                 <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="font-bold">{student.name}</span>
+                    <div className="flex items-center gap-2 font-bold">
+                      {student.name}
+                      {student.additionalInfo && (
+                        <span
+                          className="material-symbols-outlined text-[18px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
+                          title={student.additionalInfo}
+                          onClick={(e) => { e.stopPropagation(); alert(`Informações Adicionais:\n${student.additionalInfo}`); }}
+                        >
+                          info
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono font-bold">

@@ -21,7 +21,7 @@ const StaffPage: React.FC = () => {
     hoursTotal: 100,
     avatar: ''
   });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  // const [avatarFile, setAvatarFile] = useState<File | null>(null); // Removed
   const [saveLoading, setSaveLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null); // For Edit
 
@@ -51,8 +51,8 @@ const StaffPage: React.FC = () => {
         id: s.id,
         name: s.name,
         registration: s.registration,
-        role: s.role, // Assuming DB role matches frontend literal type roughly, or strict casting
-        contractType: s.contract_type as any, // Cast to literal type
+        role: s.role,
+        contractType: s.contract_type as any,
         hoursTotal: s.hours_total,
         hoursAvailable: s.hours_available,
         avatar: s.avatar
@@ -84,12 +84,6 @@ const StaffPage: React.FC = () => {
     return matchesSearch && matchesRole && matchesAvailability;
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAvatarFile(e.target.files[0]);
-    }
-  };
-
   const handleSaveStaff = async () => {
     if (!newStaff.name || !newStaff.role || !newStaff.contractType) {
       alert('Preencha os campos obrigatórios.');
@@ -98,28 +92,9 @@ const StaffPage: React.FC = () => {
 
     setSaveLoading(true);
     try {
-      let avatarUrl = newStaff.avatar || `https://i.pravatar.cc/150?u=${Math.random()}`;
-
-      // Upload if file selected
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, avatarFile);
-
-        if (!uploadError) {
-          const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-          if (data) avatarUrl = data.publicUrl;
-        } else {
-          console.warn('Upload failed, using default or existing URL', uploadError);
-        }
-      }
+      const avatarUrl = ''; // Using automatic initials instead of stored avatar
 
       // Generate a mock registration for now or let DB handle it? 
-      // DB schema has 'registration' text. Let's generate one.
       const registration = Math.floor(100000 + Math.random() * 900000).toString();
 
       if (editingId) {
@@ -129,9 +104,6 @@ const StaffPage: React.FC = () => {
           role: newStaff.role,
           contract_type: newStaff.contractType,
           hours_total: newStaff.hoursTotal,
-          // hours_available: should ideally adjust based on diff? 
-          // For simplicity, we won't reset availability completely unless total changes, logic can be complex.
-          // Let's assume editing name/role doesn't change used hours.
           avatar: avatarUrl,
         }).eq('id', editingId);
         if (error) throw error;
@@ -152,7 +124,6 @@ const StaffPage: React.FC = () => {
       }
 
       setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '' });
-      setAvatarFile(null);
       setEditingId(null);
       await fetchStaff();
       setView('list');
@@ -284,7 +255,6 @@ const StaffPage: React.FC = () => {
         .eq('id', editingAllotmentId);
 
       if (updateAllotmentError) {
-        // Rollback staff update? Ideally yes, but for MVP we alert.
         console.error('Failed to update allotment, potential consistency issue.', updateAllotmentError);
         throw updateAllotmentError;
       }
@@ -320,6 +290,7 @@ const StaffPage: React.FC = () => {
 
         <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-8">
           <div className="space-y-6">
+            {/* Nome Completo */}
             <div className="grid grid-cols-1 gap-6">
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Nome Completo</span>
@@ -331,25 +302,6 @@ const StaffPage: React.FC = () => {
                     placeholder="Ex: Ana Maria Silva"
                   />
                   <span className="absolute right-3 top-3 text-slate-400 material-symbols-outlined">person</span>
-                </div>
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Foto de Perfil (Opcional)</span>
-                <div className="flex items-center gap-4">
-                  <div className="relative size-12 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    {avatarFile ? (
-                      <img src={URL.createObjectURL(avatarFile)} alt="Preview" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center text-slate-400 material-symbols-outlined">person</span>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="flex-1 text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                  />
                 </div>
               </label>
             </div>
@@ -486,7 +438,9 @@ const StaffPage: React.FC = () => {
                 <tr key={staff.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <img src={staff.avatar} alt={staff.name} className="size-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800" />
+                      <div className="size-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-bold text-lg ring-2 ring-slate-50 dark:ring-slate-800">
+                        {(staff.name || '?').charAt(0).toUpperCase()}
+                      </div>
                       <div>
                         <p className="font-bold text-slate-900 dark:text-white">{staff.name}</p>
                         <p className="text-xs text-slate-500">Mat: {staff.registration}</p>
