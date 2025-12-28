@@ -456,9 +456,19 @@ const Allotment: React.FC = () => {
                           </p>
                           <p className="text-xs text-slate-500">{student.series}</p>
                           {student.needsSupport && student.needsSupport.length > 0 && (
-                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block">
-                              Necessita Suporte
-                            </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {student.needsSupport.map((support: string, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className={`text-[10px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded ${support === 'Não necessita'
+                                      ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                    }`}
+                                >
+                                  {support}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>
