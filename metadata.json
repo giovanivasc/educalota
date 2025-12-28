@@ -1,0 +1,5 @@
+{
+  "name": "EducaLota",
+  "description": "Sistema de gestão de lotação para educação especial, permitindo o gerenciamento de escolas, turmas, servidores e estudantes com foco em acessibilidade e inclusão.",
+  "requestFramePermissions": []
+}
