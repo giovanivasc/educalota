@@ -8,7 +8,6 @@ const Access: React.FC = () => {
   const [password, setPassword] = useState('');
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [importLoading, setImportLoading] = useState<string | null>(null);
 
   const permList = [
     { id: 'dashboard', title: 'Dashboard', desc: 'Visualização de indicadores', icon: 'dashboard', color: 'bg-blue-100 text-blue-600' },
@@ -57,111 +56,25 @@ const Access: React.FC = () => {
     }
   };
 
-  // --- LÓGICA DE IMPORTAÇÃO ---
+  const downloadTemplate = (type: 'schools' | 'staff' | 'students') => {
+    let data = [];
+    let filename = '';
 
-  const processFile = (file: File): Promise<any[]> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const data = e.target?.result;
-        try {
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          resolve(jsonData);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.onerror = (error) => reject(error);
-      reader.readAsBinaryString(file);
-    });
-  };
-
-  const handleImport = async (type: 'schools' | 'staff' | 'students', e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setImportLoading(type);
-    try {
-      const jsonData = await processFile(file);
-      console.log(`Dados brutos de ${type}:`, jsonData);
-
-      let successCount = 0;
-      let errorCount = 0;
-
-      if (jsonData.length === 0) {
-        throw new Error('A planilha está vazia ou não pôde ser lida.');
-      }
-
-      if (type === 'schools') {
-        for (const row of jsonData as any[]) {
-          // Mapear colunas do Excel para colunas do Banco
-          const { error } = await supabase.from('schools').insert({
-            name: row['Nome da Escola'],
-            region: row['Região'] || 'Campo',
-            director_name: row['Diretor'],
-            vice_director_name: row['Vice-Diretor'],
-            description: row['Descrição'] || '',
-            students_count: 0,
-            classes_count: 0,
-            active: true
-          });
-          if (error) { console.error('Erro na linha escola:', row, error); errorCount++; }
-          else successCount++;
-        }
-      }
-      else if (type === 'staff') {
-        for (const row of jsonData as any[]) {
-          const { error } = await supabase.from('staff').insert({
-            name: row['Nome Completo'],
-            registration: String(row['Matrícula'] || ''),
-            role: row['Cargo'],
-            contract_type: row['Vínculo'],
-            hours_total: Number(row['Carga Horária (Total)']) || 0,
-            hours_available: Number(row['Carga Horária (Disp.)']) || 0,
-          });
-          if (error) { console.error('Erro na linha servidor:', row, error); errorCount++; }
-          else successCount++;
-        }
-      }
-      else if (type === 'students') {
-        // Buscar todas escolas para vincular pelo nome
-        const { data: allSchools } = await supabase.from('schools').select('id, name');
-
-        for (const row of jsonData as any[]) {
-          // Tentar encontrar ID da escola pelo Nome (Case Insensitive)
-          let schoolId = null;
-          if (row['Escola Atual'] && allSchools) {
-            const found = allSchools.find(s => s.name.toLowerCase().trim() === String(row['Escola Atual']).toLowerCase().trim());
-            if (found) schoolId = found.id;
-          }
-
-          const { error } = await supabase.from('students').insert({
-            name: row['Nome do Estudante'],
-            age: Number(row['Idade']),
-            school_id: schoolId,
-            series: row['Série/Turma'], // Apenas informativo se não tiver vinculo real de turma
-            cid: row['CID'],
-            special_group: row['Grupo Especial'],
-            needs_support: row['Necessidades'] ? String(row['Necessidades']).split(',').map(s => s.trim()) : [],
-            additional_info: row['Observações']
-          });
-          if (error) { console.error('Erro na linha estudante:', row, error); errorCount++; }
-          else successCount++;
-        }
-      }
-
-      alert(`Processamento concluído!\nSucessos: ${successCount}\nErros: ${errorCount}\nConsulte o console para detalhes dos erros.`);
-      if (e.target) e.target.value = ''; // Limpar input
-
-    } catch (err: any) {
-      console.error(err);
-      alert('Erro na importação: ' + (err.message || 'Erro desconhecido. Verifique o formato da planilha.'));
-    } finally {
-      setImportLoading(null);
+    if (type === 'schools') {
+      data = [{ 'Nome da Escola': '', 'Região': 'Urbano', 'Diretor': '', 'Vice-Diretor': '', 'Descrição': '' }];
+      filename = 'modelo_escolas.xlsx';
+    } else if (type === 'staff') {
+      data = [{ 'Nome Completo': '', 'Matrícula': '', 'Cargo': 'Professor AEE', 'Vínculo': 'Efetivo', 'Carga Horária (Total)': 200, 'Carga Horária (Disp.)': 150 }];
+      filename = 'modelo_servidores.xlsx';
+    } else if (type === 'students') {
+      data = [{ 'Nome do Estudante': '', 'Idade': 10, 'Escola Atual': '', 'Série/Turma': '', 'CID': '', 'Grupo Especial': '', 'Necessidades': 'Mediador, Cuidador', 'Observações': '' }];
+      filename = 'modelo_estudantes.xlsx';
     }
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Modelo");
+    XLSX.writeFile(wb, filename);
   };
 
   return (
@@ -169,7 +82,7 @@ const Access: React.FC = () => {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Administração de Acesso</h1>
-          <p className="mt-1 text-slate-500 dark:text-slate-400">Gerencie permissões de usuários e realize importações de dados em massa.</p>
+          <p className="mt-1 text-slate-500 dark:text-slate-400">Gerencie permissões de usuários e baixe modelos para importação.</p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" icon="history">
@@ -247,20 +160,17 @@ const Access: React.FC = () => {
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4">
           <h2 className="text-lg font-bold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">cloud_upload</span>
-            Importação de Dados em Massa
+            <span className="material-symbols-outlined text-primary">cloud_download</span>
+            Modelos para Importação de Dados
           </h2>
-          <button className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-            <span className="material-symbols-outlined text-base">download</span>
-            Baixar Modelos (.xlsx)
-          </button>
+          <p className="text-sm text-slate-500">Baixe os modelos abaixo, preencha e utilize a função "Importar" nas respectivas páginas de cadastro.</p>
         </div>
         <div className="p-6">
           <div className="grid gap-6 md:grid-cols-3">
             {[
-              { type: 'schools', title: 'Escolas', icon: 'domain', color: 'text-indigo-500' },
-              { type: 'staff', title: 'Servidores', icon: 'groups', color: 'text-teal-500' },
-              { type: 'students', title: 'Estudantes', icon: 'face', color: 'text-orange-500' },
+              { type: 'schools', title: 'Modelo Escolas', icon: 'domain', color: 'text-indigo-500' },
+              { type: 'staff', title: 'Modelo Servidores', icon: 'groups', color: 'text-teal-500' },
+              { type: 'students', title: 'Modelo Estudantes', icon: 'face', color: 'text-orange-500' },
             ].map((imp, i) => (
               <div key={i} className="group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-8 text-center transition-all hover:border-primary hover:bg-primary/5">
                 <div className="mb-4 rounded-full bg-white dark:bg-slate-800 p-3 shadow-sm group-hover:scale-110 transition-transform">
@@ -268,25 +178,11 @@ const Access: React.FC = () => {
                 </div>
                 <h3 className="mb-1 font-bold">{imp.title}</h3>
                 <p className="mb-4 text-xs text-slate-500">Formato Excel (.xlsx)</p>
-                <div className="relative">
-                  <Button size="sm" variant="secondary" className="border pointer-events-none" isLoading={importLoading === imp.type}>
-                    {importLoading === imp.type ? 'Processando...' : 'Selecionar Arquivo'}
-                  </Button>
-                  <input
-                    type="file"
-                    className="absolute inset-0 cursor-pointer opacity-0 w-full h-full"
-                    accept=".xlsx"
-                    onChange={(e) => handleImport(imp.type as any, e)}
-                    disabled={importLoading !== null}
-                  />
-                </div>
+                <Button size="sm" variant="outline" className="border" onClick={() => downloadTemplate(imp.type as any)}>
+                  Baixar Modelo
+                </Button>
               </div>
             ))}
-          </div>
-          <div className="mt-4 p-4 bg-orange-50 border border-orange-100 rounded-lg">
-            <p className="text-xs text-orange-700 font-medium">
-              ⚠️ Observação: Certifique-se de que os nomes das colunas na planilha correspondem EXATAMENTE ao modelo especificado. Linhas com erros serão ignoradas e reportadas no Console do Navegador (F12).
-            </p>
           </div>
         </div>
       </section>

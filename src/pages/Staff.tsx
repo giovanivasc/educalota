@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Staff } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
+import { BulkImporter } from '../components/BulkImporter';
 
 const StaffPage: React.FC = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
@@ -425,9 +426,12 @@ const StaffPage: React.FC = () => {
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Servidores e Disponibilidade</h1>
           <p className="text-slate-500 dark:text-slate-400">Gerencie a carga horária e alocação dos profissionais da rede.</p>
         </div>
-        <Button onClick={() => { setView('create'); setEditingId(null); setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '' }); }} icon="person_add">
-          Novo Servidor
-        </Button>
+        <div className="flex gap-2">
+          <BulkImporter type="staff" onSuccess={fetchStaff} label="Importar Servidores" />
+          <Button onClick={() => { setView('create'); setEditingId(null); setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '' }); }} icon="person_add">
+            Novo Servidor
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden">

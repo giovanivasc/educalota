@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { School } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
+import { BulkImporter } from '../components/BulkImporter';
 
 const Schools: React.FC = () => {
   const [view, setView] = useState<'list' | 'create' | 'classes'>('list');
@@ -912,6 +913,7 @@ const Schools: React.FC = () => {
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Escolas e Unidades</h1>
           <p className="text-slate-500 dark:text-slate-400">Gerencie as unidades escolares e suas especificidades de acessibilidade.</p>
         </div>
+        <BulkImporter type="schools" onSuccess={fetchSchools} label="Importar Escolas" />
         <Button
           onClick={() => {
             setIsEditingSchool(false);

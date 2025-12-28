@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Student } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
+import { BulkImporter } from '../components/BulkImporter';
 
 const Students: React.FC = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
@@ -320,9 +321,12 @@ const Students: React.FC = () => {
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Estudantes (Público-Alvo)</h1>
           <p className="text-slate-500 dark:text-slate-400">Gestão de prontuários e acompanhamento de necessidades especiais.</p>
         </div>
-        <Button onClick={() => { setView('create'); resetForm(); }} icon="person_add">
-          Novo Estudante
-        </Button>
+        <div className="flex gap-2">
+          <BulkImporter type="students" onSuccess={fetchData} label="Importar Estudantes" />
+          <Button onClick={() => { setView('create'); resetForm(); }} icon="person_add">
+            Novo Estudante
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
