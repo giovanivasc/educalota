@@ -1,13 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR" class="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EducaLota - Gestão de Educação Especial</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -37,18 +39,29 @@
         }
     </script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+
         .material-symbols-outlined.filled {
             font-variation-settings: 'FILL' 1;
         }
+
         /* Hide scrollbars for a cleaner UI in specific areas */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
-<script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
@@ -59,10 +72,13 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+
 </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-200">
+
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-200">
     <div id="root"></div>
-<script type="module" src="/src/index.tsx"></script>
+    <script type="module" src="/src/index.tsx"></script>
 </body>
+
 </html>
