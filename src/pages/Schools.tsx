@@ -49,6 +49,51 @@ const Schools: React.FC = () => {
 
   // State for classes management
   const [classes, setClasses] = useState<any[]>([]);
+  // Sorting state for classes
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedClasses = React.useMemo(() => {
+    let sortableItems = [...classes];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // Especial para Série/Turma, combinando para ordenar melhor
+        if (sortConfig.key === 'series') {
+          aValue = `${a.series} ${a.section || ''}`;
+          bValue = `${b.series} ${b.section || ''}`;
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [classes, sortConfig]);
+
+  const getSortIcon = (name: string) => {
+    if (!sortConfig || sortConfig.key !== name) {
+      return <span className="material-symbols-outlined text-[14px] opacity-30">unfold_more</span>;
+    }
+    return sortConfig.direction === 'asc'
+      ? <span className="material-symbols-outlined text-[14px]">expand_less</span>
+      : <span className="material-symbols-outlined text-[14px]">expand_more</span>;
+  };
+
   const [newClass, setNewClass] = useState({
     modality: 'Educação Infantil',
     year: new Date().getFullYear(),
@@ -634,17 +679,32 @@ const Schools: React.FC = () => {
             <table className="w-full text-left">
               <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
                 <tr>
-                  <th className="px-6 py-4">Modalidade</th>
+                  <th className="px-6 py-4 cursor-pointer hover:text-primary transition-colors group select-none" onClick={() => handleSort('modality')}>
+                    <div className="flex items-center gap-1">
+                      Modalidade
+                      {getSortIcon('modality')}
+                    </div>
+                  </th>
                   <th className="px-6 py-4">Ano</th>
-                  <th className="px-6 py-4">Série / Turma</th>
-                  <th className="px-6 py-4">Turno</th>
+                  <th className="px-6 py-4 cursor-pointer hover:text-primary transition-colors group select-none" onClick={() => handleSort('series')}>
+                    <div className="flex items-center gap-1">
+                      Série / Turma
+                      {getSortIcon('series')}
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 cursor-pointer hover:text-primary transition-colors group select-none" onClick={() => handleSort('shift')}>
+                    <div className="flex items-center gap-1">
+                      Turno
+                      {getSortIcon('shift')}
+                    </div>
+                  </th>
                   <th className="px-6 py-4">Alunos</th>
                   <th className="px-6 py-4">Obs.</th>
                   <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {classes.map(cls => (
+                {sortedClasses.map(cls => (
                   <tr key={cls.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                     <td className="px-6 py-4 font-medium">{cls.modality || '-'}</td>
                     <td className="px-6 py-4 text-slate-500">{cls.year || new Date().getFullYear()}</td>
