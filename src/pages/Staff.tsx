@@ -44,7 +44,7 @@ const StaffPage: React.FC = () => {
   const fetchStaff = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('staff').select('*');
+      const { data, error } = await supabase.from('staff').select('*').order('name', { ascending: true });
       if (error) throw error;
 
       const mappedStaff: Staff[] = (data || []).map((s: any) => ({
