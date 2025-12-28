@@ -252,6 +252,7 @@ const Schools: React.FC = () => {
         cid: newStudent.cid,
         special_group: newStudent.specialGroup,
         needs_support: newStudent.needsSupport,
+        additional_info: newStudent.description, // Mapped from description
         school_id: selectedSchool?.id,
         class_id: selectedClass?.id,
         series: `${selectedClass?.series} - ${selectedClass?.section}` // Sync series name for legacy, or construct better
