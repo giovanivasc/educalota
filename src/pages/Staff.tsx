@@ -443,7 +443,6 @@ const StaffPage: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-bold text-slate-900 dark:text-white">{staff.name}</p>
-                        <p className="text-xs text-slate-500">Mat: {staff.registration}</p>
                       </div>
                     </div>
                   </td>
