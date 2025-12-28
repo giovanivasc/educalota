@@ -10,61 +10,115 @@ const Dashboard: React.FC = () => {
   const [stats, setStats] = useState({
     students: 0,
     schools: 0,
-    classes: 118, // Mock for now as we didn't migrate classes yet
-    staff: 0
+    classes: 0,
+    staff: 0,
+    allottedStaff: 0
   });
   const [recentAllotments, setRecentAllotments] = useState<AllotmentRecord[]>([]);
+  const [staffDistData, setStaffDistData] = useState<any[]>([]);
+  const [groupDistData, setGroupDistData] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
-    // Parallel fetches
-    const [
-      { count: studentsCount },
-      { count: schoolsCount },
-      { count: staffCount },
-      { data: allotmentsData }
-    ] = await Promise.all([
-      supabase.from('students').select('*', { count: 'exact', head: true }),
-      supabase.from('schools').select('*', { count: 'exact', head: true }),
-      supabase.from('staff').select('*', { count: 'exact', head: true }),
-      supabase.from('allotments').select('*').order('created_at', { ascending: false }).limit(5)
-    ]);
+    try {
+      // 1. Fetch Basic Counts and Distributions Data
+      const [
+        { count: studentsCount, data: studentsData },
+        { count: schoolsCount },
+        { count: classesCount },
+        { count: staffCount, data: staffData },
+        { data: activeAllotments },
+        { data: recentAllotmentsData }
+      ] = await Promise.all([
+        supabase.from('students').select('special_group', { count: 'exact' }),
+        supabase.from('schools').select('*', { count: 'exact', head: true }),
+        supabase.from('classes').select('*', { count: 'exact', head: true }),
+        supabase.from('staff').select('role', { count: 'exact' }),
+        supabase.from('allotments').select('staff_id').eq('status', 'Ativo'),
+        supabase.from('allotments').select('*').order('created_at', { ascending: false }).limit(5)
+      ]);
 
-    setStats({
-      students: studentsCount || 0,
-      schools: schoolsCount || 0,
-      classes: 118,
-      staff: staffCount || 0
-    });
+      // Calculate Allotted Staff (Unique IDs)
+      const uniqueAllottedStaff = new Set(activeAllotments?.map((a: any) => a.staff_id)).size;
 
-    if (allotmentsData) {
-      setRecentAllotments(allotmentsData.map((a: any) => ({
-        id: a.id,
-        staffName: a.staff_name,
-        staffRole: a.staff_role,
-        schoolName: a.school_name,
-        date: a.date,
-        status: a.status as any
-      })));
+      setStats({
+        students: studentsCount || 0,
+        schools: schoolsCount || 0,
+        classes: classesCount || 0,
+        staff: staffCount || 0,
+        allottedStaff: uniqueAllottedStaff
+      });
+
+      // Process Staff Distribution
+      const roleCounts: Record<string, number> = {};
+      const targetRoles = [
+        'Professor de Educação Especial',
+        'Professor Bilíngue',
+        'Professor de Braille',
+        'Mediador',
+        'Cuidador'
+      ];
+
+      staffData?.forEach((s: any) => {
+        if (targetRoles.includes(s.role)) {
+          roleCounts[s.role] = (roleCounts[s.role] || 0) + 1;
+        } else {
+          // Optional: Group others? Or ignore?
+          // roleCounts['Outros'] = (roleCounts['Outros'] || 0) + 1;
+        }
+      });
+
+      const processedStaffDist = targetRoles.map(role => ({
+        name: role.replace('Professor de ', 'Prof. ').replace('Educação Especial', 'AEE'), // Shorten for chart
+        fullName: role,
+        value: roleCounts[role] || 0,
+        color: role === 'Mediador' ? '#1142d4' :
+          role === 'Cuidador' ? '#60a5fa' :
+            role.includes('Braille') ? '#818cf8' :
+              role.includes('Bilíngue') ? '#a78bfa' : '#c084fc'
+      })).filter(d => d.value > 0); // Only show existing? Or show all 0? Showing > 0 is cleaner.
+
+      setStaffDistData(processedStaffDist.length > 0 ? processedStaffDist : [{ name: 'Sem dados', value: 0 }]);
+
+
+      // Process Group Distribution
+      const groupCounts: Record<string, number> = {};
+      studentsData?.forEach((s: any) => {
+        const group = s.special_group || 'Não Informado';
+        groupCounts[group] = (groupCounts[group] || 0) + 1;
+      });
+
+      // Top groups + Others logic could be here, but for now map top 5
+      const sortedGroups = Object.entries(groupCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5) // Top 5
+        .map(([name, value], index) => ({
+          name: name.length > 15 ? name.substring(0, 15) + '...' : name,
+          value,
+          color: ['#1142d4', '#3b82f6', '#60a5fa', '#93c5fd', '#cbd5e1'][index % 5]
+        }));
+      setGroupDistData(sortedGroups);
+
+
+      // Recent Allotments
+      if (recentAllotmentsData) {
+        setRecentAllotments(recentAllotmentsData.map((a: any) => ({
+          id: a.id,
+          staffName: a.staff_name,
+          staffRole: a.staff_role,
+          schoolName: a.school_name,
+          date: a.date,
+          status: a.status as any
+        })));
+      }
+
+    } catch (e) {
+      console.error('Error fetching dashboard data:', e);
     }
   };
-
-  const staffDistData = [
-    { name: 'Monitores', value: 192, color: '#1142d4' },
-    { name: 'Intérpretes', value: 120, color: '#60a5fa' },
-    { name: 'Prof. Braille', value: 70, color: '#a5b4fc' },
-    { name: 'Apoio', value: 105, color: '#cbd5e1' },
-  ];
-
-  const groupDistData = [
-    { name: 'TEA', value: 45, color: '#1142d4' },
-    { name: 'Intelectual', value: 25, color: '#60a5fa' },
-    { name: 'Auditiva', value: 20, color: '#a5b4fc' },
-    { name: 'Outros', value: 10, color: '#cbd5e1' },
-  ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-10">
@@ -78,49 +132,52 @@ const Dashboard: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {/* KPIs */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
-          { label: 'Total Estudantes', value: stats.students, icon: 'school', trend: '+5%', color: 'text-primary' },
-          { label: 'Total Escolas', value: stats.schools, icon: 'domain', trend: '0%', color: 'text-blue-500' },
-          { label: 'Turmas Ativas', value: stats.classes, icon: 'class', trend: '+2%', color: 'text-indigo-500' },
-          { label: 'Profissionais Alocados', value: stats.staff, icon: 'badge', trend: '+12%', color: 'text-teal-500' },
+          { label: 'Estudantes', value: stats.students, icon: 'school', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { label: 'Escolas', value: stats.schools, icon: 'domain', color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+          { label: 'Turmas', value: stats.classes, icon: 'class', color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/20' },
+          { label: 'Servidores Totais', value: stats.staff, icon: 'group', color: 'text-slate-600', bg: 'bg-slate-50 dark:bg-slate-800' },
+          { label: 'Servidores Lotados', value: stats.allottedStaff, icon: 'badge', color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
         ].map((stat, i) => (
-          <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-6 shadow-sm">
-            <div className="mb-2 flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <p className="text-sm font-medium">{stat.label}</p>
-              <span className={`material-symbols-outlined ${stat.color}`}>{stat.icon}</span>
+          <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-2 rounded-lg ${stat.bg}`}>
+                <span className={`material-symbols-outlined ${stat.color}`}>{stat.icon}</span>
+              </div>
+              {/* Trend Removed as we don't have historical data yet */}
             </div>
-            <p className="text-3xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
-            <div className="mt-2 flex items-center text-sm">
-              <span className="material-symbols-outlined text-green-600 text-lg">trending_up</span>
-              <span className="ml-1 font-bold text-green-600">{stat.trend}</span>
-              <span className="ml-1 text-slate-400">vs mês ant.</span>
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{stat.label}</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{stat.value}</p>
             </div>
           </div>
         ))}
       </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Bar Chart: Profissionais */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-6 shadow-sm lg:col-span-2">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold">Atendimento por Tipo de Profissional</h3>
-              <p className="text-sm text-slate-500">Distribuição atual da equipe de apoio</p>
-            </div>
+          <div className="mb-6">
+            <h3 className="text-lg font-bold">Atendimento por Cargo</h3>
+            <p className="text-sm text-slate-500">Distribuição dos profissionais da rede</p>
           </div>
-          <div className="h-64 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={staffDistData}>
+              <BarChart data={staffDistData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#64748b' }} />
                 <YAxis axisLine={false} tickLine={false} fontSize={12} tick={{ fill: '#64748b' }} />
                 <Tooltip
-                  cursor={{ fill: 'rgba(17, 66, 212, 0.05)' }}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  cursor={{ fill: 'rgba(0,0,0, 0.04)' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ color: '#1e293b', fontWeight: 600 }}
                 />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
                   {staffDistData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.color || '#3b82f6'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -128,36 +185,42 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Pie Chart: Grupos */}
         <div className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-6 shadow-sm">
           <div className="mb-4">
             <h3 className="text-lg font-bold">Distribuição por Grupo</h3>
             <p className="text-sm text-slate-500">Estudantes por necessidade</p>
           </div>
-          <div className="flex flex-1 items-center justify-center">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={groupDistData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {groupDistData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="flex flex-1 items-center justify-center min-h-[200px]">
+            {groupDistData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={groupDistData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={85}
+                    paddingAngle={4}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {groupDistData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-slate-400 text-sm">Sem dados de estudantes.</p>
+            )}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="mt-4 flex flex-wrap gap-3 justify-center">
             {groupDistData.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }}></span>
-                <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{item.name} ({item.value}%)</span>
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}></span>
+                <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{item.name} ({item.value})</span>
               </div>
             ))}
           </div>
