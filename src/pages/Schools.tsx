@@ -988,7 +988,7 @@ const Schools: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-4 shadow-sm flex items-center gap-4">
           <div className="flex size-10 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
             <span className="material-symbols-outlined">domain</span>
@@ -1003,74 +1003,93 @@ const Schools: React.FC = () => {
             <span className="material-symbols-outlined">class</span>
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Turmas Ativas</p>
-            <p className="text-2xl font-bold">118</p>
+            <p className="text-sm font-medium text-slate-500">Total de Turmas</p>
+            <p className="text-2xl font-bold">{schools.reduce((acc, s) => acc + (s.classesCount || 0), 0)}</p>
           </div>
-        </div>
-        <div className="relative flex items-center">
-          <span className="absolute left-3 text-slate-400 material-symbols-outlined">search</span>
-          <input
-            type="text"
-            className="h-full w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark pl-10 pr-4 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-            placeholder="Buscar escola por nome ou área..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredSchools.map((school) => (
-          <div
-            key={school.id}
-            onClick={() => handleManageClasses(school)}
-            className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm hover:border-primary hover:shadow-xl transition-all cursor-pointer"
-          >
-            <div className="relative h-48 w-full overflow-hidden bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-              <div className="rounded-full bg-white dark:bg-surface-dark p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-                <span className="material-symbols-outlined text-6xl text-primary/80">school</span>
-              </div>
-              <div className="absolute right-3 top-3 rounded-lg bg-white/90 dark:bg-surface-dark/90 px-3 py-1 text-xs font-black text-slate-700 dark:text-slate-200 shadow-sm backdrop-blur-sm">
-                {school.region}
-              </div>
-            </div>
-            <div className="flex flex-1 flex-col p-6">
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white transition-colors group-hover:text-primary">{school.name}</h3>
-                  <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors">arrow_forward</span>
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2">{school.description}</p>
-              </div>
-              <div className="mt-auto flex items-center justify-between border-t border-slate-50 dark:border-slate-800 pt-4">
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                    <span className="material-symbols-outlined text-[18px]">groups</span>
-                    <span>{school.studentsCount}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                    <span className="material-symbols-outlined text-[18px]">table_chart</span>
-                    <span>{school.classesCount} turmas</span>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => handleEditSchool(school, e)}
-                  className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary transition-colors"
-                  title="Editar"
-                >
-                  <span className="material-symbols-outlined">edit</span>
-                </button>
-                <button
-                  onClick={(e) => handleDeleteSchool(school.id, e)}
-                  className="rounded-lg p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors"
-                  title="Excluir"
-                >
-                  <span className="material-symbols-outlined">delete</span>
-                </button>
-              </div>
-            </div>
+      <div className="space-y-4">
+        {/* Search Bar moved above list */}
+        <div className="flex items-center gap-4 bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined">search</span>
+            <input
+              type="text"
+              className="h-10 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 pl-10 pr-4 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+              placeholder="Buscar escola por nome ou área..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        ))}
+        </div>
+
+        {/* List View */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500">
+                <tr>
+                  <th className="px-6 py-4">Escola / Unidade</th>
+                  <th className="px-6 py-4">Região</th>
+                  <th className="px-6 py-4 text-center">Alunos</th>
+                  <th className="px-6 py-4 text-center">Turmas</th>
+                  <th className="px-6 py-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredSchools.map((school) => (
+                  <tr
+                    key={school.id}
+                    onClick={() => handleManageClasses(school)}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                          <span className="material-symbols-outlined">school</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{school.name}</p>
+                          <p className="text-xs text-slate-500 line-clamp-1">{school.description || 'Sem descrição'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        {school.region}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">{school.studentsCount}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">{school.classesCount}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => handleEditSchool(school, e)}
+                          className="p-2 text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteSchool(school.id, e)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Excluir"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
