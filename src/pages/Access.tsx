@@ -1,12 +1,14 @@
+import React, { useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
-import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 
 const Access: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [importLoading, setImportLoading] = useState<string | null>(null);
 
   const permList = [
     { id: 'dashboard', title: 'Dashboard', desc: 'Visualização de indicadores', icon: 'dashboard', color: 'bg-blue-100 text-blue-600' },
@@ -31,7 +33,7 @@ const Access: React.FC = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -52,6 +54,113 @@ const Access: React.FC = () => {
       alert('Erro ao criar usuário: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // --- LÓGICA DE IMPORTAÇÃO ---
+
+  const processFile = (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = e.target?.result;
+        try {
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          resolve(jsonData);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsBinaryString(file);
+    });
+  };
+
+  const handleImport = async (type: 'schools' | 'staff' | 'students', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportLoading(type);
+    try {
+      const jsonData = await processFile(file);
+      console.log(`Dados brutos de ${type}:`, jsonData);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      if (jsonData.length === 0) {
+        throw new Error('A planilha está vazia ou não pôde ser lida.');
+      }
+
+      if (type === 'schools') {
+        for (const row of jsonData as any[]) {
+          // Mapear colunas do Excel para colunas do Banco
+          const { error } = await supabase.from('schools').insert({
+            name: row['Nome da Escola'],
+            region: row['Região'] || 'Campo',
+            director_name: row['Diretor'],
+            vice_director_name: row['Vice-Diretor'],
+            description: row['Descrição'] || '',
+            students_count: 0,
+            classes_count: 0,
+            active: true
+          });
+          if (error) { console.error('Erro na linha escola:', row, error); errorCount++; }
+          else successCount++;
+        }
+      }
+      else if (type === 'staff') {
+        for (const row of jsonData as any[]) {
+          const { error } = await supabase.from('staff').insert({
+            name: row['Nome Completo'],
+            registration: String(row['Matrícula'] || ''),
+            role: row['Cargo'],
+            contract_type: row['Vínculo'],
+            hours_total: Number(row['Carga Horária (Total)']) || 0,
+            hours_available: Number(row['Carga Horária (Disp.)']) || 0,
+          });
+          if (error) { console.error('Erro na linha servidor:', row, error); errorCount++; }
+          else successCount++;
+        }
+      }
+      else if (type === 'students') {
+        // Buscar todas escolas para vincular pelo nome
+        const { data: allSchools } = await supabase.from('schools').select('id, name');
+
+        for (const row of jsonData as any[]) {
+          // Tentar encontrar ID da escola pelo Nome (Case Insensitive)
+          let schoolId = null;
+          if (row['Escola Atual'] && allSchools) {
+            const found = allSchools.find(s => s.name.toLowerCase().trim() === String(row['Escola Atual']).toLowerCase().trim());
+            if (found) schoolId = found.id;
+          }
+
+          const { error } = await supabase.from('students').insert({
+            name: row['Nome do Estudante'],
+            age: Number(row['Idade']),
+            school_id: schoolId,
+            series: row['Série/Turma'], // Apenas informativo se não tiver vinculo real de turma
+            cid: row['CID'],
+            special_group: row['Grupo Especial'],
+            needs_support: row['Necessidades'] ? String(row['Necessidades']).split(',').map(s => s.trim()) : [],
+            additional_info: row['Observações']
+          });
+          if (error) { console.error('Erro na linha estudante:', row, error); errorCount++; }
+          else successCount++;
+        }
+      }
+
+      alert(`Processamento concluído!\nSucessos: ${successCount}\nErros: ${errorCount}\nConsulte o console para detalhes dos erros.`);
+      if (e.target) e.target.value = ''; // Limpar input
+
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro na importação: ' + (err.message || 'Erro desconhecido. Verifique o formato da planilha.'));
+    } finally {
+      setImportLoading(null);
     }
   };
 
@@ -149,9 +258,9 @@ const Access: React.FC = () => {
         <div className="p-6">
           <div className="grid gap-6 md:grid-cols-3">
             {[
-              { title: 'Escolas', icon: 'domain', color: 'text-indigo-500' },
-              { title: 'Servidores', icon: 'groups', color: 'text-teal-500' },
-              { title: 'Estudantes', icon: 'face', color: 'text-orange-500' },
+              { type: 'schools', title: 'Escolas', icon: 'domain', color: 'text-indigo-500' },
+              { type: 'staff', title: 'Servidores', icon: 'groups', color: 'text-teal-500' },
+              { type: 'students', title: 'Estudantes', icon: 'face', color: 'text-orange-500' },
             ].map((imp, i) => (
               <div key={i} className="group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-8 text-center transition-all hover:border-primary hover:bg-primary/5">
                 <div className="mb-4 rounded-full bg-white dark:bg-slate-800 p-3 shadow-sm group-hover:scale-110 transition-transform">
@@ -159,12 +268,25 @@ const Access: React.FC = () => {
                 </div>
                 <h3 className="mb-1 font-bold">{imp.title}</h3>
                 <p className="mb-4 text-xs text-slate-500">Formato Excel (.xlsx)</p>
-                <Button size="sm" variant="secondary" className="border">
-                  Selecionar Arquivo
-                </Button>
-                <input type="file" className="absolute inset-0 cursor-pointer opacity-0" accept=".xlsx" />
+                <div className="relative">
+                  <Button size="sm" variant="secondary" className="border pointer-events-none" isLoading={importLoading === imp.type}>
+                    {importLoading === imp.type ? 'Processando...' : 'Selecionar Arquivo'}
+                  </Button>
+                  <input
+                    type="file"
+                    className="absolute inset-0 cursor-pointer opacity-0 w-full h-full"
+                    accept=".xlsx"
+                    onChange={(e) => handleImport(imp.type as any, e)}
+                    disabled={importLoading !== null}
+                  />
+                </div>
               </div>
             ))}
+          </div>
+          <div className="mt-4 p-4 bg-orange-50 border border-orange-100 rounded-lg">
+            <p className="text-xs text-orange-700 font-medium">
+              ⚠️ Observação: Certifique-se de que os nomes das colunas na planilha correspondem EXATAMENTE ao modelo especificado. Linhas com erros serão ignoradas e reportadas no Console do Navegador (F12).
+            </p>
           </div>
         </div>
       </section>
