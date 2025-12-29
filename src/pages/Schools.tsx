@@ -929,7 +929,7 @@ const Schools: React.FC = () => {
                       <div className="space-y-3">
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Suporte Necessário</span>
                         <div className="grid grid-cols-2 gap-3">
-                          {['Atendido por Mediador', 'Atendido por Cuidador', 'Atendido por Prof. Braille', 'Atendido por Prof. Bilíngue', 'Não necessita'].map((item) => (
+                          {['Atendido por Mediador', 'Atendido por Cuidador', 'Atendido por Prof. Braille', 'Atendido por Prof. Bilíngue', 'Necessita de avaliação', 'Não necessita'].map((item) => (
                             <label key={item} className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
