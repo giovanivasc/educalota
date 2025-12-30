@@ -151,40 +151,212 @@ const Reports: React.FC = () => {
       if (!data) throw new Error("Dados não encontrados");
       const { school, reportData } = data;
 
-      const doc = new jsPDF();
+      // Configuração A4 Paisagem (Landscape)
+      // jsPDF units: mm. A4 Landscape = 297mm x 210mm
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
 
-      // Header
+      const MARGIN = 12.7;
+      const PAGE_WIDTH = 297;
+      const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+      // --- CABEÇALHO ---
+      // Imagens (Placeholders)
+      // Esquerda: Logo Prefeitura
+      doc.setDrawColor(200);
+      doc.rect(MARGIN, MARGIN, 25, 25, "S"); // Borda do placeholder
+      doc.setFontSize(8);
+      doc.text("LOGO PREF", MARGIN + 2, MARGIN + 12);
+
+      // Direita: Logos SEMED e Coord
+      doc.rect(PAGE_WIDTH - MARGIN - 50, MARGIN, 50, 25, "S"); // Placeholder largo
+      doc.text("LOGOS SEMED/COORD", PAGE_WIDTH - MARGIN - 48, MARGIN + 12);
+
+      // Texto Central
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      const headerTextX = PAGE_WIDTH / 2;
+      const headerTextY = MARGIN + 8;
+
+      doc.text("PREFEITURA MUNICIPAL DE CASTANHAL", headerTextX, headerTextY, { align: "center" });
+      doc.text("SECRETARIA MUNICIPAL DE EDUCAÇÃO", headerTextX, headerTextY + 6, { align: "center" });
+      doc.text("COORDENADORIA DE EDUCAÇÃO ESPECIAL", headerTextX, headerTextY + 12, { align: "center" });
+
+      // Linha separadora
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, MARGIN + 28, PAGE_WIDTH - MARGIN, MARGIN + 28);
+
+      // --- IDENTIFICAÇÃO ---
       doc.setFontSize(14);
-      doc.text(`Escola: ${school?.name}`, 14, 15);
-      doc.setFontSize(10);
-      doc.text(`Diretor: ${school?.director || '-'} | Vice-Diretor: ${school?.vice_director || '-'}`, 14, 22);
-      doc.text(`Ano Letivo: ${selectedYear}`, 14, 28);
+      doc.text("PRÉ-LOTAÇÃO DA EDUCAÇÃO ESPECIAL 2026", headerTextX, MARGIN + 38, { align: "center" });
 
-      // Table
-      // Columns: modalidade, série, turno, nome dos estudantes, nome dos servidores, cargo, carga horária
+      // Dados da Escola
+      let currentY = MARGIN + 50;
+      doc.setFontSize(11);
 
-      const body = reportData.map(cls => [
-        cls.modality,
-        cls.series,
-        cls.shift,
-        cls.students.map((s: any) => s.name).join(', '),
-        cls.staff.map((s: any) => s.name).join('\n'), // Multiline for multiple staff
-        cls.staff.map((s: any) => s.role).join('\n'),
-        cls.staff.map((s: any) => s.hours_total || '-').join('\n')
-      ]);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Escola: ${school?.name || ''}`, MARGIN, currentY);
 
+      currentY += 6;
+      doc.setFont("helvetica", "normal");
+      doc.text(`Diretor: ${school?.director || '-'} | Vice-Diretor: ${school?.vice_director || '-'}`, MARGIN, currentY);
+
+      // Ano Letivo
+      currentY += 6;
+      doc.text(`Ano Letivo: ${selectedYear}`, MARGIN, currentY);
+
+      // Espaço para tabela
+      currentY += 8;
+
+      // --- PREPARAÇÃO DA TABELA ---
+      const tableBody: any[] = [];
+      const rowSpans: { row: number, span: number }[] = [];
+
+      let rowIndex = 0;
+
+      reportData.forEach(cls => {
+        // Tratar abreviações de modalidade
+        let mod = cls.modality || '-';
+        if (mod.includes("Educação Infantil")) mod = "EI";
+        else if (mod.includes("Anos Iniciais")) mod = "AI";
+        else if (mod.includes("Anos Finais")) mod = "AF";
+        else if (mod.includes("EJA")) mod = "EJA";
+        else if (mod.includes("Educação Especial")) mod = "EE";
+
+        const studentsStr = cls.students.map((s: any) => s.name).join(', ');
+
+        // Se não houver staff, criamos uma linha vazia para mostrar a turma
+        // Mas a lógica pede para mostrar servidores. Se não tem servidor, a linha deve aparecer?
+        // Assumindo que sim, com campos de servidor vazios.
+        const staffList = (cls.staff && cls.staff.length > 0) ? cls.staff : [null];
+        const spanCount = staffList.length;
+
+        // Armazenar onde começa este grupo e qual o tamanho dele
+        rowSpans.push({ row: rowIndex, span: spanCount });
+
+        staffList.forEach((st: any) => {
+          tableBody.push([
+            mod,
+            cls.series || '-',
+            cls.shift || '-',
+            studentsStr || '-',
+            st ? st.name : '-',
+            st ? st.role : '-',
+            st ? (st.hours_total || '-') : '-'
+          ]);
+          rowIndex++;
+        });
+      });
+
+      // --- TABELA ---
       autoTable(doc, {
-        startY: 35,
-        head: [['Modalidade', 'Série', 'Turno', 'Estudantes', 'Servidores', 'Cargo', 'CH']],
-        body: body,
-        styles: { fontSize: 8, cellPadding: 2 },
+        startY: currentY,
+        head: [['Modalidade', 'Série', 'Turno', 'Estudantes', 'Servidor', 'Cargo', 'CH']],
+        body: tableBody,
+        theme: 'grid',
+        styles: {
+          font: "helvetica",
+          fontSize: 9,
+          cellPadding: 2,
+          valign: 'middle',
+          halign: 'center',
+          lineColor: [0, 0, 0],
+          lineWidth: 0.1,
+          textColor: [0, 0, 0]
+        },
+        headStyles: {
+          fillColor: [255, 255, 255], // Cabeçalho Branco ou Cinza Claro? O print parece Azul escuro.
+          // O usuário não especificou cor, mas "títulos negrito".
+          // Vamos usar um azul padrão ou manter simples. O modelo mostra Azul.
+          fillColor: [41, 128, 185], // Azul
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center'
+        },
         columnStyles: {
-          3: { cellWidth: 50 }, // Students column wider
-          4: { cellWidth: 40 }  // Staff column
+          0: { cellWidth: 20 }, // Modalidade
+          1: { cellWidth: 20 }, // Série
+          2: { cellWidth: 25 }, // Turno
+          3: { cellWidth: 'auto' }, // Estudantes (Expandir)
+          4: { cellWidth: 50 }, // Servidor
+          5: { cellWidth: 30 }, // Cargo
+          6: { cellWidth: 15 }  // CH
+        },
+        margin: { left: MARGIN, right: MARGIN },
+        didParseCell: (data) => {
+          // Aplicar rowSpan nas colunas 0, 1, 2, 3
+          if (data.section === 'body' && [0, 1, 2, 3].includes(data.column.index)) {
+            const rIndex = data.row.index;
+            const spanObj = rowSpans.find(s => s.row === rIndex);
+            if (spanObj) {
+              data.cell.rowSpan = spanObj.span;
+            }
+          }
         }
       });
 
-      doc.save(`pre_lotacao_${school?.name}.pdf`);
+      // --- TERMO DE CONCORDÂNCIA ---
+      // Pega o Y final da tabela
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+      // Controlar quebra de página se necessário
+      // (simplificado: se finalY > 160 mm, abre nova pagina - mas landscape vai ate 210mm)
+
+      const termo = "Declaro que, no exercício de minhas funções como gestor escolar, realizei e estou de pleno acordo com a pré-lotação dos servidores da Educação Especial, efetuada em conjunto com a Coordenadoria de Educação Especial, para o exercício de suas funções no ano letivo de 2026. Declaro, ainda, que fui devidamente informado(a) e estou ciente de que essa pré-lotação poderá sofrer alterações, a critério da Secretaria Municipal de Educação, sempre que houver necessidade em razão do interesse público.";
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const splitTermo = doc.splitTextToSize(termo, CONTENT_WIDTH);
+      doc.text(splitTermo, MARGIN, finalY);
+
+      const nextY = finalY + (splitTermo.length * 5) + 5;
+
+      // Data
+      const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+      const d = new Date();
+      // "Castanhal, XX de Mês de Ano."
+      const dateText = `Castanhal, ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}.`;
+      doc.text(dateText, PAGE_WIDTH - MARGIN, nextY, { align: 'right' });
+
+      // --- ASSINATURAS ---
+      // Diretor, Vice-Diretor, Coord. Ed. Especial
+      let sigY = nextY + 25; // Espaço para assinar
+      if (sigY > 190) { // Se estiver muito no fim da página
+        doc.addPage();
+        sigY = 40;
+      }
+
+      // Dividir largura content em 3 partes
+      const partWidth = CONTENT_WIDTH / 3;
+
+      // Linhas
+      doc.setLineWidth(0.2);
+      // Diretor (Centro da parte 1)
+      const x1 = MARGIN + (partWidth * 0.1);
+      const w1 = partWidth * 0.8;
+      doc.line(x1, sigY, x1 + w1, sigY);
+
+      // Vice (Centro da parte 2)
+      const x2 = MARGIN + partWidth + (partWidth * 0.1);
+      const w2 = partWidth * 0.8;
+      doc.line(x2, sigY, x2 + w2, sigY);
+
+      // Coord (Centro da parte 3)
+      const x3 = MARGIN + (2 * partWidth) + (partWidth * 0.1);
+      const w3 = partWidth * 0.8;
+      doc.line(x3, sigY, x3 + w3, sigY);
+
+      // Cargos
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Diretor", x1 + (w1 / 2), sigY + 5, { align: "center" });
+      doc.text("Vice-Diretor", x2 + (w2 / 2), sigY + 5, { align: "center" });
+      doc.text("Coord. Educação Especial", x3 + (w3 / 2), sigY + 5, { align: "center" });
+
+      doc.save(`pre_lotacao_${school?.name}_2026.pdf`);
 
     } catch (e) {
       console.error(e);
