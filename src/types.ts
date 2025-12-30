@@ -47,7 +47,7 @@ export interface Staff {
   name: string;
   registration: string;
   role: 'Professor AEE' | 'Intérprete' | 'Apoio' | 'Psicólogo';
-  contractType: 'Efetivo' | 'Contrato' | 'Municipalizado';
+  contractType: 'Efetivo' | 'Efetivo Função' | 'Efetivo Cargo' | 'Temporário' | 'Contrato' | 'Municipalizado';
   hoursTotal: number;
   hoursAvailable: number;
   avatar?: string;

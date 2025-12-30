@@ -335,6 +335,8 @@ const StaffPage: React.FC = () => {
                   >
                     <option value="">Selecione o vínculo</option>
                     <option>Efetivo</option>
+                    <option>Efetivo Função</option>
+                    <option>Efetivo Cargo</option>
                     <option>Temporário</option>
                   </select>
                   <span className="absolute right-3 top-3 text-slate-400 material-symbols-outlined pointer-events-none">expand_more</span>
@@ -456,7 +458,7 @@ const StaffPage: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${staff.contractType === 'Efetivo'
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${staff.contractType && staff.contractType.includes('Efetivo')
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                       : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                       }`}>
