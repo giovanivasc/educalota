@@ -61,21 +61,100 @@ const Reports: React.FC = () => {
       .eq('school_id', selectedSchoolId);
 
     // Merge data: Group by Class
-    const reportData = classesData.map(cls => {
+    let reportData = classesData.map(cls => {
       const classAllotments = allotmentsData?.filter((a: any) => a.class_id === cls.id) || [];
       const staffList = classAllotments.map((a: any) => a.staff).filter(Boolean);
       const studentList = cls.students || [];
 
       return {
         classId: cls.id,
-        series: cls.series, // "5º Ano A" if that's what is saved
+        series: cls.series, // "5º Ano"
+        section: cls.section, // "A"
         shift: cls.shift,
-        modality: cls.modality || '-', // Use direct field
+        modality: cls.modality || '-',
         year: cls.year,
         obs: cls.obs,
         students: studentList,
         staff: staffList
       };
+    });
+
+    // Custom Sort
+    const getModalityOrder = (m: string) => {
+      if (!m) return 99;
+      const v = m.toLowerCase();
+      if (v.includes("infantil")) return 1;
+      if (v.includes("anos iniciais")) return 2;
+      if (v.includes("anos finais")) return 3;
+      if (v.includes("eja")) return 4;
+      if (v.includes("especial")) return 5;
+      return 99;
+    };
+
+    const getSeriesOrder = (s: string) => {
+      if (!s) return 99;
+      const v = s.toLowerCase();
+      if (v.includes("2 anos")) return 1;
+      if (v.includes("3 anos")) return 2;
+      if (v.includes("4 anos")) return 3;
+      if (v.includes("5 anos")) return 4;
+      if (v.includes("1º")) return 5;
+      if (v.includes("2º")) return 6;
+      if (v.includes("3º")) return 7;
+      if (v.includes("4º")) return 8;
+      if (v.includes("5º")) return 9;
+      if (v.includes("6º")) return 10;
+      if (v.includes("7º")) return 11;
+      if (v.includes("8º")) return 12;
+      if (v.includes("9º")) return 13;
+      if (v.includes("1ª etapa")) return 14;
+      if (v.includes("2ª etapa")) return 15;
+      if (v.includes("srm")) return 16;
+      return 99;
+    };
+
+    const getSectionOrder = (s: string) => {
+      if (!s) return 99;
+      const v = s.toLowerCase();
+      if (v === 'a') return 1;
+      if (v === 'b') return 2;
+      if (v === 'c') return 3;
+      if (v === 'd') return 4;
+      if (v.includes("mista")) return 5;
+      if (v.includes("multi")) return 6;
+      if (v.includes("aee")) return 7;
+      return 50; // Alphabetical fallback?
+    };
+
+    const getShiftOrder = (s: string) => {
+      if (!s) return 99;
+      const v = s.toLowerCase();
+      if (v.includes("matutino")) return 1;
+      if (v.includes("vespertino")) return 2;
+      if (v.includes("integral")) return 3;
+      return 99;
+    };
+
+    reportData.sort((a, b) => {
+      // 1. Modality
+      const modA = getModalityOrder(a.modality);
+      const modB = getModalityOrder(b.modality);
+      if (modA !== modB) return modA - modB;
+
+      // 2. Series
+      const serA = getSeriesOrder(a.series);
+      const serB = getSeriesOrder(b.series);
+      if (serA !== serB) return serA - serB;
+
+      // 3. Section (Turma)
+      const secA = getSectionOrder(a.section);
+      const secB = getSectionOrder(b.section);
+      if (secA !== secB) return secA - secB;
+
+      // 4. Shift
+      const shiftA = getShiftOrder(a.shift);
+      const shiftB = getShiftOrder(b.shift);
+      return shiftA - shiftB;
     });
 
     return { school, reportData };
