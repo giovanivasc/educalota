@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { School, Staff, Student } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
+import { sortClasses } from '../lib/sorting';
 
 const Allotment: React.FC = () => {
   const [schools, setSchools] = useState<School[]>([]);
@@ -33,9 +34,15 @@ const Allotment: React.FC = () => {
 
   const fetchClasses = async (schoolId: string) => {
     const { data } = await supabase.from('classes').select('*').eq('school_id', schoolId);
-    setClasses(data || []);
-    if (data && data.length > 0) setSelectedClass(data[0].id);
-    else setSelectedClass('');
+    if (data) {
+      const sorted = data.sort(sortClasses);
+      setClasses(sorted);
+      if (sorted.length > 0) setSelectedClass(sorted[0].id);
+      else setSelectedClass('');
+    } else {
+      setClasses([]);
+      setSelectedClass('');
+    }
   };
 
   useEffect(() => {
@@ -461,8 +468,8 @@ const Allotment: React.FC = () => {
                                 <span
                                   key={idx}
                                   className={`text-[10px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded ${support === 'Não necessita'
-                                      ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                    ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                                     }`}
                                 >
                                   {support}

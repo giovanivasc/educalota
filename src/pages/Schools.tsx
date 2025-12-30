@@ -4,6 +4,7 @@ import { School } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { BulkImporter } from '../components/BulkImporter';
+import { sortClasses } from '../lib/sorting';
 
 const Schools: React.FC = () => {
   const [view, setView] = useState<'list' | 'create' | 'classes'>('list');
@@ -146,11 +147,13 @@ const Schools: React.FC = () => {
     const { data, error } = await supabase
       .from('classes')
       .select('*, students(count)')
-      .eq('school_id', schoolId)
-      .order('created_at', { ascending: false });
+      .eq('school_id', schoolId);
 
     if (error) console.error(error);
-    else setClasses(data || []);
+    else {
+      const sortedData = (data || []).sort(sortClasses);
+      setClasses(sortedData);
+    }
   };
 
   const handleSaveClass = async () => {
