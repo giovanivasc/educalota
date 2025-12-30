@@ -140,6 +140,16 @@ const Reports: React.FC = () => {
     }
   };
 
+  const getBase64FromUrl = async (url: string): Promise<string> => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  };
+
   const generatePDF = async () => {
     if (!selectedSchoolId) {
       alert('Selecione uma escola primeiro.');
@@ -163,17 +173,43 @@ const Reports: React.FC = () => {
       const PAGE_WIDTH = 297;
       const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
 
+      // Carregar Logos
+      let imgPref, imgSemed, imgCoord;
+      try {
+        [imgPref, imgSemed, imgCoord] = await Promise.all([
+          getBase64FromUrl('/img/logo_pref.jpg'),
+          getBase64FromUrl('/img/logo_semed.jpg'),
+          getBase64FromUrl('/img/logo_coord.jpg')
+        ]);
+      } catch (err) {
+        console.warn("Logos não carregadas", err);
+      }
+
       // --- CABEÇALHO ---
-      // Imagens (Placeholders)
       // Esquerda: Logo Prefeitura
-      doc.setDrawColor(200);
-      doc.rect(MARGIN, MARGIN, 25, 25, "S"); // Borda do placeholder
-      doc.setFontSize(8);
-      doc.text("LOGO PREF", MARGIN + 2, MARGIN + 12);
+      if (imgPref) {
+        doc.addImage(imgPref, 'JPEG', MARGIN, MARGIN, 25, 20);
+      }
 
       // Direita: Logos SEMED e Coord
-      doc.rect(PAGE_WIDTH - MARGIN - 50, MARGIN, 50, 25, "S"); // Placeholder largo
-      doc.text("LOGOS SEMED/COORD", PAGE_WIDTH - MARGIN - 48, MARGIN + 12);
+      const logoY = MARGIN;
+
+      // Coord Ed Especial (Arvore) - Direita Extrema
+      const coordW = 20;
+      const coordX = PAGE_WIDTH - MARGIN - coordW;
+
+      if (imgCoord) {
+        doc.addImage(imgCoord, 'JPEG', coordX, logoY, coordW, 20);
+      }
+
+      // SEMED (Texto) - A esquerda da Coord
+      const semedW = 40;
+      const semedX = coordX - semedW - 2;
+
+      if (imgSemed) {
+        // Ajustar aspecto da SEMED (mais larga e baixa)
+        doc.addImage(imgSemed, 'JPEG', semedX, logoY + 2, semedW, 15);
+      }
 
       // Texto Central
       doc.setFont("helvetica", "bold");
