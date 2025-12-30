@@ -501,7 +501,7 @@ const Allotment: React.FC = () => {
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
               <h2 className="font-bold flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">assignment_ind</span>
-                Servidores Já Lotados nesta Turma
+                Servidores lotados
               </h2>
             </div>
             <div className="p-0">
