@@ -180,9 +180,79 @@ const Allotment: React.FC = () => {
         const workload = staffWorkloads[staffId] || 100;
 
         // Check availability locally first (optional, but good UX)
+        // Bypass availability check if we are dealing with overtime logic expansion (150 -> 200) handled by system rules?
+        // Use user logic: 150h base, expansion to 200h (50h overtime).
+        // If current available is < workload, check if this fits the expansion criteria.
+        // Actually the availability in database should reflect the 200h cap if updated correctly.
+        // Assuming staff.hours_available tracks the remaining from TOTAL (which might be 150 or 200).
+        // Let's trust existing validation for now, or assume 200h total for these roles was set in Staff page.
+
         if ((staff?.hoursAvailable || 0) < workload) {
           alert(`O servidor ${staff?.name} não possui ${workload}h disponíveis. Saldo atual: ${staff?.hoursAvailable}h.`);
-          throw new Error('Carga horária insuficiente');
+          continue; // Skip this staff instead of throwing entire error
+        }
+
+        // --- Logic for Overtime (Mediador/Cuidador) ---
+        let finalRoleString = `${staff?.role} - ${workload}h`;
+        const isSpecialRole = ['Mediador', 'Cuidador'].includes(staff?.role);
+
+        // Fetch current active allotments to check hierarchy
+        const { data: currentAllotments } = await supabase
+          .from('allotments')
+          .select('id, class_id, staff_role')
+          .eq('staff_id', staffId)
+          .eq('status', 'Ativo');
+
+        if (isSpecialRole && currentAllotments && currentAllotments.length > 0) {
+          // Get shift weights
+          const shiftWeight: Record<string, number> = { 'Matutino': 1, 'Vespertino': 2, 'Noturno': 3, 'Integral': 4 };
+
+          // New Class Shift
+          const newClassShift = cls?.shift || 'Matutino';
+          const newWeight = shiftWeight[newClassShift] || 0;
+
+          // Check current total hours to see if we reached 200h cap scenario
+          // Extract current hours sum
+          const currentHoursSum = currentAllotments.reduce((acc, curr) => {
+            const m = (curr.staff_role || '').match(/- (\d+)h/);
+            return acc + (m ? parseInt(m[1]) : 0);
+          }, 0);
+
+          if (currentHoursSum + workload >= 200) {
+            const overtimeSuffix = ' (50h em regime de hora extra)';
+            let updatedOld = false;
+
+            for (const existing of currentAllotments) {
+              // Fetch class for existing allotment to know shift
+              if (existing.class_id) {
+                const { data: existingClass } = await supabase.from('classes').select('shift').eq('id', existing.class_id).single();
+                if (existingClass) {
+                  const oldWeight = shiftWeight[existingClass.shift] || 0;
+
+                  // Compare Logic
+                  if (newWeight > oldWeight) {
+                    // New is later (inferior) -> New gets overtime
+                    // Check if not already added to avoid duplication if logic runs multiple times (unlikely here)
+                    if (!finalRoleString.includes(overtimeSuffix)) {
+                      finalRoleString += overtimeSuffix;
+                    }
+                  } else if (oldWeight > newWeight) {
+                    // Old is later -> Old gets overtime
+                    // We need to update the existing allotment in DB
+                    if (!existing.staff_role.includes(overtimeSuffix)) {
+                      const newOldRole = existing.staff_role + overtimeSuffix;
+                      await supabase.from('allotments').update({ staff_role: newOldRole }).eq('id', existing.id);
+                      updatedOld = true;
+                    }
+                  }
+                  // If weights equal? (e.g. Afternoon + Afternoon). Usually shouldn't happen for same person, but if so, maybe just mark the new one as extra.
+                  else if (newWeight === oldWeight) {
+                    finalRoleString += overtimeSuffix;
+                  }
+                }
+              }
+            }
+          }
         }
 
         inserts.push({
@@ -190,7 +260,7 @@ const Allotment: React.FC = () => {
           school_id: selectedSchool,
           class_id: selectedClass || null,
           staff_name: staff?.name,
-          staff_role: `${staff?.role} - ${workload}h`,
+          staff_role: finalRoleString,
           school_name: school?.name,
           status: 'Ativo',
           date: new Date().toLocaleDateString('pt-BR')
@@ -205,8 +275,6 @@ const Allotment: React.FC = () => {
 
         if (updateError) {
           console.error('Error updating staff hours:', updateError);
-          // Continue despite update error? Or prevent?
-          // For now log it.
         }
       }
 
