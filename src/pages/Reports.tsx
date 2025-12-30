@@ -2,8 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
+  ImageRun,
+  AlignmentType,
+  VerticalAlign,
+  PageOrientation,
+  VerticalMergeType,
+  Header
+} from 'docx';
+import { saveAs } from 'file-saver';
 
 const Reports: React.FC = () => {
   const [schools, setSchools] = useState<{ id: string, name: string, director?: string, vice_director?: string }[]>([]);
@@ -140,17 +156,13 @@ const Reports: React.FC = () => {
     }
   };
 
-  const getBase64FromUrl = async (url: string): Promise<string> => {
+  const getArrayBufferFromUrl = async (url: string): Promise<ArrayBuffer> => {
     const res = await fetch(url);
     const blob = await res.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
+    return await blob.arrayBuffer();
   };
 
-  const generatePDF = async () => {
+  const generateDoc = async () => {
     if (!selectedSchoolId) {
       alert('Selecione uma escola primeiro.');
       return;
@@ -161,100 +173,159 @@ const Reports: React.FC = () => {
       if (!data) throw new Error("Dados não encontrados");
       const { school, reportData } = data;
 
-      // Configuração A4 Paisagem (Landscape)
-      // jsPDF units: mm. A4 Landscape = 297mm x 210mm
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
+      // 1. Carregar Images (ArrayBuffer)
+      let imgPrefBuf, imgSemedBuf, imgCoordBuf;
+      try {
+        [imgPrefBuf, imgSemedBuf, imgCoordBuf] = await Promise.all([
+          getArrayBufferFromUrl('/img/logo_pref.jpg'),
+          getArrayBufferFromUrl('/img/logo_semed.jpg'),
+          getArrayBufferFromUrl('/img/logo_coord.jpg')
+        ]);
+      } catch (e) {
+        console.warn('Erro ao carregar imagens', e);
+      }
+
+      // Utils para bordas
+      const noBorder = { style: BorderStyle.NONE, size: 0, color: "auto" };
+      const tableBorders = {
+        top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+        bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+        left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+        right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+      };
+
+      // HEADER TABLE (Invisible Layout)
+      // Row 1: Logo Pref (Left), Text (Center), Logos (Right)
+      const headerTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: noBorder, bottom: noBorder, left: noBorder, right: noBorder,
+          insideVertical: noBorder, insideHorizontal: noBorder
+        },
+        rows: [
+          new TableRow({
+            children: [
+              // Cell 1: Pref Logo
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [
+                  imgPrefBuf ? new Paragraph({
+                    children: [new ImageRun({
+                      data: imgPrefBuf,
+                      transformation: { width: 80, height: 60 },
+                      type: "jpg"
+                    })]
+                  }) : new Paragraph("LOGO PREF")
+                ]
+              }),
+              // Cell 2: Center Text
+              new TableCell({
+                width: { size: 55, type: WidthType.PERCENTAGE },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [new TextRun({ text: "PREFEITURA MUNICIPAL DE CASTANHAL", bold: true, size: 24 })] // size in half-points (24 = 12pt)
+                  }),
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [new TextRun({ text: "SECRETARIA MUNICIPAL DE EDUCAÇÃO", bold: true, size: 24 })]
+                  }),
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [new TextRun({ text: "COORDENADORIA DE EDUCAÇÃO ESPECIAL", bold: true, size: 24 })]
+                  })
+                ]
+              }),
+              // Cell 3: Right Logos (Semed + Coord)
+              new TableCell({
+                width: { size: 30, type: WidthType.PERCENTAGE },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.RIGHT,
+                    children: [
+                      ...(imgSemedBuf ? [new ImageRun({
+                        data: imgSemedBuf,
+                        transformation: { width: 100, height: 40 },
+                        type: "jpg"
+                      })] : []),
+                      new TextRun("   "),
+                      ...(imgCoordBuf ? [new ImageRun({
+                        data: imgCoordBuf,
+                        transformation: { width: 50, height: 50 },
+                        type: "jpg"
+                      })] : [])
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
       });
 
-      const MARGIN = 12.7;
-      const PAGE_WIDTH = 297;
-      const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+      // Separator Line
+      const separator = new Paragraph({
+        border: { bottom: { color: "000000", space: 1, style: BorderStyle.SINGLE, size: 6 } },
+        spacing: { after: 200 }
+      });
 
-      // Carregar Logos
-      let imgPref, imgSemed, imgCoord;
-      try {
-        [imgPref, imgSemed, imgCoord] = await Promise.all([
-          getBase64FromUrl('/img/logo_pref.jpg'),
-          getBase64FromUrl('/img/logo_semed.jpg'),
-          getBase64FromUrl('/img/logo_coord.jpg')
-        ]);
-      } catch (err) {
-        console.warn("Logos não carregadas", err);
-      }
+      // Title
+      const title = new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 200, after: 200 },
+        children: [
+          new TextRun({ text: "PRÉ-LOTAÇÃO DA EDUCAÇÃO ESPECIAL 2026", bold: true, size: 28 }) // 14pt
+        ]
+      });
 
-      // --- CABEÇALHO ---
-      // Esquerda: Logo Prefeitura
-      if (imgPref) {
-        doc.addImage(imgPref, 'JPEG', MARGIN, MARGIN, 25, 20);
-      }
+      // School Info
+      const schoolInfo = [
+        new Paragraph({
+          children: [new TextRun({ text: `Escola: ${school?.name || ''}`, bold: true, size: 22 })]
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: `Diretor: ${school?.director || '-'} | Vice-Diretor: ${school?.vice_director || '-'}`, size: 22 })]
+        }),
+        new Paragraph({
+          spacing: { after: 200 },
+          children: [new TextRun({ text: `Ano Letivo: ${selectedYear}`, size: 22 })]
+        })
+      ];
 
-      // Direita: Logos SEMED e Coord
-      const logoY = MARGIN;
+      // MAIN TABLE
+      // Headers
+      const tableHeaderRow = new TableRow({
+        tableHeader: true,
+        children: [
+          "Modalidade", "Série", "Turno", "Estudantes", "Servidor", "Cargo", "CH"
+        ].map(text => new TableCell({
+          shading: { fill: "2980B9", color: "FFFFFF" }, // Blue background
+          verticalAlign: VerticalAlign.CENTER,
+          children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text, bold: true, color: "FFFFFF", size: 18 })]
+          })]
+        }))
+      });
 
-      // Coord Ed Especial (Arvore) - Direita Extrema
-      const coordW = 20;
-      const coordX = PAGE_WIDTH - MARGIN - coordW;
-
-      if (imgCoord) {
-        doc.addImage(imgCoord, 'JPEG', coordX, logoY, coordW, 20);
-      }
-
-      // SEMED (Texto) - A esquerda da Coord
-      const semedW = 40;
-      const semedX = coordX - semedW - 2;
-
-      if (imgSemed) {
-        // Ajustar aspecto da SEMED (mais larga e baixa)
-        doc.addImage(imgSemed, 'JPEG', semedX, logoY + 2, semedW, 15);
-      }
-
-      // Texto Central
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      const headerTextX = PAGE_WIDTH / 2;
-      const headerTextY = MARGIN + 8;
-
-      doc.text("PREFEITURA MUNICIPAL DE CASTANHAL", headerTextX, headerTextY, { align: "center" });
-      doc.text("SECRETARIA MUNICIPAL DE EDUCAÇÃO", headerTextX, headerTextY + 6, { align: "center" });
-      doc.text("COORDENADORIA DE EDUCAÇÃO ESPECIAL", headerTextX, headerTextY + 12, { align: "center" });
-
-      // Linha separadora
-      doc.setLineWidth(0.5);
-      doc.line(MARGIN, MARGIN + 28, PAGE_WIDTH - MARGIN, MARGIN + 28);
-
-      // --- IDENTIFICAÇÃO ---
-      doc.setFontSize(14);
-      doc.text("PRÉ-LOTAÇÃO DA EDUCAÇÃO ESPECIAL 2026", headerTextX, MARGIN + 38, { align: "center" });
-
-      // Dados da Escola
-      let currentY = MARGIN + 50;
-      doc.setFontSize(11);
-
-      doc.setFont("helvetica", "bold");
-      doc.text(`Escola: ${school?.name || ''}`, MARGIN, currentY);
-
-      currentY += 6;
-      doc.setFont("helvetica", "normal");
-      doc.text(`Diretor: ${school?.director || '-'} | Vice-Diretor: ${school?.vice_director || '-'}`, MARGIN, currentY);
-
-      // Ano Letivo
-      currentY += 6;
-      doc.text(`Ano Letivo: ${selectedYear}`, MARGIN, currentY);
-
-      // Espaço para tabela
-      currentY += 8;
-
-      // --- PREPARAÇÃO DA TABELA ---
-      const tableBody: any[] = [];
-      const rowSpans: { row: number, span: number }[] = [];
-
+      // Body Rows
+      const tableRows: TableRow[] = [];
       let rowIndex = 0;
 
+      // Flat map rows first to handle spans manually
+      // We iterate classes, then staff.
+      // Logic: 
+      // For each class:
+      //   rows = staff.length || 1
+      //   First row gets RESTART merge for Cols 0-3.
+      //   Subsequent rows get CONTINUE merge for Cols 0-3.
+
       reportData.forEach(cls => {
-        // Tratar abreviações de modalidade
         let mod = cls.modality || '-';
         if (mod.includes("Educação Infantil")) mod = "EI";
         else if (mod.includes("Anos Iniciais")) mod = "AI";
@@ -263,140 +334,147 @@ const Reports: React.FC = () => {
         else if (mod.includes("Educação Especial")) mod = "EE";
 
         const studentsStr = cls.students.map((s: any) => s.name).join(', ');
-
-        // Se não houver staff, criamos uma linha vazia para mostrar a turma
-        // Mas a lógica pede para mostrar servidores. Se não tem servidor, a linha deve aparecer?
-        // Assumindo que sim, com campos de servidor vazios.
         const staffList = (cls.staff && cls.staff.length > 0) ? cls.staff : [null];
-        const spanCount = staffList.length;
 
-        // Armazenar onde começa este grupo e qual o tamanho dele
-        rowSpans.push({ row: rowIndex, span: spanCount });
+        staffList.forEach((st: any, i: number) => {
+          const isFirst = i === 0;
+          const mergeType = isFirst ? VerticalMergeType.RESTART : VerticalMergeType.CONTINUE; // Fix: docx restart/continue logic
 
-        staffList.forEach((st: any) => {
-          tableBody.push([
-            mod,
-            cls.series || '-',
-            cls.shift || '-',
-            studentsStr || '-',
-            st ? st.name : '-',
-            st ? st.role : '-',
-            st ? (st.hours_total || '-') : '-'
-          ]);
-          rowIndex++;
+          // Actually, docx uses 'restart' on the first cell and 'continue' on subsequent cells in the same column index.
+
+          const row = new TableRow({
+            children: [
+              // Col 0: Modality
+              new TableCell({
+                verticalMerge: mergeType,
+                verticalAlign: VerticalAlign.CENTER,
+                children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: mod, size: 18 })] })] : []
+              }),
+              // Col 1: Series
+              new TableCell({
+                verticalMerge: mergeType,
+                verticalAlign: VerticalAlign.CENTER,
+                children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: cls.series || '-', size: 18 })] })] : []
+              }),
+              // Col 2: Shift
+              new TableCell({
+                verticalMerge: mergeType,
+                verticalAlign: VerticalAlign.CENTER,
+                children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: cls.shift || '-', size: 18 })] })] : []
+              }),
+              // Col 3: Students
+              new TableCell({
+                verticalMerge: mergeType,
+                verticalAlign: VerticalAlign.CENTER,
+                width: { size: 3000, type: WidthType.DXA }, // Wider
+                children: isFirst ? [new Paragraph({ children: [new TextRun({ text: studentsStr || '-', size: 18 })] })] : []
+              }),
+              // Col 4: Server
+              new TableCell({
+                verticalAlign: VerticalAlign.CENTER,
+                children: [new Paragraph({ children: [new TextRun({ text: st ? st.name : '-', size: 18 })] })]
+              }),
+              // Col 5: Role
+              new TableCell({
+                verticalAlign: VerticalAlign.CENTER,
+                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: st ? st.role : '-', size: 18 })] })]
+              }),
+              // Col 6: Hours
+              new TableCell({
+                verticalAlign: VerticalAlign.CENTER,
+                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: st ? (st.hours_total || '-') : '-', size: 18 })] })]
+              })
+            ]
+          });
+          tableRows.push(row);
         });
       });
 
-      // --- TABELA ---
-      autoTable(doc, {
-        startY: currentY,
-        head: [['Modalidade', 'Série', 'Turno', 'Estudantes', 'Servidor', 'Cargo', 'CH']],
-        body: tableBody,
-        theme: 'grid',
-        styles: {
-          font: "helvetica",
-          fontSize: 9,
-          cellPadding: 2,
-          valign: 'middle',
-          halign: 'center',
-          lineColor: [0, 0, 0],
-          lineWidth: 0.1,
-          textColor: [0, 0, 0]
-        },
-        headStyles: {
-          fillColor: [255, 255, 255], // Cabeçalho Branco ou Cinza Claro? O print parece Azul escuro.
-          // O usuário não especificou cor, mas "títulos negrito".
-          // Vamos usar um azul padrão ou manter simples. O modelo mostra Azul.
-          fillColor: [41, 128, 185], // Azul
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-          halign: 'center'
-        },
-        columnStyles: {
-          0: { cellWidth: 20 }, // Modalidade
-          1: { cellWidth: 20 }, // Série
-          2: { cellWidth: 25 }, // Turno
-          3: { cellWidth: 'auto' }, // Estudantes (Expandir)
-          4: { cellWidth: 50 }, // Servidor
-          5: { cellWidth: 30 }, // Cargo
-          6: { cellWidth: 15 }  // CH
-        },
-        margin: { left: MARGIN, right: MARGIN },
-        didParseCell: (data) => {
-          // Aplicar rowSpan nas colunas 0, 1, 2, 3
-          if (data.section === 'body' && [0, 1, 2, 3].includes(data.column.index)) {
-            const rIndex = data.row.index;
-            const spanObj = rowSpans.find(s => s.row === rIndex);
-            if (spanObj) {
-              data.cell.rowSpan = spanObj.span;
-            }
-          }
-        }
+      const mainTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: tableBorders,
+        rows: [tableHeaderRow, ...tableRows]
       });
 
-      // --- TERMO DE CONCORDÂNCIA ---
-      // Pega o Y final da tabela
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      // Terms
+      const terms = new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { before: 400 },
+        children: [
+          new TextRun({
+            text: "Declaro que, no exercício de minhas funções como gestor escolar, realizei e estou de pleno acordo com a pré-lotação dos servidores da Educação Especial, efetuada em conjunto com a Coordenadoria de Educação Especial, para o exercício de suas funções no ano letivo de 2026. Declaro, ainda, que fui devidamente informado(a) e estou ciente de que essa pré-lotação poderá sofrer alterações, a critério da Secretaria Municipal de Educação, sempre que houver necessidade em razão do interesse público.",
+            size: 20 // 10pt
+          })
+        ]
+      });
 
-      // Controlar quebra de página se necessário
-      // (simplificado: se finalY > 160 mm, abre nova pagina - mas landscape vai ate 210mm)
-
-      const termo = "Declaro que, no exercício de minhas funções como gestor escolar, realizei e estou de pleno acordo com a pré-lotação dos servidores da Educação Especial, efetuada em conjunto com a Coordenadoria de Educação Especial, para o exercício de suas funções no ano letivo de 2026. Declaro, ainda, que fui devidamente informado(a) e estou ciente de que essa pré-lotação poderá sofrer alterações, a critério da Secretaria Municipal de Educação, sempre que houver necessidade em razão do interesse público.";
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const splitTermo = doc.splitTextToSize(termo, CONTENT_WIDTH);
-      doc.text(splitTermo, MARGIN, finalY);
-
-      const nextY = finalY + (splitTermo.length * 5) + 5;
-
-      // Data
+      // Date
       const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
       const d = new Date();
-      // "Castanhal, XX de Mês de Ano."
       const dateText = `Castanhal, ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}.`;
-      doc.text(dateText, PAGE_WIDTH - MARGIN, nextY, { align: 'right' });
 
-      // --- ASSINATURAS ---
-      // Diretor, Vice-Diretor, Coord. Ed. Especial
-      let sigY = nextY + 25; // Espaço para assinar
-      if (sigY > 190) { // Se estiver muito no fim da página
-        doc.addPage();
-        sigY = 40;
-      }
+      const datePara = new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        spacing: { before: 400, after: 800 },
+        children: [new TextRun({ text: dateText, size: 20 })]
+      });
 
-      // Dividir largura content em 3 partes
-      const partWidth = CONTENT_WIDTH / 3;
+      // Signatures
+      const sigTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: noBorder, bottom: noBorder, left: noBorder, right: noBorder,
+          insideVertical: noBorder, insideHorizontal: noBorder
+        },
+        rows: [
+          // Lines
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ border: { top: { style: BorderStyle.SINGLE, size: 1, color: "000000" } }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Diretor", bold: true, size: 18 })] })] }),
+              new TableCell({ width: { size: 500, type: WidthType.DXA }, children: [] }), // Gap
+              new TableCell({ children: [new Paragraph({ border: { top: { style: BorderStyle.SINGLE, size: 1, color: "000000" } }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Vice-Diretor", bold: true, size: 18 })] })] }),
+              new TableCell({ width: { size: 500, type: WidthType.DXA }, children: [] }), // Gap
+              new TableCell({ children: [new Paragraph({ border: { top: { style: BorderStyle.SINGLE, size: 1, color: "000000" } }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Coord. Educação Especial", bold: true, size: 18 })] })] }),
+            ]
+          })
+        ]
+      });
 
-      // Linhas
-      doc.setLineWidth(0.2);
-      // Diretor (Centro da parte 1)
-      const x1 = MARGIN + (partWidth * 0.1);
-      const w1 = partWidth * 0.8;
-      doc.line(x1, sigY, x1 + w1, sigY);
 
-      // Vice (Centro da parte 2)
-      const x2 = MARGIN + partWidth + (partWidth * 0.1);
-      const w2 = partWidth * 0.8;
-      doc.line(x2, sigY, x2 + w2, sigY);
+      // BUILD DOCUMENT
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              size: { orientation: PageOrientation.LANDSCAPE },
+              margin: {
+                top: 720, // 0.5 inch (1.27cm)
+                right: 720,
+                bottom: 720,
+                left: 720
+              }
+            }
+          },
+          children: [
+            headerTable,
+            separator,
+            title,
+            ...schoolInfo,
+            mainTable,
+            terms,
+            datePara,
+            sigTable
+          ]
+        }]
+      });
 
-      // Coord (Centro da parte 3)
-      const x3 = MARGIN + (2 * partWidth) + (partWidth * 0.1);
-      const w3 = partWidth * 0.8;
-      doc.line(x3, sigY, x3 + w3, sigY);
-
-      // Cargos
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text("Diretor", x1 + (w1 / 2), sigY + 5, { align: "center" });
-      doc.text("Vice-Diretor", x2 + (w2 / 2), sigY + 5, { align: "center" });
-      doc.text("Coord. Educação Especial", x3 + (w3 / 2), sigY + 5, { align: "center" });
-
-      doc.save(`pre_lotacao_${school?.name}_2026.pdf`);
+      // EXPORT
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `pre_lotacao_${school?.name}_2026.docx`);
 
     } catch (e) {
       console.error(e);
-      alert('Erro ao gerar PDF.');
+      alert('Erro ao gerar Documento.');
     } finally {
       setLoading(false);
     }
@@ -514,29 +592,29 @@ const Reports: React.FC = () => {
           </Button>
         </div>
 
-        {/* Card 2: PDF */}
+        {/* Card 2: PDF (actually DOCX now) */}
         <div className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-6 shadow-sm hover:shadow-xl hover:border-primary/30 transition-all">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex size-14 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 transition-transform group-hover:scale-110">
-                <span className="material-symbols-outlined text-3xl">picture_as_pdf</span>
+              <div className="flex size-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 transition-transform group-hover:scale-110">
+                <span className="material-symbols-outlined text-3xl">description</span>
               </div>
-              <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-[10px] font-black text-slate-500 uppercase">.PDF</span>
+              <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-[10px] font-black text-slate-500 uppercase">.DOC</span>
             </div>
             <div>
               <h3 className="text-xl font-black mb-2">Relatório de Pré-Lotação</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">Documento para conferência com lista de turmas, alunos e servidores.</p>
+              <p className="text-sm text-slate-500 leading-relaxed">Documento World editável para conferência com lista de turmas e servidores.</p>
             </div>
           </div>
           <Button
             variant="outline"
             className="mt-8 w-full h-12 border-2"
-            icon="print"
-            onClick={generatePDF}
+            icon="file_download"
+            onClick={generateDoc}
             disabled={!selectedSchoolId || loading}
             isLoading={loading}
           >
-            Gerar PDF
+            Gerar Documento
           </Button>
         </div>
       </div>
