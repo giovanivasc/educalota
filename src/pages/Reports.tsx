@@ -477,6 +477,7 @@ const Reports: React.FC = () => {
               value={selectedYear}
               onChange={e => setSelectedYear(e.target.value)}
             >
+              <option>2026</option>
               <option>2025</option>
               <option>2024</option>
               <option>2023</option>
