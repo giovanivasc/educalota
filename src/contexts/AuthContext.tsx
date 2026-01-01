@@ -39,6 +39,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.auth.signOut();
     };
 
+    // Monitor inactivity
+    useEffect(() => {
+        if (!session) return;
+
+        const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 hour
+        const CHECK_INTERVAL = 60 * 1000; // Check every minute
+        const lastActivity = { current: Date.now() };
+
+        const updateActivity = () => {
+            lastActivity.current = Date.now();
+        };
+
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+        events.forEach(event => window.addEventListener(event, updateActivity));
+
+        const checkInactivity = setInterval(() => {
+            if (Date.now() - lastActivity.current > INACTIVITY_LIMIT) {
+                console.log('User inactive for too long. Logging out...');
+                signOut();
+            }
+        }, CHECK_INTERVAL);
+
+        // Initial check in case the tab was already open for a long time (though session effects trigger on mount)
+        // Actually, setInterval is enough.
+
+        return () => {
+            events.forEach(event => window.removeEventListener(event, updateActivity));
+            clearInterval(checkInactivity);
+        };
+    }, [session]);
+
     const value = {
         user,
         session,
