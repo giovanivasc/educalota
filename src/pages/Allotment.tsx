@@ -4,6 +4,7 @@ import { School, Staff, Student } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { sortClasses } from '../lib/sorting';
+import { generateExcel, generateDoc } from '../lib/reports';
 
 const Allotment: React.FC = () => {
   const [schools, setSchools] = useState<School[]>([]);
@@ -383,6 +384,29 @@ const Allotment: React.FC = () => {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* ... inside the component ... */}
+
+      <div className="flex justify-end gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          icon="description"
+          onClick={() => selectedSchool && generateDoc(selectedSchool, "2026")}
+          disabled={!selectedSchool}
+        >
+          Pré-Lotação (.doc)
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          icon="table_view"
+          onClick={() => selectedSchool && generateExcel(selectedSchool, "2026")}
+          disabled={!selectedSchool}
+        >
+          Planilha (.xlsx)
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
