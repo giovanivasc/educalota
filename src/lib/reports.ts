@@ -156,6 +156,12 @@ const getModalityAbbr = (mod: string) => {
     if (mod.includes("Educação Infantil")) return "EI";
     if (mod.includes("Anos Iniciais") || mod.includes("1º/5º")) return "EF-1";
     if (mod.includes("Anos Finais") || mod.includes("6º/9º")) return "EF-2";
+    if (mod.includes("Ensino Fundamental")) {
+        // Fallback genérico ou específico se a string mudar levemente
+        if (mod.includes("Iniciais") || mod.includes("5º")) return "EF-1";
+        if (mod.includes("Finais") || mod.includes("9º")) return "EF-2";
+        return "EF";
+    }
     if (mod.includes("EJA")) return "EJA";
     if (mod.includes("Educação Especial")) return "EE";
     return mod;
