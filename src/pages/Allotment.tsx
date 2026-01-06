@@ -4,7 +4,7 @@ import { School, Staff, Student } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { sortClasses } from '../lib/sorting';
-import { generateExcel, generateDoc } from '../lib/reports';
+import { generateExcel, generateDoc, generatePDF } from '../lib/reports';
 
 const Allotment: React.FC = () => {
   const [schools, setSchools] = useState<School[]>([]);
@@ -27,6 +27,7 @@ const Allotment: React.FC = () => {
   const [selectedShift, setSelectedShift] = useState(''); // New state for shift filter
   const [classObs, setClassObs] = useState(''); // New state for class observations
   const [savingObs, setSavingObs] = useState(false);
+  const [showReportMenu, setShowReportMenu] = useState(false);
 
   useEffect(() => {
     if (selectedSchool) {
@@ -458,16 +459,43 @@ const Allotment: React.FC = () => {
 
       {/* ... inside the component ... */}
 
-      <div className="flex justify-end gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          icon="description"
-          onClick={() => selectedSchool && generateDoc(selectedSchool, "2026")}
-          disabled={!selectedSchool}
-        >
-          Pré-Lotação (.doc)
-        </Button>
+      <div className="flex justify-end gap-3 relative">
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="sm"
+            icon="description"
+            onClick={() => setShowReportMenu(!showReportMenu)}
+            disabled={!selectedSchool}
+          >
+            Gerar Pré-Lotação
+          </Button>
+          {showReportMenu && (
+            <div className="absolute top-full right-0 mt-2 w-40 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 overflow-hidden">
+              <button
+                className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                onClick={() => {
+                  if (selectedSchool) generateDoc(selectedSchool, "2026");
+                  setShowReportMenu(false);
+                }}
+              >
+                <span className="material-symbols-outlined text-base">description</span>
+                Formato .DOCX
+              </button>
+              <button
+                className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                onClick={() => {
+                  if (selectedSchool) generatePDF(selectedSchool, "2026"); // Call new PDF function
+                  setShowReportMenu(false);
+                }}
+              >
+                <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                Formato .PDF
+              </button>
+            </div>
+          )}
+        </div>
+
         <Button
           variant="outline"
           size="sm"
