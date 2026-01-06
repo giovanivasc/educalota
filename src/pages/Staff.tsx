@@ -65,7 +65,7 @@ const StaffPage: React.FC = () => {
     }
   };
 
-  const filteredStaff = staffList.filter(s => {
+  const filteredStaff = staffList.filter((s: Staff) => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.registration.includes(searchTerm);
@@ -146,7 +146,7 @@ const StaffPage: React.FC = () => {
       const { error } = await supabase.from('staff').delete().eq('id', id);
       if (error) throw error;
 
-      setStaffList(prev => prev.filter(s => s.id !== id));
+      setStaffList((prev: Staff[]) => prev.filter((s: Staff) => s.id !== id));
       alert('Servidor excluído com sucesso!');
     } catch (e: any) {
       console.error(e);
@@ -217,7 +217,7 @@ const StaffPage: React.FC = () => {
   const handleUpdateWorkload = async () => {
     if (!editingAllotmentId || !viewAllotmentId) return;
 
-    const allotment = staffAllotments.find(a => a.id === editingAllotmentId);
+    const allotment = staffAllotments.find((a: any) => a.id === editingAllotmentId);
     if (!allotment) return;
 
     if (newWorkload === allotment.hours) {
@@ -297,7 +297,7 @@ const StaffPage: React.FC = () => {
                 <div className="relative">
                   <input
                     value={newStaff.name}
-                    onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStaff({ ...newStaff, name: e.target.value })}
                     className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     placeholder="Ex: Ana Maria Silva"
                   />
@@ -312,7 +312,7 @@ const StaffPage: React.FC = () => {
                 <div className="relative">
                   <select
                     value={newStaff.role}
-                    onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewStaff({ ...newStaff, role: e.target.value })}
                     className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none"
                   >
                     <option value="">Selecione o cargo</option>
@@ -330,7 +330,7 @@ const StaffPage: React.FC = () => {
                 <div className="relative">
                   <select
                     value={newStaff.contractType}
-                    onChange={(e) => setNewStaff({ ...newStaff, contractType: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewStaff({ ...newStaff, contractType: e.target.value })}
                     className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none"
                   >
                     <option value="">Selecione o vínculo</option>
@@ -350,7 +350,7 @@ const StaffPage: React.FC = () => {
                 <div className="relative">
                   <select
                     value={newStaff.hoursTotal}
-                    onChange={(e) => setNewStaff({ ...newStaff, hoursTotal: parseInt(e.target.value) })}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewStaff({ ...newStaff, hoursTotal: parseInt(e.target.value) })}
                     className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none"
                   >
                     <option value="100">100h</option>
@@ -397,12 +397,13 @@ const StaffPage: React.FC = () => {
               placeholder="Buscar por nome, cargo ou matrícula..."
               className="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
             />
           </div>
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            title="Filtrar por Cargo"
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRoleFilter(e.target.value)}
             className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark text-sm font-medium px-4 focus:ring-1 focus:ring-primary outline-none"
           >
             <option>Todos os Cargos</option>
@@ -414,7 +415,8 @@ const StaffPage: React.FC = () => {
           </select>
           <select
             value={availabilityFilter}
-            onChange={(e) => setAvailabilityFilter(e.target.value)}
+            title="Filtrar por Disponibilidade"
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAvailabilityFilter(e.target.value)}
             className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark text-sm font-medium px-4 focus:ring-1 focus:ring-primary outline-none"
           >
             <option>Todas as Disponibilidades</option>
@@ -471,13 +473,12 @@ const StaffPage: React.FC = () => {
                         <span>{staff.hoursAvailable}h livres</span>
                         <span className="text-slate-400">{staff.hoursTotal}h total</span>
                       </div>
-                      <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${(staff.hoursAvailable / staff.hoursTotal) > 0.5 ? 'bg-green-500' : 'bg-yellow-500'
-                            }`}
-                          style={{ width: `${(staff.hoursAvailable / staff.hoursTotal) * 100}%` }}
-                        />
-                      </div>
+                      <progress
+                        value={staff.hoursAvailable}
+                        max={staff.hoursTotal}
+                        className={`h-1.5 w-full rounded-full overflow-hidden appearance-none [&::-webkit-progress-bar]:bg-slate-100 dark:[&::-webkit-progress-bar]:bg-slate-800 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:transition-all [&::-webkit-progress-value]:duration-500 ${(staff.hoursAvailable / staff.hoursTotal) > 0.5 ? '[&::-webkit-progress-value]:bg-green-500' : '[&::-webkit-progress-value]:bg-yellow-500'
+                          }`}
+                      />
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -570,9 +571,10 @@ const StaffPage: React.FC = () => {
                           {editingAllotmentId === allotment.id ? (
                             <select
                               className="w-20 p-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                              title="Editar Carga Horária"
                               value={newWorkload}
-                              onChange={(e) => setNewWorkload(Number(e.target.value))}
-                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewWorkload(Number(e.target.value))}
+                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             >
                               <option value="100">100h</option>
                               <option value="150">150h</option>

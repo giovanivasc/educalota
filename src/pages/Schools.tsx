@@ -598,6 +598,7 @@ const Schools: React.FC = () => {
                   <span className="text-xs font-bold text-slate-500">Etapa / Modalidade</span>
                   <select
                     value={newClass.modality}
+                    title="Selecione a Modalidade"
                     onChange={e => setNewClass({ ...newClass, modality: e.target.value })}
                     className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm px-3 outline-none focus:ring-1 focus:ring-primary"
                   >
@@ -613,6 +614,7 @@ const Schools: React.FC = () => {
                   <input
                     type="number"
                     value={newClass.year}
+                    title="Ano Letivo"
                     onChange={e => setNewClass({ ...newClass, year: parseInt(e.target.value) })}
                     className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm px-3 outline-none focus:ring-1 focus:ring-primary"
                   />
@@ -641,6 +643,7 @@ const Schools: React.FC = () => {
                   <span className="text-xs font-bold text-slate-500">Turno</span>
                   <select
                     value={newClass.shift}
+                    title="Selecione o Turno"
                     onChange={e => setNewClass({ ...newClass, shift: e.target.value })}
                     className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm px-3 outline-none focus:ring-1 focus:ring-primary"
                   >

@@ -367,6 +367,7 @@ const Allotment: React.FC = () => {
             <input
               className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
               placeholder="Pesquisar unidade..."
+              title="Selecionar Unidade de Ensino"
               value={selectedSchool ? (schools.find(s => s.id === selectedSchool)?.name || '') : schoolSearchTerm}
               onChange={(e) => {
                 setSchoolSearchTerm(e.target.value);
@@ -406,6 +407,7 @@ const Allotment: React.FC = () => {
           <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Filtro de Turno</label>
           <select
             className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
+            title="Selecionar Turno"
             value={selectedShift}
             onChange={(e) => {
               setSelectedShift(e.target.value);
@@ -424,6 +426,7 @@ const Allotment: React.FC = () => {
           <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Turma</label>
           <select
             className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
+            title="Selecionar Turma"
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
             disabled={!selectedSchool}
@@ -520,12 +523,14 @@ const Allotment: React.FC = () => {
               <input
                 placeholder="Buscar servidor..."
                 className="text-xs p-2 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                title="Buscar Servidor"
                 value={staffSearch}
                 onChange={e => setStaffSearch(e.target.value)}
               />
               <div className="flex gap-2">
                 <select
                   className="text-xs p-1 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 w-1/2"
+                  title="Filtrar por Cargo"
                   value={staffRoleFilter}
                   onChange={e => setStaffRoleFilter(e.target.value)}
                 >
@@ -537,6 +542,7 @@ const Allotment: React.FC = () => {
                 </select>
                 <select
                   className="text-xs p-1 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 w-1/2"
+                  title="Filtrar por Disponibilidade"
                   value={staffAvailabilityFilter}
                   onChange={e => setStaffAvailabilityFilter(e.target.value)}
                 >
@@ -570,6 +576,7 @@ const Allotment: React.FC = () => {
                       <input
                         type="checkbox"
                         className="rounded border-slate-300 text-primary focus:ring-primary"
+                        title={`Selecionar ${staff.name}`}
                         checked={selectedStaff.includes(staff.id)}
                         onChange={() => { }}
                       />
@@ -587,6 +594,7 @@ const Allotment: React.FC = () => {
                       {selectedStaff.includes(staff.id) ? (
                         <select
                           className="w-24 p-1 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                          title="Definir Carga Horária"
                           value={staffWorkloads[staff.id] || 100}
                           onChange={(e) => handleWorkloadChange(staff.id, Number(e.target.value))}
                         >

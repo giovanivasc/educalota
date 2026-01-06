@@ -139,6 +139,7 @@ const Access: React.FC = () => {
                     <input
                       type="checkbox"
                       className="peer sr-only"
+                      title={`Conceder permissão de ${perm.title}`}
                       checked={permissions.includes(perm.id)}
                       onChange={() => togglePermission(perm.id)}
                     />

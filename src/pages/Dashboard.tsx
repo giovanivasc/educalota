@@ -219,7 +219,7 @@ const Dashboard: React.FC = () => {
           <div className="mt-4 flex flex-wrap gap-3 justify-center">
             {groupDistData.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}></span>
+                <span className={`h-2.5 w-2.5 rounded-full ${['bg-[#0088FE]', 'bg-[#00C49F]', 'bg-[#FFBB28]', 'bg-[#FF8042]', 'bg-primary'][i % 5]}`}></span>
                 <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{item.name} ({item.value})</span>
               </div>
             ))}
@@ -230,7 +230,7 @@ const Dashboard: React.FC = () => {
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4">
           <h3 className="text-lg font-bold">Últimas Lotações Realizadas</h3>
-          <button className="text-sm font-bold text-primary hover:underline">Ver todas</button>
+          <button type="button" className="text-sm font-bold text-primary hover:underline">Ver todas</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">

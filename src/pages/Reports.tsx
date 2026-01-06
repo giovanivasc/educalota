@@ -107,6 +107,7 @@ const Reports: React.FC = () => {
             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Ano Letivo</span>
             <select
               className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              title="Selecionar Ano Letivo"
               value={selectedYear}
               onChange={e => setSelectedYear(e.target.value)}
             >
