@@ -58,12 +58,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
         { path: '/students', label: 'Estudantes', icon: 'accessibility_new' },
         { path: '/allotment', label: 'Lotação', icon: 'location_on' },
         { path: '/reports', label: 'Relatórios', icon: 'description' },
-    ].filter(item => hasPermission(item.path));
+    ]; // .filter(item => hasPermission(item.path));
 
     const configItems = [
         { path: '/access', label: 'Acesso & Permissões', icon: 'settings_accessibility' },
         { path: '/system', label: 'Sistema', icon: 'settings' },
-    ].filter(item => hasPermission(item.path));
+    ]; // .filter(item => hasPermission(item.path));
 
     return (
         <aside className={`flex flex-col bg-primary text-white transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`}>
