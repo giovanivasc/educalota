@@ -70,66 +70,116 @@ export const fetchReportData = async (schoolId: string) => {
 };
 
 export const generateExcel = async (schoolId: string, selectedYear: string) => {
-    if (!schoolId) {
-        alert('Selecione uma escola primeiro.');
-        return;
-    }
+    // General Allotment Report (Planilha de Lotação)
+    // Columns: Escola, Servidor, Cargo, Vínculo, Data Lotação, Turno, Carga Horária.
 
     try {
-        const data = await fetchReportData(schoolId);
-        if (!data) throw new Error("Dados não encontrados");
+        let rows: any[] = [];
+        let filename = "";
 
-        const { school, reportData } = data;
+        // Common fetches
+        // We need Staff for contract_type (Vinculo).
+        // We need Classes for Shift (Turno).
+        // We need Schools for Name (if global).
 
-        // Flatten for "Nome do servidor..." row-based format
-        const rows: any[] = [];
+        const { data: staffList } = await supabase.from('staff').select('id, contract_type');
+        const staffMap = new Map(staffList?.map(s => [s.id, s.contract_type]));
 
-        reportData.forEach(cls => {
-            if (cls.staff.length > 0) {
-                cls.staff.forEach((st: any) => {
-                    rows.push({
-                        "Nome do Servidor": st.name,
-                        "Cargo": st.role,
-                        "Vínculo": st.contract_type || '-',
-                        "Carga Horária": st.hours_total || '-',
-                        "Modalidade": cls.modality,
-                        "Série": cls.series,
-                        "Turno": cls.shift,
-                        "Estudantes": cls.students.map((s: any) => s.name).join(', ')
-                    });
-                });
-            } else {
-                // Se não tiver staff, não gera linha conforme lógica original, ou poderia gerar linha vazia de staff.
-                // Mantendo lógica original de Reports.tsx
-            }
-        });
+        const { data: classesList } = await supabase.from('classes').select('id, shift, school_id');
+        const classMap = new Map(classesList?.map(c => [c.id, c]));
 
-        if (rows.length === 0) {
-            // Se quisermos manter consistência, avisamos. Mas se for chamado num botão de ação rápida...
-            // Talvez alert seja OK.
-            alert('Nenhuma lotação encontrada para esta escola.');
+        let allotmentsQuery = supabase.from('allotments').select('*');
+
+        if (schoolId) {
+            allotmentsQuery = allotmentsQuery.eq('school_id', schoolId);
+            const { data: school } = await supabase.from('schools').select('name').eq('id', schoolId).single();
+            filename = `lotacao_${school?.name || 'escola'}_${selectedYear}.xlsx`;
+        } else {
+            filename = `lotacao_geral_${selectedYear}.xlsx`;
+        }
+
+        const { data: allotments } = await allotmentsQuery;
+
+        if (!allotments || allotments.length === 0) {
+            alert('Nenhuma lotação encontrada.');
             return;
         }
 
-        // Header info manually
-        const headerInfo = [
-            [`Escola: ${school?.name}`],
-            [`Diretor: ${school?.director_name || '-'}`, `Vice-Diretor: ${school?.vice_director_name || '-'}`],
-            [],
-            ['Nome do Servidor', 'Cargo', 'Vínculo', 'Carga Horária', 'Modalidade', 'Série', 'Turno', 'Estudantes']
+        // Need school names map if global
+        let schoolMap = new Map<string, string>();
+        if (!schoolId) {
+            const { data: schools } = await supabase.from('schools').select('id, name');
+            schools?.forEach(s => schoolMap.set(s.id, s.name));
+        }
+
+        rows = allotments.map(a => {
+            // Get School Name
+            const schoolName = schoolId ? (a.school_name || '') : (schoolMap.get(a.school_id) || a.school_name || 'Desconhecida');
+
+            // Get Shift
+            const cls = classMap.get(a.class_id);
+            const turno = cls ? cls.shift : '-';
+
+            // Get Vinculo
+            const vinculo = staffMap.get(a.staff_id) || '-';
+
+            // Parse Role and Hours
+            // User wants to KEEP "50h em regime de hora extra".
+            // Typically stored in staff_role like: "Mediador - 150h (50h em regime de hora extra)" or similar.
+            // Or just "Mediador - 150h" and we rely on the full string.
+            // Let's split Role and Hours roughly.
+            // Format: "Role - Hours"
+            const roleStr = a.staff_role || '';
+            const separatorIndex = roleStr.indexOf(' - ');
+            let role = roleStr;
+            let cargaHoraria = '-';
+
+            if (separatorIndex !== -1) {
+                role = roleStr.substring(0, separatorIndex);
+                cargaHoraria = roleStr.substring(separatorIndex + 3); // Keep the rest as Time/Extra
+            } else {
+                // Try to guess if it ends with hours?
+                // If format is just "Mediador", hours is unknown here unless we look at staff table, 
+                // but user said to keep the text from the allotment (implied).
+            }
+
+            return {
+                "Nome da Escola": schoolName,
+                "Nome do Servidor": a.staff_name,
+                "Cargo/Função": role,
+                "Vínculo": vinculo,
+                "Data de Lotação": a.date || '-', // Assuming stored as DD/MM/YYYY
+                "Turno": turno,
+                "Carga Horária": cargaHoraria
+            };
+        });
+
+        // Sort by School then Server
+        rows.sort((a, b) => {
+            if (a["Nome da Escola"] < b["Nome da Escola"]) return -1;
+            if (a["Nome da Escola"] > b["Nome da Escola"]) return 1;
+            if (a["Nome do Servidor"] < b["Nome do Servidor"]) return -1;
+            if (a["Nome do Servidor"] > b["Nome do Servidor"]) return 1;
+            return 0;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+
+        // Auto-width columns
+        const colWidths = [
+            { wch: 30 }, // Escola
+            { wch: 30 }, // Servidor
+            { wch: 20 }, // Cargo
+            { wch: 15 }, // Vinculo
+            { wch: 15 }, // Data
+            { wch: 15 }, // Turno
+            { wch: 30 }  // Carga
         ];
-
-        // Re-map rows to array matches header
-        const bodyData = rows.map(r => [
-            r["Nome do Servidor"], r["Cargo"], r["Vínculo"], r["Carga Horária"], r["Modalidade"], r["Série"], r["Turno"], r["Estudantes"]
-        ]);
-
-        const finalData = [...headerInfo, ...bodyData];
-        const ws = XLSX.utils.aoa_to_sheet(finalData);
+        ws['!cols'] = colWidths;
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, ws, "Lotação");
-        XLSX.writeFile(workbook, `lotacao_${school?.name}_${selectedYear}.xlsx`);
+        XLSX.writeFile(workbook, filename);
 
     } catch (e) {
         console.error(e);

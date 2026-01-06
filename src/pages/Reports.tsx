@@ -134,14 +134,14 @@ const Reports: React.FC = () => {
             </div>
             <div>
               <h3 className="text-xl font-black mb-2">Planilha de Lotação</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">Exportação completa contendo dados de servidores, turmas e estudantes.</p>
+              <p className="text-sm text-slate-500 leading-relaxed">Exportação de dados de lotação (Geral ou por Escola) com informações detalhadas.</p>
             </div>
           </div>
           <Button
             className="mt-8 w-full h-12"
             icon="download"
             onClick={handleGenerateExcel}
-            disabled={!selectedSchoolId || loading}
+            disabled={loading}
             isLoading={loading}
           >
             Baixar Planilha

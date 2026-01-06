@@ -28,6 +28,7 @@ const Allotment: React.FC = () => {
   const [classObs, setClassObs] = useState(''); // New state for class observations
   const [savingObs, setSavingObs] = useState(false);
   const [showReportMenu, setShowReportMenu] = useState(false);
+  const [allotmentDate, setAllotmentDate] = useState(new Date().toISOString().split('T')[0]); // Default YYYY-MM-DD
 
   useEffect(() => {
     if (selectedSchool) {
@@ -272,7 +273,8 @@ const Allotment: React.FC = () => {
           staff_role: finalRoleString,
           school_name: school?.name,
           status: 'Ativo',
-          date: new Date().toLocaleDateString('pt-BR')
+          status: 'Ativo',
+          date: allotmentDate.split('-').reverse().join('/') // Convert YYYY-MM-DD to DD/MM/YYYY for storage
         });
 
         // Update Staff Availability (Decrement)
@@ -459,56 +461,6 @@ const Allotment: React.FC = () => {
         </div>
       )
       }
-
-      {/* ... inside the component ... */}
-
-      <div className="flex justify-end gap-3 relative">
-        <div className="relative">
-          <Button
-            variant="outline"
-            size="sm"
-            icon="description"
-            onClick={() => setShowReportMenu(!showReportMenu)}
-            disabled={!selectedSchool}
-          >
-            Gerar Pré-Lotação
-          </Button>
-          {showReportMenu && (
-            <div className="absolute top-full right-0 mt-2 w-40 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 overflow-hidden">
-              <button
-                className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-                onClick={() => {
-                  if (selectedSchool) generateDoc(selectedSchool, "2026");
-                  setShowReportMenu(false);
-                }}
-              >
-                <span className="material-symbols-outlined text-base">description</span>
-                Formato .DOCX
-              </button>
-              <button
-                className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-                onClick={() => {
-                  if (selectedSchool) generatePDF(selectedSchool, "2026"); // Call new PDF function
-                  setShowReportMenu(false);
-                }}
-              >
-                <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                Formato .PDF
-              </button>
-            </div>
-          )}
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          icon="table_view"
-          onClick={() => selectedSchool && generateExcel(selectedSchool, "2026")}
-          disabled={!selectedSchool}
-        >
-          Planilha (.xlsx)
-        </Button>
-      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Staff Selection */}
@@ -736,7 +688,31 @@ const Allotment: React.FC = () => {
                             {hoursVal}
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-500">
-                            {allotment.date}
+                            <div className="flex items-center gap-2 group">
+                              <span>{allotment.date}</span>
+                              <button
+                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-primary transition-opacity"
+                                title="Alterar Data"
+                                onClick={() => {
+                                  const newDate = prompt("Nova data de lotação (DD/MM/AAAA):", allotment.date);
+                                  // Regex validation roughly DD/MM/YYYY
+                                  if (newDate && /^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) {
+                                    supabase.from('allotments').update({ date: newDate }).eq('id', allotment.id)
+                                      .then(({ error }) => {
+                                        if (!error) {
+                                          setExistingAllotments(prev => prev.map(a => a.id === allotment.id ? { ...a, date: newDate } : a));
+                                        } else {
+                                          alert('Erro ao atualizar data.');
+                                        }
+                                      });
+                                  } else if (newDate) {
+                                    alert('Formato inválido. Use DD/MM/AAAA.');
+                                  }
+                                }}
+                              >
+                                <span className="material-symbols-outlined text-sm">edit</span>
+                              </button>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <button
@@ -768,7 +744,16 @@ const Allotment: React.FC = () => {
           <span className="text-slate-400">|</span>
           <span className="text-slate-500 italic">({selectedStaff.length} servidores)</span>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <div className="flex flex-col mr-4">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Data da Lotação</label>
+            <input
+              type="date"
+              className="h-9 px-2 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-1 focus:ring-primary w-32"
+              value={allotmentDate}
+              onChange={(e) => setAllotmentDate(e.target.value)}
+            />
+          </div>
           <Button
             variant="outline"
             onClick={() => { setSelectedStaff([]); /* setSelectedStudents([]); */ }}
