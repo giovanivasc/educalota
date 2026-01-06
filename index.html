@@ -57,8 +57,10 @@
         }
 
         .no-scrollbar {
-            display: none;
-            /* Fallback simples se necessário, ou remover completamente se a intenção era apenas esconder visualmente mantendo scroll */
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
         }
     </style>
     <script type="importmap">
