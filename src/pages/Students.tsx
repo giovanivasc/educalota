@@ -129,24 +129,36 @@ const Students: React.FC = () => {
   const fetchData = async () => {
     try {
       const [studentsRes, schoolsRes] = await Promise.all([
-        supabase.from('students').select('*'),
+        supabase.from('students').select('*, classes:class_id(series, section, shift, modality)'),
         supabase.from('schools').select('id, name')
       ]);
 
       if (studentsRes.error) throw studentsRes.error;
       if (schoolsRes.error) throw schoolsRes.error;
 
-      const mappedStudents: Student[] = (studentsRes.data || []).map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        age: s.age,
-        series: s.series,
-        schoolId: s.school_id,
-        cid: s.cid,
-        specialGroup: s.special_group,
-        needsSupport: s.needs_support || [],
-        additionalInfo: s.additional_info
-      }));
+      const mappedStudents: Student[] = (studentsRes.data || []).map((s: any) => {
+        let displaySeries = s.series;
+
+        if (s.classes) {
+          const { series, section, shift } = s.classes;
+          const parts = [series, section].filter(Boolean).join(' ');
+          if (parts) {
+            displaySeries = shift ? `${parts} - ${shift}` : parts;
+          }
+        }
+
+        return {
+          id: s.id,
+          name: s.name,
+          age: s.age,
+          series: displaySeries,
+          schoolId: s.school_id,
+          cid: s.cid,
+          specialGroup: s.special_group,
+          needsSupport: s.needs_support || [],
+          additionalInfo: s.additional_info
+        };
+      });
       setStudents(mappedStudents);
       setSchools(schoolsRes.data || []);
     } catch (e) {
