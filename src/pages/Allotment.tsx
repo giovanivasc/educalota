@@ -462,6 +462,43 @@ const Allotment: React.FC = () => {
       )
       }
 
+      <div className="flex justify-end relative">
+        <Button
+          variant="outline"
+          size="sm"
+          icon="description"
+          onClick={() => setShowReportMenu(!showReportMenu)}
+          disabled={!selectedSchool}
+        >
+          Gerar Pré-Lotação
+        </Button>
+
+        {showReportMenu && (
+          <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 overflow-hidden">
+            <button
+              className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+              onClick={() => {
+                if (selectedSchool) generateDoc(selectedSchool, "2026");
+                setShowReportMenu(false);
+              }}
+            >
+              <span className="material-symbols-outlined text-base">description</span>
+              Baixar .DOCX
+            </button>
+            <button
+              className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+              onClick={() => {
+                if (selectedSchool) generatePDF(selectedSchool, "2026");
+                setShowReportMenu(false);
+              }}
+            >
+              <span className="material-symbols-outlined text-base">print</span>
+              Imprimir / PDF
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Staff Selection */}
         <div className="flex flex-col h-[500px] bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">

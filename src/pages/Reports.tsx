@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
-import { generateExcel, generateDoc } from '../lib/reports';
+import { generateExcel, generateDoc, generatePDF, generateGeneralDoc, generateGeneralPDF } from '../lib/reports';
 
 const Reports: React.FC = () => {
   const [schools, setSchools] = useState<{ id: string, name: string, director?: string, vice_director?: string }[]>([]);
@@ -11,6 +11,14 @@ const Reports: React.FC = () => {
   const [schoolSearchTerm, setSchoolSearchTerm] = useState('');
   const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+
+  // Date Filters
+  const [filterType, setFilterType] = useState<'month' | 'range'>('month');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+
+  const [docLoading, setDocLoading] = useState(false); // separate loading optional or use global
+
 
   const [loading, setLoading] = useState(false);
 
@@ -22,16 +30,49 @@ const Reports: React.FC = () => {
     fetchSchools();
   }, []);
 
-  // Wrapper functions to call lib with component state
+  const getFilterDates = () => {
+    if (filterType === 'month' && selectedMonth) {
+      const [y, m] = selectedMonth.split('-');
+      const start = new Date(parseInt(y), parseInt(m) - 1, 1);
+      const end = new Date(parseInt(y), parseInt(m), 0);
+      // Convert to YYYY-MM-DD
+      const format = (d: Date) => d.toISOString().split('T')[0];
+      return { start: format(start), end: format(end) };
+    }
+    return { start: dateRange.start || undefined, end: dateRange.end || undefined };
+  };
+
   const handleGenerateExcel = async () => {
     setLoading(true);
-    await generateExcel(selectedSchoolId, selectedYear);
+    const { start, end } = getFilterDates();
+    await generateExcel(selectedSchoolId, start, end);
     setLoading(false);
   };
 
-  const handleGenerateDoc = async () => {
+  const handleGenerateGeneralDoc = async () => {
+    setLoading(true);
+    const { start, end } = getFilterDates();
+    await generateGeneralDoc(selectedSchoolId, start, end);
+    setLoading(false);
+  }
+
+  const handleGenerateGeneralPDF = async () => {
+    setLoading(true);
+    const { start, end } = getFilterDates();
+    await generateGeneralPDF(selectedSchoolId, start, end);
+    setLoading(false);
+  }
+
+  // Pre-Lotacao Actions (School Specific)
+  const handleGeneratePreLotacaoDoc = async () => {
     setLoading(true);
     await generateDoc(selectedSchoolId, selectedYear);
+    setLoading(false);
+  };
+
+  const handleGeneratePreLotacaoPDF = async () => {
+    setLoading(true);
+    await generatePDF(selectedSchoolId, selectedYear);
     setLoading(false);
   };
 
@@ -119,6 +160,52 @@ const Reports: React.FC = () => {
           </div>
 
         </div>
+
+        {/* Date Filters Row */}
+        <div className="mt-6 pt-6 border-t border-slate-50 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 block">Tipo de Período</span>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="ftype" checked={filterType === 'month'} onChange={() => setFilterType('month')} /> Por Mês
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="ftype" checked={filterType === 'range'} onChange={() => setFilterType('range')} /> Data Personalizada
+              </label>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {filterType === 'month' ? (
+              <>
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Selecione o Mês</span>
+                <input
+                  type="month"
+                  className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 outline-none"
+                  value={selectedMonth}
+                  onChange={e => setSelectedMonth(e.target.value)}
+                />
+              </>
+            ) : (
+              <>
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Intervalo de Datas</span>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    className="w-1/2 h-11 px-2 rounded-xl border border-slate-200 bg-slate-50 outline-none text-sm"
+                    value={dateRange.start}
+                    onChange={e => setDateRange({ ...dateRange, start: e.target.value })}
+                  />
+                  <input
+                    type="date"
+                    className="w-1/2 h-11 px-2 rounded-xl border border-slate-200 bg-slate-50 outline-none text-sm"
+                    value={dateRange.end}
+                    onChange={e => setDateRange({ ...dateRange, end: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Report Cards Grid */}
@@ -146,6 +233,26 @@ const Reports: React.FC = () => {
           >
             Baixar Planilha
           </Button>
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant="outline"
+              className="flex-1 h-10 text-xs"
+              icon="description"
+              onClick={handleGenerateGeneralDoc}
+              disabled={loading}
+            >
+              DOC
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 h-10 text-xs"
+              icon="print"
+              onClick={handleGenerateGeneralPDF}
+              disabled={loading}
+            >
+              PDF
+            </Button>
+          </div>
         </div>
 
         {/* Card 2: PDF (actually DOCX now) */}
@@ -155,7 +262,7 @@ const Reports: React.FC = () => {
               <div className="flex size-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 transition-transform group-hover:scale-110">
                 <span className="material-symbols-outlined text-3xl">description</span>
               </div>
-              <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-[10px] font-black text-slate-500 uppercase">.DOC</span>
+              <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-[10px] font-black text-slate-500 uppercase">.DOC / .PDF</span>
             </div>
             <div>
               <h3 className="text-xl font-black mb-2">Relatório de Pré-Lotação</h3>
@@ -166,17 +273,27 @@ const Reports: React.FC = () => {
             variant="outline"
             className="mt-8 w-full h-12 border-2"
             icon="file_download"
-            onClick={handleGenerateDoc}
+            onClick={handleGeneratePreLotacaoDoc}
             disabled={!selectedSchoolId || loading}
             isLoading={loading}
           >
-            Gerar Documento
+            Gerar Documento (DOCX)
+          </Button>
+          <Button
+            variant="outline"
+            className="mt-3 w-full h-12 border-2"
+            icon="print"
+            onClick={handleGeneratePreLotacaoPDF}
+            disabled={!selectedSchoolId || loading}
+            isLoading={loading}
+          >
+            Visualizar Impressão (PDF)
           </Button>
         </div>
       </div>
 
       {/* Hidden Recent Table for now or keep generic mock? Keeping generic mock removed since user focused on actions. */}
-    </div>
+    </div >
   );
 };
 

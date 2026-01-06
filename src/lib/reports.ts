@@ -20,6 +20,16 @@ import {
 import { saveAs } from 'file-saver';
 import { sortClasses } from './sorting';
 
+// Helper to parse DD/MM/YYYY
+const parseDateBR = (d: string) => {
+    if (!d) return null;
+    const parts = d.split('/');
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+}
+
+// --- SCHOOL BASED REPORTS (PRE-LOTACAO) ---
+
 export const fetchReportData = async (schoolId: string) => {
     if (!schoolId) return null;
 
@@ -69,112 +79,110 @@ export const fetchReportData = async (schoolId: string) => {
     return { school, reportData };
 };
 
-export const generateExcel = async (schoolId: string, selectedYear: string) => {
-    // General Allotment Report (Planilha de Lotação)
-    // Columns: Escola, Servidor, Cargo, Vínculo, Data Lotação, Turno, Carga Horária.
+// --- GENERAL REPORT FUNCTIONS (PLANILHA DE LOTACAO) ---
 
-    try {
-        let rows: any[] = [];
-        let filename = "";
+export const fetchGeneralReportData = async (schoolId: string, startDate?: string, endDate?: string) => {
+    // Fetch needed data
+    const { data: staffList } = await supabase.from('staff').select('id, contract_type');
+    const staffMap = new Map(staffList?.map(s => [s.id, s.contract_type]));
 
-        // Common fetches
-        // We need Staff for contract_type (Vinculo).
-        // We need Classes for Shift (Turno).
-        // We need Schools for Name (if global).
+    const { data: classesList } = await supabase.from('classes').select('id, shift, school_id');
+    const classMap = new Map(classesList?.map(c => [c.id, c]));
 
-        const { data: staffList } = await supabase.from('staff').select('id, contract_type');
-        const staffMap = new Map(staffList?.map(s => [s.id, s.contract_type]));
+    const { data: schools } = await supabase.from('schools').select('id, name');
+    const schoolMap = new Map(schools?.map(s => [s.id, s.name]));
 
-        const { data: classesList } = await supabase.from('classes').select('id, shift, school_id');
-        const classMap = new Map(classesList?.map(c => [c.id, c]));
+    let query = supabase.from('allotments').select('*');
 
-        let allotmentsQuery = supabase.from('allotments').select('*');
+    if (schoolId) {
+        query = query.eq('school_id', schoolId);
+    }
 
-        if (schoolId) {
-            allotmentsQuery = allotmentsQuery.eq('school_id', schoolId);
-            const { data: school } = await supabase.from('schools').select('name').eq('id', schoolId).single();
-            filename = `lotacao_${school?.name || 'escola'}_${selectedYear}.xlsx`;
-        } else {
-            filename = `lotacao_geral_${selectedYear}.xlsx`;
+    const { data: allotments } = await query;
+
+    if (!allotments) return [];
+
+    // Filter by Date Logic (Allotment Date is DD/MM/YYYY)
+    let filtered = allotments;
+
+    if (startDate || endDate) {
+        filtered = filtered.filter(a => {
+            const aDate = parseDateBR(a.date);
+            if (!aDate) return false;
+
+            if (startDate) {
+                const start = new Date(startDate); // YYYY-MM-DD
+                // Reset time
+                start.setHours(0, 0, 0, 0);
+                if (aDate < start) return false;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                if (aDate > end) return false;
+            }
+            return true;
+        });
+    }
+
+    // Map to Final Rows
+    return filtered.map(a => {
+        const schoolName = schoolId ? (a.school_name || '') : (schoolMap.get(a.school_id) || a.school_name || 'Desconhecida');
+        const cls = classMap.get(a.class_id);
+        const turno = cls ? cls.shift : '-';
+        const vinculo = staffMap.get(a.staff_id) || '-';
+
+        const roleStr = a.staff_role || '';
+        const separatorIndex = roleStr.indexOf(' - ');
+        let role = roleStr;
+        let cargaHoraria = '-';
+
+        if (separatorIndex !== -1) {
+            role = roleStr.substring(0, separatorIndex);
+            cargaHoraria = roleStr.substring(separatorIndex + 3);
         }
 
-        const { data: allotments } = await allotmentsQuery;
+        return {
+            schoolName,
+            staffName: a.staff_name,
+            role,
+            vinculo,
+            date: a.date || '-',
+            shift: turno,
+            hours: cargaHoraria
+        };
+    }).sort((a, b) => {
+        if (a.schoolName < b.schoolName) return -1;
+        if (a.schoolName > b.schoolName) return 1;
+        if (a.staffName < b.staffName) return -1;
+        if (a.staffName > b.staffName) return 1;
+        return 0;
+    });
+};
 
-        if (!allotments || allotments.length === 0) {
-            alert('Nenhuma lotação encontrada.');
+export const generateExcel = async (schoolId: string, startDate?: string, endDate?: string) => {
+    try {
+        const rowsRaw = await fetchGeneralReportData(schoolId, startDate, endDate);
+
+        if (rowsRaw.length === 0) {
+            alert('Nenhuma lotação encontrada neste período.');
             return;
         }
 
-        // Need school names map if global
-        let schoolMap = new Map<string, string>();
-        if (!schoolId) {
-            const { data: schools } = await supabase.from('schools').select('id, name');
-            schools?.forEach(s => schoolMap.set(s.id, s.name));
-        }
+        const rows = rowsRaw.map(r => ({
+            "Nome da Escola": r.schoolName,
+            "Nome do Servidor": r.staffName,
+            "Cargo/Função": r.role,
+            "Vínculo": r.vinculo,
+            "Data de Lotação": r.date,
+            "Turno": r.shift,
+            "Carga Horária": r.hours
+        }));
 
-        rows = allotments.map(a => {
-            // Get School Name
-            const schoolName = schoolId ? (a.school_name || '') : (schoolMap.get(a.school_id) || a.school_name || 'Desconhecida');
-
-            // Get Shift
-            const cls = classMap.get(a.class_id);
-            const turno = cls ? cls.shift : '-';
-
-            // Get Vinculo
-            const vinculo = staffMap.get(a.staff_id) || '-';
-
-            // Parse Role and Hours
-            // User wants to KEEP "50h em regime de hora extra".
-            // Typically stored in staff_role like: "Mediador - 150h (50h em regime de hora extra)" or similar.
-            // Or just "Mediador - 150h" and we rely on the full string.
-            // Let's split Role and Hours roughly.
-            // Format: "Role - Hours"
-            const roleStr = a.staff_role || '';
-            const separatorIndex = roleStr.indexOf(' - ');
-            let role = roleStr;
-            let cargaHoraria = '-';
-
-            if (separatorIndex !== -1) {
-                role = roleStr.substring(0, separatorIndex);
-                cargaHoraria = roleStr.substring(separatorIndex + 3); // Keep the rest as Time/Extra
-            } else {
-                // Try to guess if it ends with hours?
-                // If format is just "Mediador", hours is unknown here unless we look at staff table, 
-                // but user said to keep the text from the allotment (implied).
-            }
-
-            return {
-                "Nome da Escola": schoolName,
-                "Nome do Servidor": a.staff_name,
-                "Cargo/Função": role,
-                "Vínculo": vinculo,
-                "Data de Lotação": a.date || '-', // Assuming stored as DD/MM/YYYY
-                "Turno": turno,
-                "Carga Horária": cargaHoraria
-            };
-        });
-
-        // Sort by School then Server
-        rows.sort((a, b) => {
-            if (a["Nome da Escola"] < b["Nome da Escola"]) return -1;
-            if (a["Nome da Escola"] > b["Nome da Escola"]) return 1;
-            if (a["Nome do Servidor"] < b["Nome do Servidor"]) return -1;
-            if (a["Nome do Servidor"] > b["Nome do Servidor"]) return 1;
-            return 0;
-        });
+        let filename = schoolId ? `lotacao_escola.xlsx` : `lotacao_geral.xlsx`;
 
         const ws = XLSX.utils.json_to_sheet(rows);
-
-        // Auto-width columns
-        const colWidths = [
-            { wch: 30 }, // Escola
-            { wch: 30 }, // Servidor
-            { wch: 20 }, // Cargo
-            { wch: 15 }, // Vinculo
-            { wch: 15 }, // Data
-            { wch: 15 }, // Turno
-            { wch: 30 }  // Carga
-        ];
+        const colWidths = [{ wch: 30 }, { wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 30 }];
         ws['!cols'] = colWidths;
 
         const workbook = XLSX.utils.book_new();
@@ -187,27 +195,200 @@ export const generateExcel = async (schoolId: string, selectedYear: string) => {
     }
 };
 
+export const generateGeneralDoc = async (schoolId: string, startDate?: string, endDate?: string) => {
+    try {
+        const rows = await fetchGeneralReportData(schoolId, startDate, endDate);
+        if (rows.length === 0) {
+            alert('Nenhuma lotação encontrada neste período.');
+            return;
+        }
+
+        let imgPrefBuf, imgSemedBuf, imgCoordBuf;
+        try {
+            [imgPrefBuf, imgSemedBuf, imgCoordBuf] = await Promise.all([
+                getArrayBufferFromUrl('/img/logo_pref.jpg'),
+                getArrayBufferFromUrl('/img/logo_semed.jpg'),
+                getArrayBufferFromUrl('/img/logo_coord.jpg')
+            ]);
+        } catch (e) { }
+
+        const noBorder = { style: BorderStyle.NONE, size: 0, color: "auto" };
+        const tableBorders = {
+            top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+        };
+
+        const headerTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideVertical: noBorder, insideHorizontal: noBorder },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, children: [(imgPrefBuf && imgPrefBuf.byteLength > 0) ? new Paragraph({ children: [new ImageRun({ data: imgPrefBuf, transformation: { width: 80, height: 60 }, type: "jpg" })] }) : new Paragraph("")] }),
+                        new TableCell({ width: { size: 55, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "PREFEITURA MUNICIPAL DE CASTANHAL", bold: true, size: 24 })] }), new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SECRETARIA MUNICIPAL DE EDUCAÇÃO", bold: true, size: 24 })] }), new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "COORDENADORIA DE EDUCAÇÃO ESPECIAL", bold: true, size: 24 })] })] }),
+                        new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [...((imgSemedBuf && imgSemedBuf.byteLength > 0) ? [new ImageRun({ data: imgSemedBuf, transformation: { width: 100, height: 40 }, type: "jpg" })] : []), new TextRun("   "), ...((imgCoordBuf && imgCoordBuf.byteLength > 0) ? [new ImageRun({ data: imgCoordBuf, transformation: { width: 50, height: 50 }, type: "jpg" })] : [])] })] })
+                    ]
+                })
+            ]
+        });
+
+        const title = new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200, after: 200 }, children: [new TextRun({ text: `PLANILHA DE LOTAÇÃO`, bold: true, size: 28 })] });
+
+        let periodText = 'Geral';
+        if (startDate && endDate) periodText = `${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')}`;
+        else if (startDate) periodText = `A partir de: ${startDate.split('-').reverse().join('/')}`;
+
+        const periodPara = new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: periodText, size: 20 })] });
+
+        const headers = ["Escola", "Servidor", "Cargo", "Vínculo", "Data", "Turno", "Carga Horária"];
+        const headerRow = new TableRow({
+            tableHeader: true,
+            children: headers.map(h => new TableCell({
+                shading: { fill: "2980B9", color: "FFFFFF" },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: h, bold: true, color: "FFFFFF", size: 14 })] })]
+            }))
+        });
+
+        const tableRows = rows.map((r, i) => new TableRow({
+            children: [
+                new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.schoolName, size: 14 })] })] }),
+                new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.staffName, size: 14 })] })] }),
+                new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.role, size: 14 })] })] }),
+                new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.vinculo, size: 14 })] })] }),
+                new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.date, size: 14 })] })] }),
+                new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.shift, size: 14 })] })] }),
+                new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.hours, size: 14 })] })] }),
+            ]
+        }));
+
+        const mainTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: tableBorders,
+            rows: [headerRow, ...tableRows]
+        });
+
+        const doc = new Document({
+            sections: [{
+                properties: { page: { size: { orientation: PageOrientation.LANDSCAPE }, margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
+                children: [headerTable, title, periodPara, mainTable]
+            }]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `planilha_lotacao_geral.docx`);
+
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao gerar DOC.');
+    }
+};
+
+export const generateGeneralPDF = async (schoolId: string, startDate?: string, endDate?: string) => {
+    try {
+        const rows = await fetchGeneralReportData(schoolId, startDate, endDate);
+        if (rows.length === 0) {
+            alert('Nenhuma lotação encontrada neste período.');
+            return;
+        }
+
+        let tableRowsHtml = '';
+        rows.forEach((r, i) => {
+            const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F0F8FF";
+            tableRowsHtml += `<tr style="background-color: ${bgColor};">
+                <td>${r.schoolName}</td>
+                <td>${r.staffName}</td>
+                <td>${r.role}</td>
+                <td>${r.vinculo}</td>
+                <td>${r.date}</td>
+                <td>${r.shift}</td>
+                <td>${r.hours}</td>
+             </tr>`;
+        });
+
+        let periodText = 'Geral';
+        if (startDate && endDate) periodText = `${startDate.split('-').reverse().join('/')} a ${endDate.split('-').reverse().join('/')}`;
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Planilha de Lotação</title>
+            <style>
+                body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+                .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 10px; }
+                .header-center { text-align: center; flex: 1; margin: 0 20px; }
+                .header-center h1 { margin: 2px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; }
+                .doc-title { text-align: center; font-size: 16px; font-weight: bold; margin: 20px 0; text-transform: uppercase; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { border: 1px solid #000; padding: 4px 6px; text-align: center; vertical-align: middle; font-size: 10px; }
+                th { background-color: #2980B9; color: white; font-weight: bold; -webkit-print-color-adjust: exact; }
+                @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                 <div class="header-center">
+                     <h1>Prefeitura Municipal de Castanhal</h1>
+                     <h1>Secretaria Municipal de Educação</h1>
+                     <h1>Coordenadoria de Educação Especial</h1>
+                 </div>
+            </div>
+            <div class="doc-title">PLANILHA DE LOTAÇÃO (${periodText})</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Escola</th>
+                        <th>Servidor</th>
+                        <th>Cargo</th>
+                        <th>Vínculo</th>
+                        <th>Data</th>
+                        <th>Turno</th>
+                        <th>Carga Horária</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRowsHtml}</tbody>
+            </table>
+            <script>window.onload = function() { window.print(); }</script>
+        </body>
+        </html>`;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        } else {
+            alert('Por favor, permita popups.');
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao gerar PDF.');
+    }
+};
+
+// --- REST OF HELPERS (generateDoc/generatePDF for School Pre-Lotacao) ---
+
 const getArrayBufferFromUrl = async (url: string): Promise<ArrayBuffer> => {
     try {
         const res = await fetch(url);
         const blob = await res.blob();
         return await blob.arrayBuffer();
     } catch (e) {
-        console.warn(`Failed to load image from ${url}`, e);
         return new ArrayBuffer(0);
     }
 };
 
-// --- HELPER FUNCTIONS FOR DISPLAY LOGIC ---
-
-// Helper to abbreviate modality
 const getModalityAbbr = (mod: string) => {
     if (!mod) return '-';
     if (mod.includes("Educação Infantil")) return "EI";
     if (mod.includes("Anos Iniciais") || mod.includes("1º/5º")) return "EF-1";
     if (mod.includes("Anos Finais") || mod.includes("6º/9º")) return "EF-2";
     if (mod.includes("Ensino Fundamental")) {
-        // Fallback genérico ou específico se a string mudar levemente
         if (mod.includes("Iniciais") || mod.includes("5º")) return "EF-1";
         if (mod.includes("Finais") || mod.includes("9º")) return "EF-2";
         return "EF";
@@ -217,24 +398,17 @@ const getModalityAbbr = (mod: string) => {
     return mod;
 };
 
-// Helper to parse staff role and clean hours
 const getStaffDisplay = (staffMember: any) => {
     if (!staffMember) return { name: '-', role: '-', hours: '-' };
 
     let name = '-', role = '-', hours = '-';
 
-    if (staffMember.staff_name) { // It's an allotment object
+    if (staffMember.staff_name) {
         name = staffMember.staff_name;
         const r = staffMember.staff_role || '';
-        // Extract hours (e.g., "150h" or "100h") and ignore extra text like "(Extra)"
-        // Flexible regex to capture hours at end or inside parens, but user said "leave only 100h, 150h or 200h"
-        // Let's look for the number+h pattern.
-        const hoursMatch = r.match(/(\d{3})h/); // Matches 100h, 150h, 200h
+        const hoursMatch = r.match(/(\d{3})h/);
         if (hoursMatch) {
-            hours = hoursMatch[0]; // "150h"
-            // Role is everything before " - 150h" usually.
-            // Split by " - " and take first part? Or remove the hours part?
-            // "Mediador - 150h (Extra)" -> Role: Mediador
+            hours = hoursMatch[0];
             const parts = r.split(' - ');
             if (parts.length > 1) {
                 role = parts[0];
@@ -242,7 +416,6 @@ const getStaffDisplay = (staffMember: any) => {
                 role = r.replace(hoursMatch[0], '').trim();
             }
         } else {
-            // Fallback
             const parts = r.split(' - ');
             if (parts.length > 1) {
                 hours = parts.pop();
@@ -251,7 +424,7 @@ const getStaffDisplay = (staffMember: any) => {
                 role = r;
             }
         }
-    } else if (staffMember.name) { // Raw staff object
+    } else if (staffMember.name) {
         name = staffMember.name;
         role = staffMember.role;
         hours = staffMember.hours_total ? `${staffMember.hours_total}h` : '-';
@@ -260,16 +433,10 @@ const getStaffDisplay = (staffMember: any) => {
     return { name, role, hours };
 };
 
-// Helper to build row data with smart merging
+
 const buildClassRows = (cls: any) => {
     const mod = getModalityAbbr(cls.modality);
-
-    // Students
     const studentsList = cls.students || [];
-
-    // Eligible students for staff assignment
-    // Rule: "Necessita de avaliação" or "Não necessita" -> Staff columns blank.
-    // We map each student to whether they "need" staff.
     const studentRows = studentsList.map((s: any) => {
         const support = s.needs_support ? (Array.isArray(s.needs_support) ? s.needs_support.join(', ') : s.needs_support) : "Não";
         const needs = !(support.includes("Não necessita") || support.includes("Necessita de avaliação"));
@@ -280,90 +447,17 @@ const buildClassRows = (cls: any) => {
         };
     });
 
-    // Staff
     const staffAllotments: any[] = (cls as any).allotments || [];
     const staffList = (staffAllotments.length > 0) ? staffAllotments : (cls.staff || []);
-
-    // We need to distribute staff across the "needsStaff" rows.
-    // If multiple staff, list them sequentially.
-    // If more rows than staff, repeat/merge the staff (User asked to merge).
-    // If an eligible row is followed by non-eligible, the merge breaks.
 
     const rows: any[] = [];
     const totalRows = Math.max(studentRows.length, staffList.length, 1);
 
-    // Pre-calculate staff assignment for eligible rows
-    let currentStaffIndex = 0;
-
-    // We only have strict merging in DOCX if rows are contiguous. 
-    // Logic: 
-    // Iterate 0 to totalRows.
-    // Determine Student col content.
-    // Determine Staff col content based on eligibility and availability.
-
     for (let i = 0; i < totalRows; i++) {
-        const sRow = studentRows[i]; // May be undefined if i >= students.length
-
-        // Student Info
+        const sRow = studentRows[i];
         const sName = sRow ? sRow.studentName : "";
         const sSupport = sRow ? sRow.studentSupport : "";
-
-        let staffInfo = { name: '', role: '', hours: '' };
-
-        // Should we show staff?
-        // If sRow exists and !needsStaff -> Empty.
-        // If sRow exists and needsStaff -> Show staff.
-        // If !sRow (extra rows for staff only) -> Show staff. (Case: More staff than students).
-
         const showStaff = !sRow || sRow.needsStaff;
-
-        if (showStaff) {
-            // Which staff?
-            // If we have staff available.
-            // Distribute strategy:
-            // Since "server is allotted to the class", presumably they cover all eligible students.
-            // User: "merge lines... representing that that server serves all those students"
-            // If 1 server, 5 eligible students -> Server appears on all 5.
-            // If 2 servers, 5 eligible -> How to split? Usually they share duties?
-            // "if server number equals students, one on each line" implies 1-to-1 mapping if counts match.
-            // If <, merge. 
-            // Let's assume sequential assignment cycling or filling?
-            // "merge lines... to not leave blank line".
-            // Suggestion: Repeat the Staff List cyclically or spread them? 
-            // Usually in this case (Allotment to Class), we list ALL servers for the Class, generally merged if possible or just listed.
-            // But the table structure is 1 line per student.
-            // If I have 1 server and 10 students. Server names must appear.
-            // If I put Server A on line 1 and merge down to 10, perfect.
-            // If I have 2 servers. Server A on 1-5, Server B on 6-10? Or A on 1, B on 2 (repeating)?
-            // The request "merge lines" suggests blocking.
-            // I will implement Blocking: Divide eligible rows by number of servers.
-
-            // Count remaining TOTAL eligible slots from this point onwards? No, too complex.
-            // Simple approach: Use `currentStaffIndex`. 
-            // If `staffList` has items.
-            // If `staffList.length` <= eligible_slots. We spread them.
-            // For now, let's just pick `staffList[Math.min(i, staffList.length -1)]`? 
-            // No, that repeats the last one forever.
-            // Correct logic for "1 server for 10 students": `staffList[0]` always.
-            // For "2 servers for 10 students": `staffList[0]` for 0-4, `staffList[1]` for 5-9?
-            // Let's simplify: If `i < staffList.length`, show `staffList[i]`.
-            // IF `i >= staffList.length` AND `staffList.length > 0`, show `staffList[last]`?
-            // Yes, that satisfies "merge" visually if we effectively repeat the last one (or distribute earlier).
-            // Actually, if we want to merge, we should repeat the SAME server object reference conceptually or index.
-
-            // Let's mapping index:
-            // If we have S servers and N eligible students (N > S).
-            // We want to change server every N/S rows.
-
-            // Count total eligible rows first.
-            const totalEligible = studentRows.filter(r => r.needsStaff).length;
-            // Rows per server
-            const distinctStaffCount = staffList.length || 1;
-            const rowsPerStaff = Math.ceil(Math.max(totalEligible, 1) / distinctStaffCount);
-
-            // We need to know which "eligible index" this is.
-            // We can track `eligibleCounter` outside loop.
-        }
 
         rows.push({
             mod: i === 0 ? mod : null,
@@ -371,23 +465,20 @@ const buildClassRows = (cls: any) => {
             shift: i === 0 ? (cls.shift || '-') : null,
             studentName: sName,
             studentSupport: sSupport,
-            showStaff: showStaff, // Flag to determing content
-            staffIndex: -1 // Will fill below
+            showStaff: showStaff,
+            staffIndex: -1
         });
     }
 
-    // Pass 2: Fill Staff Indexes based on eligibility flow
     let eligibleCounter = 0;
     const totalEligible = rows.filter(r => r.showStaff).length;
     const distinctStaffCount = staffList.length || 1;
-    const chunk = Math.ceil(totalEligible / distinctStaffCount); // e.g. 5/2 = 3. Server 0 gets 3, Server 1 gets 2.
+    const chunk = Math.ceil(totalEligible / distinctStaffCount);
 
     rows.forEach(r => {
         if (r.showStaff) {
-            // Should correspond to which staff?
-            // chunk index = floor(counter / chunk)
             let sIndex = Math.floor(eligibleCounter / chunk);
-            if (sIndex >= staffList.length) sIndex = staffList.length - 1; // Safety cap
+            if (sIndex >= staffList.length) sIndex = staffList.length - 1;
 
             r.staffIndex = sIndex;
             r.staffData = getStaffDisplay(staffList[sIndex]);
@@ -398,7 +489,6 @@ const buildClassRows = (cls: any) => {
 
     return { rows, maxRows: totalRows };
 };
-
 
 export const generateDoc = async (schoolId: string, selectedYear: string) => {
     if (!schoolId) {
@@ -411,7 +501,6 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
         if (!data) throw new Error("Dados não encontrados");
         const { school, reportData } = data;
 
-        // 1. Carregar Images (ArrayBuffer)
         let imgPrefBuf, imgSemedBuf, imgCoordBuf;
         try {
             [imgPrefBuf, imgSemedBuf, imgCoordBuf] = await Promise.all([
@@ -420,10 +509,8 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
                 getArrayBufferFromUrl('/img/logo_coord.jpg')
             ]);
         } catch (e) {
-            console.warn('Erro ao carregar imagens', e);
         }
 
-        // Utils para bordas
         const noBorder = { style: BorderStyle.NONE, size: 0, color: "auto" };
         const tableBorders = {
             top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
@@ -434,10 +521,6 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
             insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
         };
 
-        // Header Logic (Same as before)...
-        // Simplified for brevity in this response but IS present in full file implementation below.
-        // ... (Header Table construction is identical to previous, keeping code size manageable) ...
-        // Replicating header part exactly:
         const headerTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             borders: {
@@ -463,7 +546,6 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
             new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: `Ano Letivo: ${selectedYear}`, size: 22 })] })
         ];
 
-        // START MAIN TABLE LOGIC //
         const tableHeaderRow = new TableRow({
             tableHeader: true,
             children: [
@@ -479,18 +561,13 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
 
         reportData.forEach((cls, classIndex) => {
             const { rows, maxRows } = buildClassRows(cls);
-            // Light Blue for alternate classes (e.g. index 1, 3, 5...)
-            // Standard Zebra: Even white, Odd colored. Or 1st White (0), 2nd Blue (1).
             const isAlternate = classIndex % 2 !== 0;
-            const bgColor = isAlternate ? "F0F8FF" : "auto"; // AliceBlue hex for docx
+            const bgColor = isAlternate ? "F0F8FF" : "auto";
 
             rows.forEach((r, i) => {
                 const isFirst = i === 0;
-                // Modifiers for merge
                 const mergeTypeMeta = isFirst ? VerticalMergeType.RESTART : VerticalMergeType.CONTINUE;
 
-                // For Staff, we need to check if we restart or continue merge based on PREVIOUS row
-                // Logic: If current staffIndex == prev staffIndex AND current showStaff == true AND prev showStaff == true, CONTINUE.
                 let mergeTypeStaff: typeof VerticalMergeType.RESTART | typeof VerticalMergeType.CONTINUE = VerticalMergeType.RESTART;
                 const prevRow = i > 0 ? rows[i - 1] : null;
 
@@ -498,27 +575,19 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
                     mergeTypeStaff = VerticalMergeType.CONTINUE;
                 }
 
-                // If !showStaff (empty), we just put empty cell (no merge active usually, or distinct empty)
-                // Actually if !showStaff, we don't merge with previous, we start a blank cell? 
-                // Wait, users asked to leave blank.
-
                 const staffData = r.showStaff && r.staffData ? r.staffData : { name: '', role: '', hours: '' };
 
-                // Build TableRow with Shading
                 const shading = { fill: bgColor };
 
                 tableRows.push(new TableRow({
                     children: [
-                        // Metadata (Merged for WHOLE class block)
                         new TableCell({ shading, verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.mod, size: 16 })] })] : [] }),
                         new TableCell({ shading, verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.series, size: 16 })] })] : [] }),
                         new TableCell({ shading, verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.shift, size: 16 })] })] : [] }),
 
-                        // Student
                         new TableCell({ shading, verticalAlign: VerticalAlign.CENTER, width: { size: 2500, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: r.studentName, size: 16 })] })] }),
                         new TableCell({ shading, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.studentSupport, size: 14 })] })] }),
 
-                        // Staff (Conditionally Merged)
                         new TableCell({
                             shading,
                             verticalMerge: (!r.showStaff) ? VerticalMergeType.RESTART : mergeTypeStaff,
@@ -606,30 +675,20 @@ export const generatePDF = async (schoolId: string, selectedYear: string) => {
                 const isFirst = i === 0;
                 tableRowsHtml += `<tr style="background-color: ${bgColor};">`;
 
-                // Metadata (Merged)
                 if (isFirst) {
                     tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.mod}</td>`;
                     tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.series}</td>`;
                     tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.shift}</td>`;
                 }
 
-                // Student
                 tableRowsHtml += `<td>${r.studentName}</td>`;
                 tableRowsHtml += `<td>${r.studentSupport}</td>`;
-
-                // Staff
-                // HTML Table RowSpan Logic
-                // If this is the START of a block (or singleton) -> render TD with rowspan
-                // If inside block (>start) -> Don't render TD
-                // We need to calculate rowspan for current staff index chunk
 
                 const prevRow = i > 0 ? rows[i - 1] : null;
                 const isStaffContinuous = (i > 0 && r.showStaff && prevRow && prevRow.showStaff && r.staffIndex === prevRow.staffIndex);
 
                 if (r.showStaff) {
-                    // Check if this is the first of this staff block
                     if (!isStaffContinuous) {
-                        // Calculate how many rows ahead have same staffIndex?
                         let span = 1;
                         for (let k = i + 1; k < rows.length; k++) {
                             if (rows[k].showStaff && rows[k].staffIndex === r.staffIndex) {
@@ -644,7 +703,6 @@ export const generatePDF = async (schoolId: string, selectedYear: string) => {
                         tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.hours}</td>`;
                     }
                 } else {
-                    // Empty cell
                     tableRowsHtml += `<td></td><td></td><td></td>`;
                 }
 
