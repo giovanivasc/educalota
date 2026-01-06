@@ -421,8 +421,12 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
 
         const tableRows: TableRow[] = [];
 
-        reportData.forEach(cls => {
+        reportData.forEach((cls, classIndex) => {
             const { rows, maxRows } = buildClassRows(cls);
+            // Light Blue for alternate classes (e.g. index 1, 3, 5...)
+            // Standard Zebra: Even white, Odd colored. Or 1st White (0), 2nd Blue (1).
+            const isAlternate = classIndex % 2 !== 0;
+            const bgColor = isAlternate ? "F0F8FF" : "auto"; // AliceBlue hex for docx
 
             rows.forEach((r, i) => {
                 const isFirst = i === 0;
@@ -444,36 +448,37 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
 
                 const staffData = r.showStaff && r.staffData ? r.staffData : { name: '', role: '', hours: '' };
 
-                // Build TableRow
+                // Build TableRow with Shading
+                const shading = { fill: bgColor };
+
                 tableRows.push(new TableRow({
                     children: [
                         // Metadata (Merged for WHOLE class block)
-                        new TableCell({ verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.mod, size: 16 })] })] : [] }),
-                        new TableCell({ verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.series, size: 16 })] })] : [] }),
-                        new TableCell({ verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.shift, size: 16 })] })] : [] }),
+                        new TableCell({ shading, verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.mod, size: 16 })] })] : [] }),
+                        new TableCell({ shading, verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.series, size: 16 })] })] : [] }),
+                        new TableCell({ shading, verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: r.shift, size: 16 })] })] : [] }),
 
                         // Student
-                        new TableCell({ verticalAlign: VerticalAlign.CENTER, width: { size: 2500, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: r.studentName, size: 16 })] })] }),
-                        new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.studentSupport, size: 14 })] })] }),
+                        new TableCell({ shading, verticalAlign: VerticalAlign.CENTER, width: { size: 2500, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: r.studentName, size: 16 })] })] }),
+                        new TableCell({ shading, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ children: [new TextRun({ text: r.studentSupport, size: 14 })] })] }),
 
                         // Staff (Conditionally Merged)
-                        // Note: If mergeTypeStaff is CONTINUE, we must provide empty content logic for docx? 
-                        // Docx expects merged cells to exist but be marked CONTINUE.
-                        // BUT content is ignored if continue.
-                        // Exception: If !showStaff, we render a normal empty cell (RESTART empty).
                         new TableCell({
+                            shading,
                             verticalMerge: (!r.showStaff) ? VerticalMergeType.RESTART : mergeTypeStaff,
                             verticalAlign: VerticalAlign.CENTER,
                             children: (mergeTypeStaff === VerticalMergeType.RESTART && r.showStaff) ? [new Paragraph({ children: [new TextRun({ text: staffData.name, size: 16 })] })] :
                                 (!r.showStaff) ? [new Paragraph("")] : []
                         }),
                         new TableCell({
+                            shading,
                             verticalMerge: (!r.showStaff) ? VerticalMergeType.RESTART : mergeTypeStaff,
                             verticalAlign: VerticalAlign.CENTER,
                             children: (mergeTypeStaff === VerticalMergeType.RESTART && r.showStaff) ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: staffData.role, size: 14 })] })] :
                                 (!r.showStaff) ? [new Paragraph("")] : []
                         }),
                         new TableCell({
+                            shading,
                             verticalMerge: (!r.showStaff) ? VerticalMergeType.RESTART : mergeTypeStaff,
                             verticalAlign: VerticalAlign.CENTER,
                             children: (mergeTypeStaff === VerticalMergeType.RESTART && r.showStaff) ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: staffData.hours, size: 14 })] })] :
@@ -536,12 +541,14 @@ export const generatePDF = async (schoolId: string, selectedYear: string) => {
 
         let tableRowsHtml = '';
 
-        reportData.forEach(cls => {
+        reportData.forEach((cls, classIndex) => {
             const { rows, maxRows } = buildClassRows(cls);
+            const isAlternate = classIndex % 2 !== 0;
+            const bgColor = isAlternate ? "#F0F8FF" : "#FFFFFF"; // AliceBlue for web
 
             rows.forEach((r, i) => {
                 const isFirst = i === 0;
-                tableRowsHtml += '<tr>';
+                tableRowsHtml += `<tr style="background-color: ${bgColor};">`;
 
                 // Metadata (Merged)
                 if (isFirst) {
