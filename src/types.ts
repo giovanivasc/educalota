@@ -51,6 +51,7 @@ export interface Staff {
   hoursTotal: number;
   hoursAvailable: number;
   avatar?: string;
+  observations?: string;
 }
 
 export interface Student {

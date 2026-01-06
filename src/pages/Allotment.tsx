@@ -141,7 +141,8 @@ const Allotment: React.FC = () => {
     if (staffData) {
       setStaffList(staffData.map((s: any) => ({
         id: s.id, name: s.name, registration: s.registration, role: s.role,
-        contractType: s.contract_type, hoursTotal: s.hours_total, hoursAvailable: s.hours_available, avatar: s.avatar
+        contractType: s.contract_type, hoursTotal: s.hours_total, hoursAvailable: s.hours_available, avatar: s.avatar,
+        observations: s.observations
       })));
     }
 
@@ -571,7 +572,18 @@ const Allotment: React.FC = () => {
                       />
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-sm font-bold">{staff.name}</p>
+                      <p className="text-sm font-bold flex items-center gap-2">
+                        {staff.name}
+                        {staff.observations && (
+                          <span
+                            className="material-symbols-outlined text-[16px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
+                            title={staff.observations}
+                            onClick={(e) => { e.stopPropagation(); alert(`Observações de ${staff.name}:\n\n${staff.observations}`); }}
+                          >
+                            info
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-slate-500">Mat. {staff.registration}</p>
                     </td>
                     <td className="px-5 py-4">
@@ -714,7 +726,24 @@ const Allotment: React.FC = () => {
                       return (
                         <tr key={allotment.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                           <td className="px-6 py-4">
-                            <span className="font-bold text-sm text-slate-700 dark:text-slate-300">{allotment.staff_name}</span>
+                            <span className="font-bold text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                              {allotment.staff_name}
+                              {/* We need to find the staff in staffList to get observations because allotment doesn't have it joined yet? 
+                                  Actually allotment is just allotment data. staffList is available in scope. 
+                              */}
+                              {staffList.find(s => s.id === allotment.staff_id)?.observations && (
+                                <span
+                                  className="material-symbols-outlined text-[16px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
+                                  title={staffList.find(s => s.id === allotment.staff_id)?.observations}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    alert(`Observações de ${allotment.staff_name}:\n\n${staffList.find(s => s.id === allotment.staff_id)?.observations}`);
+                                  }}
+                                >
+                                  info
+                                </span>
+                              )}
+                            </span>
                           </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex rounded px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">

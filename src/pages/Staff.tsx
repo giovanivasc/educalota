@@ -19,7 +19,8 @@ const StaffPage: React.FC = () => {
     role: '',
     contractType: '',
     hoursTotal: 100,
-    avatar: ''
+    avatar: '',
+    observations: ''
   });
   // const [avatarFile, setAvatarFile] = useState<File | null>(null); // Removed
   const [saveLoading, setSaveLoading] = useState(false);
@@ -55,7 +56,8 @@ const StaffPage: React.FC = () => {
         contractType: s.contract_type as any,
         hoursTotal: s.hours_total,
         hoursAvailable: s.hours_available,
-        avatar: s.avatar
+        avatar: s.avatar,
+        observations: s.observations
       }));
       setStaffList(mappedStaff);
     } catch (error) {
@@ -105,6 +107,7 @@ const StaffPage: React.FC = () => {
           contract_type: newStaff.contractType,
           hours_total: newStaff.hoursTotal,
           avatar: avatarUrl,
+          observations: newStaff.observations
         }).eq('id', editingId);
         if (error) throw error;
         alert('Servidor atualizado com sucesso!');
@@ -117,13 +120,14 @@ const StaffPage: React.FC = () => {
           hours_total: newStaff.hoursTotal,
           hours_available: newStaff.hoursTotal, // Initially full available
           avatar: avatarUrl,
-          registration: registration
+          registration: registration,
+          observations: newStaff.observations
         });
         if (error) throw error;
         alert('Servidor cadastrado com sucesso!');
       }
 
-      setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '' });
+      setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '', observations: '' });
       setEditingId(null);
       await fetchStaff();
       setView('list');
@@ -161,7 +165,8 @@ const StaffPage: React.FC = () => {
       role: staff.role,
       contractType: staff.contractType,
       hoursTotal: staff.hoursTotal,
-      avatar: staff.avatar || ''
+      avatar: staff.avatar || '',
+      observations: staff.observations || ''
     });
     setEditingId(staff.id);
     setView('create');
@@ -276,7 +281,7 @@ const StaffPage: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setView('list'); setEditingId(null); setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '' }); }}
+            onClick={() => { setView('list'); setEditingId(null); setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '', observations: '' }); }}
             icon="arrow_back"
             className="w-fit pl-0 hover:bg-transparent"
           >
@@ -362,6 +367,18 @@ const StaffPage: React.FC = () => {
               </label>
             </div>
 
+            <div className="grid grid-cols-1 gap-6">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Observações / Informações Adicionais</span>
+                <textarea
+                  value={newStaff.observations}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewStaff({ ...newStaff, observations: e.target.value })}
+                  className="w-full min-h-[100px] p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-y"
+                  placeholder="Ex: Servidor solicitou redução de carga horária; Preferência por turno matutino..."
+                />
+              </label>
+            </div>
+
             <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
               <Button onClick={handleSaveStaff} icon="how_to_reg" isLoading={saveLoading}>
                 {editingId ? 'Salvar Alterações' : 'Finalizar Cadastro'}
@@ -382,7 +399,7 @@ const StaffPage: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <BulkImporter type="staff" onSuccess={fetchStaff} label="Importar Servidores" />
-          <Button onClick={() => { setView('create'); setEditingId(null); setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '' }); }} icon="person_add">
+          <Button onClick={() => { setView('create'); setEditingId(null); setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '', observations: '' }); }} icon="person_add">
             Novo Servidor
           </Button>
         </div>
@@ -446,7 +463,18 @@ const StaffPage: React.FC = () => {
                         {(staff.name || '?').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{staff.name}</p>
+                        <p className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          {staff.name}
+                          {staff.observations && (
+                            <span
+                              className="material-symbols-outlined text-[18px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
+                              title={staff.observations}
+                              onClick={(e) => { e.stopPropagation(); alert(`Observações de ${staff.name}:\n\n${staff.observations}`); }}
+                            >
+                              info
+                            </span>
+                          )}
+                        </p>
                       </div>
                     </div>
                   </td>
