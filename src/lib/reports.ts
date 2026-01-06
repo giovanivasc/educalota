@@ -114,7 +114,7 @@ export const generateExcel = async (schoolId: string, selectedYear: string) => {
         // Header info manually
         const headerInfo = [
             [`Escola: ${school?.name}`],
-            [`Diretor: ${school?.director || '-'}`, `Vice-Diretor: ${school?.vice_director || '-'}`],
+            [`Diretor: ${school?.director_name || '-'}`, `Vice-Diretor: ${school?.vice_director_name || '-'}`],
             [],
             ['Nome do Servidor', 'Cargo', 'Vínculo', 'Carga Horária', 'Modalidade', 'Série', 'Turno', 'Estudantes']
         ];
@@ -403,7 +403,7 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
         const title = new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200, after: 200 }, children: [new TextRun({ text: `PRÉ-LOTAÇÃO DA EDUCAÇÃO ESPECIAL ${selectedYear}`, bold: true, size: 28 })] });
         const schoolInfo = [
             new Paragraph({ children: [new TextRun({ text: `Escola: ${school?.name || ''}`, bold: true, size: 22 })] }),
-            new Paragraph({ children: [new TextRun({ text: `Diretor: ${school?.director || '-'} | Vice-Diretor: ${school?.vice_director || '-'}`, size: 22 })] }),
+            new Paragraph({ children: [new TextRun({ text: `Diretor: ${school?.director_name || '-'} | Vice-Diretor: ${school?.vice_director_name || '-'}`, size: 22 })] }),
             new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: `Ano Letivo: ${selectedYear}`, size: 22 })] })
         ];
 
@@ -431,7 +431,7 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
 
                 // For Staff, we need to check if we restart or continue merge based on PREVIOUS row
                 // Logic: If current staffIndex == prev staffIndex AND current showStaff == true AND prev showStaff == true, CONTINUE.
-                let mergeTypeStaff = VerticalMergeType.RESTART;
+                let mergeTypeStaff: typeof VerticalMergeType.RESTART | typeof VerticalMergeType.CONTINUE = VerticalMergeType.RESTART;
                 const prevRow = i > 0 ? rows[i - 1] : null;
 
                 if (i > 0 && r.showStaff && prevRow && prevRow.showStaff && r.staffIndex === prevRow.staffIndex) {
@@ -492,6 +492,7 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
 
         const terms = new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { before: 400 }, children: [new TextRun({ text: "Declaro que, no exercício de minhas funções como gestor escolar, realizei e estou de pleno acordo com a pré-lotação dos servidores da Educação Especial, efetuada em conjunto com a Coordenadoria de Educação Especial, para o exercício de suas funções no ano letivo de 2026. Declaro, ainda, que fui devidamente informado(a) e estou ciente de que essa pré-lotação poderá sofrer alterações, a critério da Secretaria Municipal de Educação, sempre que houver necessidade em razão do interesse público.", size: 20 })] });
         const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+        const d = new Date();
         const dateText = `Castanhal, ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}.`;
         const datePara = new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 400, after: 800 }, children: [new TextRun({ text: dateText, size: 20 })] });
 
@@ -631,7 +632,7 @@ export const generatePDF = async (schoolId: string, selectedYear: string) => {
                 <div class="doc-title">PRÉ-LOTAÇÃO DA EDUCAÇÃO ESPECIAL ${selectedYear}</div>
                 <div class="school-info">
                     <p><strong>Escola:</strong> ${school.name}</p>
-                    <p><strong>Diretor:</strong> ${school.director || '-'} | <strong>Vice-Diretor:</strong> ${school.vice_director || '-'}</p>
+                    <p><strong>Diretor:</strong> ${school.director_name || '-'} | <strong>Vice-Diretor:</strong> ${school.vice_director_name || '-'}</p>
                     <p><strong>Ano Letivo:</strong> ${selectedYear}</p>
                 </div>
                 <table>
