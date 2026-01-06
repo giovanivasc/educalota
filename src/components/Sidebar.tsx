@@ -26,11 +26,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
     };
 
     const hasPermission = (path: string) => {
-        // Allow if user is Admin by role (legacy/default) or has 'admin' permission
-        const isAdmin = user.role === 'Admin' || user.role === 'ADMIN' || user.permissions?.includes('admin');
+        // Normaliza o papel do usuário para minúsculas para comparação segura
+        const userRole = user.role?.toLowerCase() || '';
+
+        // Permite acesso total se for admin em qualquer variação ou tiver permissão explicita
+        const isAdmin = userRole === 'admin' ||
+            userRole === 'superadmin' ||
+            userRole === 'gestor' || // Adicionado por segurança
+            user.permissions?.includes('admin');
+
         if (isAdmin) return true;
 
-        if (!user.permissions || user.permissions.length === 0) return false;
+        if (!user.permissions || user.permissions.length === 0) {
+            // Se não houver permissões definidas, e não for admin, 
+            // no momento bloqueia tudo. 
+            // TODO: Definir comportamento padrão para usuários sem role/perm
+            return false;
+        }
 
         const id = getPermissionId(path);
 
