@@ -149,14 +149,14 @@ const Students: React.FC = () => {
 
         return {
           id: s.id,
-          name: s.name,
+          name: s.name || '',
           age: s.age,
-          series: displaySeries,
+          series: displaySeries || '',
           schoolId: s.school_id,
-          cid: s.cid,
-          specialGroup: s.special_group,
+          cid: s.cid || '',
+          specialGroup: s.special_group || '',
           needsSupport: s.needs_support || [],
-          additionalInfo: s.additional_info
+          additionalInfo: s.additional_info || ''
         };
       });
       setStudents(mappedStudents);
@@ -167,8 +167,8 @@ const Students: React.FC = () => {
   };
 
   const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.cid.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.cid || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (view === 'create') {
