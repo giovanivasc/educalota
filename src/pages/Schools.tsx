@@ -602,8 +602,8 @@ const Schools: React.FC = () => {
                     className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm px-3 outline-none focus:ring-1 focus:ring-primary"
                   >
                     <option>Educação Infantil</option>
-                    <option>Anos Iniciais - EF</option>
-                    <option>Anos Finais - EF</option>
+                    <option>Ensino Fundamental 1º/5º ano</option>
+                    <option>Ensino Fundamental 6º/9º ano</option>
                     <option>EJA</option>
                     <option>Educação Especial</option>
                   </select>

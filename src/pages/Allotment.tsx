@@ -24,6 +24,9 @@ const Allotment: React.FC = () => {
   const [staffSearch, setStaffSearch] = useState('');
   const [staffRoleFilter, setStaffRoleFilter] = useState('');
   const [staffAvailabilityFilter, setStaffAvailabilityFilter] = useState('');
+  const [selectedShift, setSelectedShift] = useState(''); // New state for shift filter
+  const [classObs, setClassObs] = useState(''); // New state for class observations
+  const [savingObs, setSavingObs] = useState(false);
 
   useEffect(() => {
     if (selectedSchool) {
@@ -50,11 +53,15 @@ const Allotment: React.FC = () => {
     if (selectedClass) {
       fetchStudentsForClass(selectedClass);
       fetchExistingAllotments(selectedClass);
+      // Load observation
+      const cls = classes.find(c => c.id === selectedClass);
+      setClassObs(cls?.obs || '');
     } else {
       setStudents([]);
       setExistingAllotments([]);
+      setClassObs('');
     }
-  }, [selectedClass]);
+  }, [selectedClass, classes]);
 
   const fetchExistingAllotments = async (classId: string) => {
     const { data } = await supabase
@@ -124,7 +131,7 @@ const Allotment: React.FC = () => {
         location: 'Endereço não informado', active: true
       })));
       // Only default select if none selected
-      if (schoolsData.length > 0 && !selectedSchool) setSelectedSchool(schoolsData[0].id);
+      // if (schoolsData.length > 0 && !selectedSchool) setSelectedSchool(schoolsData[0].id); // DISABLED auto-select
     }
 
     // 2. Staff
@@ -323,6 +330,28 @@ const Allotment: React.FC = () => {
     }
   };
 
+  const handleSaveObs = async () => {
+    if (!selectedClass) return;
+    setSavingObs(true);
+    try {
+      const { error } = await supabase
+        .from('classes')
+        .update({ obs: classObs })
+        .eq('id', selectedClass);
+
+      if (error) throw error;
+
+      // Update local state
+      setClasses(prev => prev.map(c => c.id === selectedClass ? { ...c, obs: classObs } : c));
+      alert('Observação salva com sucesso!');
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao salvar observação.');
+    } finally {
+      setSavingObs(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-32">
       <div>
@@ -330,7 +359,7 @@ const Allotment: React.FC = () => {
         <p className="mt-1 text-slate-500 dark:text-slate-400">Gerencie a vinculação de profissionais de apoio e alunos às turmas de educação especial.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Unidade de Ensino</label>
           <div className="relative">
@@ -371,20 +400,61 @@ const Allotment: React.FC = () => {
             )}
           </div>
         </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Filtro de Turno</label>
+          <select
+            className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
+            value={selectedShift}
+            onChange={(e) => {
+              setSelectedShift(e.target.value);
+              setSelectedClass(''); // Clear class when shift changes to force re-selection
+            }}
+          >
+            <option value="">Todos os Turnos</option>
+            <option value="Matutino">Matutino</option>
+            <option value="Vespertino">Vespertino</option>
+            <option value="Noturno">Noturno</option>
+            <option value="Integral">Integral</option>
+          </select>
+        </div>
+
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Turma</label>
           <select
             className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
+            disabled={!selectedSchool}
           >
             <option value="">Selecione a turma...</option>
-            {classes.map(c => (
-              <option key={c.id} value={c.id}>{c.series} {c.section ? '- ' + c.section : ''} - {c.shift}</option>
-            ))}
+            {classes
+              .filter(c => !selectedShift || c.shift === selectedShift)
+              .map(c => (
+                <option key={c.id} value={c.id}>{c.series} {c.section ? '- ' + c.section : ''} - {c.shift}</option>
+              ))}
           </select>
         </div>
       </div>
+
+      {/* Class Observations */}
+      {selectedClass && (
+        <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Observações da Turma</label>
+              <Button size="sm" icon="save" onClick={handleSaveObs} isLoading={savingObs} variant="ghost">Salvar Observação</Button>
+            </div>
+            <textarea
+              className="w-full min-h-[80px] p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-1 focus:ring-primary resize-y"
+              placeholder="Adicione observações importantes sobre esta turma e sua lotação..."
+              value={classObs}
+              onChange={(e) => setClassObs(e.target.value)}
+            />
+          </div>
+        </div>
+      )
+      }
 
       {/* ... inside the component ... */}
 

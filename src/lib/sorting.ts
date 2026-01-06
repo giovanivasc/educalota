@@ -2,8 +2,8 @@ export const getModalityOrder = (m: string | undefined | null) => {
     if (!m) return 99;
     const v = m.toLowerCase();
     if (v.includes("infantil")) return 1;
-    if (v.includes("anos iniciais")) return 2;
-    if (v.includes("anos finais")) return 3;
+    if (v.includes("anos iniciais") || v.includes("1º/5º")) return 2;
+    if (v.includes("anos finais") || v.includes("6º/9º")) return 3;
     if (v.includes("eja")) return 4;
     if (v.includes("especial")) return 5;
     return 99;

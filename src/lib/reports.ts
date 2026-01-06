@@ -301,8 +301,8 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
         reportData.forEach(cls => {
             let mod = cls.modality || '-';
             if (mod.includes("Educação Infantil")) mod = "EI";
-            else if (mod.includes("Anos Iniciais")) mod = "AI";
-            else if (mod.includes("Anos Finais")) mod = "AF";
+            else if (mod.includes("Anos Iniciais") || mod.includes("1º/5º")) mod = "EF-1";
+            else if (mod.includes("Anos Finais") || mod.includes("6º/9º")) mod = "EF-2";
             else if (mod.includes("EJA")) mod = "EJA";
             else if (mod.includes("Educação Especial")) mod = "EE";
 
