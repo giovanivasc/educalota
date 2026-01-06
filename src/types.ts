@@ -36,7 +36,7 @@ export interface Class {
   year: number;
   series: string; // "5º Ano", "Ensino Médio 1"
   section: string; // "A", "B", "101"
-  shift: 'Matutino' | 'Vespertino' | 'Noturno' | 'Integral';
+  shift: 'Manhã' | 'Tarde' | 'Noite' | 'Integral';
   obs?: string;
   studentsIds: string[];
   staffIds: string[];

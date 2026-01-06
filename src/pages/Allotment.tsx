@@ -215,10 +215,10 @@ const Allotment: React.FC = () => {
 
         if (isSpecialRole && currentAllotments && currentAllotments.length > 0) {
           // Get shift weights
-          const shiftWeight: Record<string, number> = { 'Matutino': 1, 'Vespertino': 2, 'Noturno': 3, 'Integral': 4 };
+          const shiftWeight: Record<string, number> = { 'Manhã': 1, 'Tarde': 2, 'Noite': 3, 'Integral': 4 };
 
           // New Class Shift
-          const newClassShift = cls?.shift || 'Matutino';
+          const newClassShift = cls?.shift || 'Manhã';
           const newWeight = shiftWeight[newClassShift] || 0;
 
           // Check current total hours to see if we reached 200h cap scenario
@@ -417,9 +417,9 @@ const Allotment: React.FC = () => {
             }}
           >
             <option value="">Todos os Turnos</option>
-            <option value="Matutino">Matutino</option>
-            <option value="Vespertino">Vespertino</option>
-            <option value="Noturno">Noturno</option>
+            <option value="Manhã">Manhã</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noite">Noite</option>
             <option value="Integral">Integral</option>
           </select>
         </div>

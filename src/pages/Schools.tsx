@@ -100,7 +100,7 @@ const Schools: React.FC = () => {
     year: new Date().getFullYear(),
     series: '', // Grade part e.g. "5 anos"
     section: '', // Section/Turma part e.g. "A"
-    shift: 'Matutino',
+    shift: 'Manhã',
     obs: ''
   });
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -647,9 +647,9 @@ const Schools: React.FC = () => {
                     onChange={e => setNewClass({ ...newClass, shift: e.target.value })}
                     className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm px-3 outline-none focus:ring-1 focus:ring-primary"
                   >
-                    <option>Matutino</option>
-                    <option>Vespertino</option>
-                    <option>Noturno</option>
+                    <option>Manhã</option>
+                    <option>Tarde</option>
+                    <option>Noite</option>
                     <option>Integral</option>
                   </select>
                 </div>
@@ -717,9 +717,9 @@ const Schools: React.FC = () => {
                     <td className="px-6 py-4 text-slate-500">{cls.year || new Date().getFullYear()}</td>
                     <td className="px-6 py-4 font-bold">{cls.series} {cls.section ? `- ${cls.section} ` : ''}</td>
                     <td className="px-6 py-4">
-                      <span className={`px - 2 py - 0.5 rounded text - [10px] font - black uppercase ${cls.shift === 'Matutino' ? 'bg-yellow-100 text-yellow-700' :
-                        cls.shift === 'Vespertino' ? 'bg-orange-100 text-orange-700' :
-                          cls.shift === 'Noturno' ? 'bg-slate-100 text-slate-700' : 'bg-blue-100 text-blue-700'
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${cls.shift === 'Manhã' ? 'bg-yellow-100 text-yellow-700' :
+                        cls.shift === 'Tarde' ? 'bg-orange-100 text-orange-700' :
+                          cls.shift === 'Noite' ? 'bg-slate-100 text-slate-700' : 'bg-blue-100 text-blue-700'
                         } `}>
                         {cls.shift}
                       </span>
