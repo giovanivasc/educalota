@@ -42,7 +42,7 @@ const Dashboard: React.FC = () => {
       ]);
 
       // Calculate Allotted Staff (Unique IDs)
-      const uniqueAllottedStaff = new Set(activeAllotments?.map((a: any) => a.staff_id)).size;
+      const uniqueAllottedStaff = new Set((activeAllotments || []).map((a: any) => a.staff_id)).size;
 
       setStats({
         students: studentsCount || 0,
