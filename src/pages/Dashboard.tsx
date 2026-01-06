@@ -219,7 +219,7 @@ const Dashboard: React.FC = () => {
           <div className="mt-4 flex flex-wrap gap-3 justify-center">
             {groupDistData.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${['bg-[#0088FE]', 'bg-[#00C49F]', 'bg-[#FFBB28]', 'bg-[#FF8042]', 'bg-primary'][i % 5]}`}></span>
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}></span>
                 <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{item.name} ({item.value})</span>
               </div>
             ))}
