@@ -11,6 +11,7 @@ const Students: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
 
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -166,10 +167,19 @@ const Students: React.FC = () => {
     }
   };
 
-  const filteredStudents = students.filter(s =>
-    (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.cid || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = students
+    .filter(s =>
+      (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.cid || '').toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortOrder) return 0;
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      if (nameA < nameB) return sortOrder === 'asc' ? -1 : 1;
+      if (nameA > nameB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   if (view === 'create') {
     return (
@@ -289,7 +299,7 @@ const Students: React.FC = () => {
             <div className="space-y-3">
               <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Necessita de Suporte Especializado?</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {['Atendido por Mediador', 'Atendido por Cuidador', 'Atendido por Prof. Braille', 'Atendido por Prof. Bilíngue', 'Necessita de avaliação', 'Não necessita'].map((item) => (
+                {['Atendido por Mediador', 'Atendido por Cuidador', 'Atendido por Prof. Braille', 'Atendido por Prof. Bilíngue', 'Necessita de avaliação', 'Não necessita', 'Atendimento domiciliar'].map((item) => (
                   <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-primary/50 transition-colors ${formData.needsSupport.includes(item) ? 'bg-primary/5 border-primary' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800'}`}>
                     <input
                       type="checkbox"
@@ -376,7 +386,17 @@ const Students: React.FC = () => {
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
               <tr>
-                <th className="px-6 py-4">Estudante</th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  onClick={() => setSortOrder(current => current === 'asc' ? 'desc' : 'asc')}
+                >
+                  <div className="flex items-center gap-1">
+                    Estudante
+                    <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
+                      {sortOrder === 'asc' ? 'arrow_upward' : sortOrder === 'desc' ? 'arrow_downward' : 'unfold_more'}
+                    </span>
+                  </div>
+                </th>
                 <th className="px-6 py-4">Diagnóstico</th>
                 <th className="px-6 py-4">Série / Turma</th>
                 <th className="px-6 py-4">Necessidades</th>
