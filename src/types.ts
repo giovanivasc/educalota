@@ -57,7 +57,7 @@ export interface Staff {
 export interface Student {
   id: string;
   name: string;
-  age: number;
+  birthDate: string;
   series: string;
   cid: string;
   specialGroup: string;

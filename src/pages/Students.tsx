@@ -17,7 +17,7 @@ const Students: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    age: '' as number | string,
+    birthDate: '',
     series: '',
     schoolId: '',
     cid: '',
@@ -33,7 +33,7 @@ const Students: React.FC = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      age: '',
+      birthDate: '',
       series: '',
       schoolId: '',
       cid: '',
@@ -47,7 +47,7 @@ const Students: React.FC = () => {
   const handleEdit = (student: Student) => {
     setFormData({
       name: student.name,
-      age: student.age,
+      birthDate: student.birthDate || '',
       series: student.series,
       schoolId: student.schoolId || '',
       cid: student.cid,
@@ -80,7 +80,7 @@ const Students: React.FC = () => {
     try {
       const payload = {
         name: formData.name,
-        age: Number(formData.age),
+        birth_date: formData.birthDate,
         series: formData.series,
         school_id: formData.schoolId || null,
         cid: formData.cid,
@@ -151,7 +151,7 @@ const Students: React.FC = () => {
         return {
           id: s.id,
           name: s.name || '',
-          age: s.age,
+          birthDate: s.birth_date || '',
           series: displaySeries || '',
           schoolId: s.school_id,
           cid: s.cid || '',
@@ -219,16 +219,15 @@ const Students: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Idade</span>
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Data de Nascimento</span>
                 <div className="relative">
                   <input
-                    type="number"
-                    value={formData.age}
-                    onChange={e => setFormData({ ...formData, age: e.target.value })}
+                    type="date"
+                    value={formData.birthDate}
+                    onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
                     className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                    placeholder="Ex: 10"
                   />
-                  <span className="absolute right-3 top-3 text-slate-400 material-symbols-outlined">cake</span>
+                  <span className="absolute right-3 top-3 text-slate-400 material-symbols-outlined">calendar_month</span>
                 </div>
               </label>
               <label className="flex flex-col gap-2">

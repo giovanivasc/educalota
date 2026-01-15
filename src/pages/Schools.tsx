@@ -117,7 +117,7 @@ const Schools: React.FC = () => {
   // New Student State (Matches Students.tsx)
   const [newStudent, setNewStudent] = useState({
     name: '',
-    age: '',
+    birthDate: '',
     cid: '',
     specialGroup: '',
     needsSupport: [] as string[],
@@ -251,7 +251,7 @@ const Schools: React.FC = () => {
     try {
       const { error } = await supabase.from('students').insert({
         name: newStudent.name,
-        age: newStudent.age ? parseInt(newStudent.age) : null,
+        birth_date: newStudent.birthDate ? newStudent.birthDate : null,
         cid: newStudent.cid,
         special_group: newStudent.specialGroup,
         needs_support: newStudent.needsSupport,
@@ -263,7 +263,7 @@ const Schools: React.FC = () => {
 
       if (error) throw error;
       alert('Estudante cadastrado com sucesso!');
-      setNewStudent({ name: '', age: '', cid: '', specialGroup: '', needsSupport: [], description: '' });
+      setNewStudent({ name: '', birthDate: '', cid: '', specialGroup: '', needsSupport: [], description: '' });
       fetchClassStudents(selectedClass.id);
       setStudentModalTab('list'); // Switch back to list
     } catch (e) {
@@ -894,13 +894,12 @@ const Schools: React.FC = () => {
                           />
                         </label>
                         <label className="flex flex-col gap-2">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Idade</span>
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Data de Nascimento</span>
                           <input
                             className="w-full h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none focus:ring-1 focus:ring-primary"
-                            type="number"
-                            placeholder="Ex: 12"
-                            value={newStudent.age}
-                            onChange={e => setNewStudent({ ...newStudent, age: e.target.value })}
+                            type="date"
+                            value={newStudent.birthDate}
+                            onChange={e => setNewStudent({ ...newStudent, birthDate: e.target.value })}
                           />
                         </label>
                       </div>
