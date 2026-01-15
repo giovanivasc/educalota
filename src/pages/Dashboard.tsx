@@ -12,7 +12,8 @@ const Dashboard: React.FC = () => {
     schools: 0,
     classes: 0,
     staff: 0,
-    allottedStaff: 0
+    allottedStaff: 0,
+    distortion: 0
   });
   const [recentAllotments, setRecentAllotments] = useState<AllotmentRecord[]>([]);
   const [staffDistData, setStaffDistData] = useState<any[]>([]);
@@ -33,7 +34,7 @@ const Dashboard: React.FC = () => {
         { data: activeAllotments },
         { data: recentAllotmentsData }
       ] = await Promise.all([
-        supabase.from('students').select('special_group', { count: 'exact' }),
+        supabase.from('students').select('special_group, birth_date, classes:class_id(modality, series)', { count: 'exact' }),
         supabase.from('schools').select('*', { count: 'exact', head: true }),
         supabase.from('classes').select('*', { count: 'exact', head: true }),
         supabase.from('staff').select('role', { count: 'exact' }),
@@ -44,12 +45,68 @@ const Dashboard: React.FC = () => {
       // Calculate Allotted Staff (Unique IDs)
       const uniqueAllottedStaff = new Set((activeAllotments || []).map((a: any) => a.staff_id)).size;
 
+      // Calculate Distortion
+      let distortionCount = 0;
+      const refDate = new Date(new Date().getFullYear(), 2, 31); // 31st March
+
+      (studentsData || []).forEach((s: any) => {
+        if (!s.birth_date) return;
+
+        // Calculate Age on Ref Date
+        const birth = new Date(s.birth_date);
+        let age = refDate.getFullYear() - birth.getFullYear();
+        const m = refDate.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && refDate.getDate() < birth.getDate())) {
+          age--;
+        }
+
+        // Determine Expected Age
+        let expectedAge: number | null = null;
+        let series = '';
+        let modality = '';
+
+        if (s.classes) {
+          series = (s.classes.series || '').toLowerCase();
+          modality = (s.classes.modality || '').toLowerCase();
+        } else if (s.series) {
+          // Fallback to student series string if class not linked
+          series = s.series.toLowerCase();
+          // Guess modality?
+        }
+
+        if (!series) return;
+
+        // Logic Mapping
+        if (modality.includes('infantil') || series.includes('infantil') || series.includes('creche')) {
+          if (series.includes('2 anos')) expectedAge = 2;
+          else if (series.includes('3 anos')) expectedAge = 3;
+          else if (series.includes('4 anos')) expectedAge = 4;
+          else if (series.includes('5 anos')) expectedAge = 5;
+        }
+        else if (modality.includes('fundamental') || series.includes('ano') || series.includes('série')) {
+          if (series.includes('1º') || series.includes('1o') || series.includes('primeiro')) expectedAge = 6;
+          else if (series.includes('2º') || series.includes('2o') || series.includes('segundo')) expectedAge = 7;
+          else if (series.includes('3º') || series.includes('3o') || series.includes('terceiro')) expectedAge = 8;
+          else if (series.includes('4º') || series.includes('4o') || series.includes('quarto')) expectedAge = 9;
+          else if (series.includes('5º') || series.includes('5o') || series.includes('quinto')) expectedAge = 10;
+          else if (series.includes('6º') || series.includes('6o') || series.includes('sexto')) expectedAge = 11;
+          else if (series.includes('7º') || series.includes('7o') || series.includes('sétimo')) expectedAge = 12;
+          else if (series.includes('8º') || series.includes('8o') || series.includes('oitavo')) expectedAge = 13;
+          else if (series.includes('9º') || series.includes('9o') || series.includes('nono')) expectedAge = 14;
+        }
+
+        if (expectedAge !== null && age > expectedAge) {
+          distortionCount++;
+        }
+      });
+
       setStats({
         students: studentsCount || 0,
         schools: schoolsCount || 0,
         classes: classesCount || 0,
         staff: staffCount || 0,
-        allottedStaff: uniqueAllottedStaff
+        allottedStaff: uniqueAllottedStaff,
+        distortion: distortionCount
       });
 
       // Process Staff Distribution
@@ -140,6 +197,7 @@ const Dashboard: React.FC = () => {
           { label: 'Turmas', value: stats.classes, icon: 'class', color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/20' },
           { label: 'Servidores Totais', value: stats.staff, icon: 'group', color: 'text-slate-600', bg: 'bg-slate-50 dark:bg-slate-800' },
           { label: 'Servidores Lotados', value: stats.allottedStaff, icon: 'badge', color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
+          { label: 'Defasagem Idade-Série', value: stats.distortion, icon: 'warning', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
         ].map((stat, i) => (
           <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
