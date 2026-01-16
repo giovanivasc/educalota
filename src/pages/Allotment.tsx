@@ -357,6 +357,9 @@ const Allotment: React.FC = () => {
     }
   };
 
+  const isSelectionLocked = !!(selectedSchool && selectedClass && selectedStaff.length > 0);
+  const lockMessage = isSelectionLocked ? "Desmarque os servidores selecionados ou confirme a lotação para alterar a escola/turma." : "";
+
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-32">
       <div>
@@ -369,9 +372,10 @@ const Allotment: React.FC = () => {
           <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Unidade de Ensino</label>
           <div className="relative">
             <input
-              className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
+              disabled={isSelectionLocked}
+              className={`w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary ${isSelectionLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
               placeholder="Pesquisar unidade..."
-              title="Selecionar Unidade de Ensino"
+              title={isSelectionLocked ? lockMessage : "Selecionar Unidade de Ensino"}
               value={selectedSchool ? (schools.find(s => s.id === selectedSchool)?.name || '') : schoolSearchTerm}
               onChange={(e) => {
                 setSchoolSearchTerm(e.target.value);
@@ -410,8 +414,9 @@ const Allotment: React.FC = () => {
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Filtro de Turno</label>
           <select
-            className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
-            title="Selecionar Turno"
+            className={`w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary ${isSelectionLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isSelectionLocked ? lockMessage : "Selecionar Turno"}
+            disabled={isSelectionLocked}
             value={selectedShift}
             onChange={(e) => {
               setSelectedShift(e.target.value);
@@ -429,11 +434,11 @@ const Allotment: React.FC = () => {
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Turma</label>
           <select
-            className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
-            title="Selecionar Turma"
+            className={`w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary ${isSelectionLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isSelectionLocked ? lockMessage : "Selecionar Turma"}
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
-            disabled={!selectedSchool}
+            disabled={!selectedSchool || isSelectionLocked}
           >
             <option value="">Selecione a turma...</option>
             {classes
