@@ -140,7 +140,36 @@ const Schools: React.FC = () => {
   // const [schoolImageFile, setSchoolImageFile] = useState<File | null>(null); // Removed
   const [saveSchoolLoading, setSaveSchoolLoading] = useState(false);
 
+  // Sync state with URL params on mount
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view');
+    const schoolIdParam = params.get('schoolId');
+
+    if (viewParam === 'classes' && schoolIdParam) {
+      if (schools.length > 0) {
+        const school = schools.find(s => s.id === schoolIdParam);
+        if (school) {
+          setSelectedSchool(school);
+          setView('classes');
+        }
+      }
+    }
+  }, [schools]);
+
+  // Update URL params when state changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (view === 'classes' && selectedSchool) {
+      params.set('view', 'classes');
+      params.set('schoolId', selectedSchool.id);
+    } else {
+      params.delete('view');
+      params.delete('schoolId');
+    }
+    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+    window.history.replaceState({}, '', newUrl);
+
     if (view === 'classes' && selectedSchool) {
       fetchClasses(selectedSchool.id);
     }
@@ -300,6 +329,10 @@ const Schools: React.FC = () => {
       alert('Estudante cadastrado com sucesso!');
       setNewStudent({ name: '', birthDate: '', cid: '', specialGroup: '', needsSupport: [], description: '' });
       fetchClassStudents(selectedClass.id);
+
+      // Update class student count in the background list
+      await fetchClasses(selectedSchool!.id);
+
       setStudentModalTab('list'); // Switch back to list
     } catch (e) {
       console.error(e);
@@ -315,6 +348,10 @@ const Schools: React.FC = () => {
       if (error) throw error;
       // alert('Estudante vinculado!'); // Removido para agilizar o processo
       fetchClassStudents(selectedClass.id);
+
+      // Update class student count in the background list
+      await fetchClasses(selectedSchool!.id);
+
       // Refresh local cache to remove from available list
       setAllStudentsLight(prev => prev.map(s => s.id === studentId ? { ...s, class_id: selectedClass.id } : s));
     } catch (e) {
