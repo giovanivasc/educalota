@@ -229,11 +229,21 @@ const Students: React.FC = () => {
     }
   };
 
+  const normalizeText = (text: string) => {
+    return text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  };
+
   const filteredStudents = students
-    .filter(s =>
-      (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (s.cid || '').toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    .filter(s => {
+      const search = normalizeText(searchTerm);
+      const name = normalizeText(s.name || '');
+      const cid = normalizeText(s.cid || '');
+
+      return name.includes(search) || cid.includes(search);
+    })
     .sort((a, b) => {
       if (!sortOrder) return 0;
       const nameA = (a.name || '').toLowerCase();
