@@ -82,7 +82,7 @@ const Students: React.FC = () => {
     try {
       const payload = {
         name: formData.name,
-        birth_date: formData.birthDate,
+        birth_date: formData.birthDate || null,
         series: formData.series,
         school_id: formData.schoolId || null,
         cid: formData.cid,
