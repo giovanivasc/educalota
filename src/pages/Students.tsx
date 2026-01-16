@@ -132,7 +132,7 @@ const Students: React.FC = () => {
   const fetchData = async () => {
     try {
       const [studentsRes, schoolsRes] = await Promise.all([
-        supabase.from('students').select('*, schools(name), classes:class_id(series, section, shift, modality)'),
+        supabase.from('students').select('*, schools(name), classes:class_id(series, section, shift, modality)').range(0, 4999),
         supabase.from('schools').select('id, name')
       ]);
 
