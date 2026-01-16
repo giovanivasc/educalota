@@ -313,7 +313,7 @@ const Schools: React.FC = () => {
         .update({ class_id: selectedClass.id, school_id: selectedSchool?.id })
         .eq('id', studentId);
       if (error) throw error;
-      alert('Estudante vinculado!');
+      // alert('Estudante vinculado!'); // Removido para agilizar o processo
       fetchClassStudents(selectedClass.id);
       // Refresh local cache to remove from available list
       setAllStudentsLight(prev => prev.map(s => s.id === studentId ? { ...s, class_id: selectedClass.id } : s));
