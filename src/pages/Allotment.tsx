@@ -399,7 +399,6 @@ const Allotment: React.FC = () => {
                     {s.name}
                   </div>
                 ))}
-                ))}
                 {schools.filter(s => normalizeText(s.name).includes(normalizeText(schoolSearchTerm))).length === 0 && (
                   <div className="px-4 py-3 text-slate-400 text-sm">Nenhuma unidade encontrada</div>
                 )}
