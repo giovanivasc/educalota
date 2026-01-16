@@ -228,23 +228,43 @@ const Schools: React.FC = () => {
   const handleManageStudents = (cls: any) => {
     setSelectedClass(cls);
     fetchClassStudents(cls.id);
-    fetchAvailableStudents(); // Pre-fetch or wait for search? Let's wait for search usually, but maybe fetch all for now.
+    setAvailableStudents([]); // Start empty, wait for search
     setShowStudentModal(true);
     setStudentModalTab('list');
     setStudentSearchTerm('');
   };
 
-  const fetchAvailableStudents = async () => {
-    // Fetch students not in this class (or maybe all to allow moving?)
-    // User said "busque entre os estudantes cadastrados".
-    const { data } = await supabase.from('students').select('*').order('name');
-    setAvailableStudents(data || []);
-  };
+  // Server-side search with debounce
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (showStudentModal && studentModalTab === 'list' && studentSearchTerm.length >= 2) {
+        fetchAvailableStudents(studentSearchTerm);
+      } else {
+        setAvailableStudents([]);
+      }
+    }, 400);
 
-  const activeAvailableStudents = availableStudents.filter(s =>
-    s.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) &&
-    s.class_id !== selectedClass?.id // Exclude already in class
-  );
+    return () => clearTimeout(delayDebounceFn);
+  }, [studentSearchTerm, showStudentModal, studentModalTab]);
+
+  const fetchAvailableStudents = async (term: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .ilike('name', `%${term}%`)
+        .order('name')
+        .limit(50);
+
+      if (error) throw error;
+
+      // Filter out students already in THIS class
+      const filtered = (data || []).filter((s: any) => s.class_id !== selectedClass?.id);
+      setAvailableStudents(filtered);
+    } catch (e) {
+      console.error('Error searching students:', e);
+    }
+  };
 
   const handleAddStudent = async () => {
     if (!newStudent.name) return;
@@ -846,12 +866,12 @@ const Schools: React.FC = () => {
                       <div className="overflow-y-auto max-h-[400px]">
                         {studentSearchTerm.length < 2 ? (
                           <p className="p-8 text-center text-sm text-slate-400">Digite para buscar...</p>
-                        ) : activeAvailableStudents.length === 0 ? (
+                        ) : availableStudents.length === 0 ? (
                           <p className="p-8 text-center text-sm text-slate-400">Nenhum estudante encontrado.</p>
                         ) : (
                           <table className="w-full text-left text-sm">
                             <tbody>
-                              {activeAvailableStudents.map(s => (
+                              {availableStudents.map(s => (
                                 <tr key={s.id} className="border-b border-slate-50 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
                                   <td className="p-3">
                                     <div className="font-bold text-slate-700 dark:text-slate-200">{s.name}</div>
