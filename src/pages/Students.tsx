@@ -4,6 +4,7 @@ import { Student } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { BulkImporter } from '../components/BulkImporter';
+import { normalizeText } from '../lib/stringUtils';
 
 const Students: React.FC = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
@@ -256,12 +257,7 @@ const Students: React.FC = () => {
     }
   };
 
-  const normalizeText = (text: string) => {
-    return text
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-  };
+  // Função normalizeText removida, usando global agora importada no topo.
 
   const filteredStudents = students
     .filter(s => {

@@ -4,6 +4,7 @@ import { School, Staff, Student } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { sortClasses } from '../lib/sorting';
+import { normalizeText } from '../lib/stringUtils';
 import { generateExcel, generateDoc, generatePDF } from '../lib/reports';
 
 const Allotment: React.FC = () => {
@@ -166,7 +167,7 @@ const Allotment: React.FC = () => {
   }; */
 
   const filteredStaff = staffList.filter(staff => {
-    const matchesSearch = staff.name.toLowerCase().includes(staffSearch.toLowerCase()) ||
+    const matchesSearch = normalizeText(staff.name).includes(normalizeText(staffSearch)) ||
       staff.registration?.includes(staffSearch);
     const matchesRole = !staffRoleFilter || staff.role === staffRoleFilter;
     const matchesAvailability = !staffAvailabilityFilter || (
@@ -385,7 +386,7 @@ const Allotment: React.FC = () => {
             />
             {showSchoolDropdown && (
               <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-60 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg">
-                {schools.filter(s => s.name.toLowerCase().includes(schoolSearchTerm.toLowerCase())).map(s => (
+                {schools.filter(s => normalizeText(s.name).includes(normalizeText(schoolSearchTerm))).map(s => (
                   <div
                     key={s.id}
                     className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer text-sm"
@@ -398,7 +399,8 @@ const Allotment: React.FC = () => {
                     {s.name}
                   </div>
                 ))}
-                {schools.filter(s => s.name.toLowerCase().includes(schoolSearchTerm.toLowerCase())).length === 0 && (
+                ))}
+                {schools.filter(s => normalizeText(s.name).includes(normalizeText(schoolSearchTerm))).length === 0 && (
                   <div className="px-4 py-3 text-slate-400 text-sm">Nenhuma unidade encontrada</div>
                 )}
               </div>

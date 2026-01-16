@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { BulkImporter } from '../components/BulkImporter';
 import { sortClasses } from '../lib/sorting';
+import { normalizeText } from '../lib/stringUtils';
 
 const Schools: React.FC = () => {
   const [view, setView] = useState<'list' | 'create' | 'classes'>('list');
@@ -113,6 +114,8 @@ const Schools: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<any | null>(null);
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
   const [availableStudents, setAvailableStudents] = useState<any[]>([]); // Search results for linking
+  const [allStudentsLight, setAllStudentsLight] = useState<any[]>([]);
+  const [loadingAvailable, setLoadingAvailable] = useState(false);
 
   // New Student State (Matches Students.tsx)
   const [newStudent, setNewStudent] = useState({
@@ -225,46 +228,58 @@ const Schools: React.FC = () => {
     else setClassStudents(data || []);
   };
 
-  const handleManageStudents = (cls: any) => {
+  const handleManageStudents = async (cls: any) => {
     setSelectedClass(cls);
     fetchClassStudents(cls.id);
-    setAvailableStudents([]); // Start empty, wait for search
     setShowStudentModal(true);
     setStudentModalTab('list');
     setStudentSearchTerm('');
-  };
 
-  // Server-side search with debounce
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (showStudentModal && studentModalTab === 'list' && studentSearchTerm.length >= 2) {
-        fetchAvailableStudents(studentSearchTerm);
-      } else {
-        setAvailableStudents([]);
-      }
-    }, 400);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [studentSearchTerm, showStudentModal, studentModalTab]);
-
-  const fetchAvailableStudents = async (term: string) => {
+    setLoadingAvailable(true);
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .ilike('name', `%${term}%`)
-        .order('name')
-        .limit(50);
+      let allStudents: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('students')
+          .select('id, name, class_id')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      // Filter out students already in THIS class
-      const filtered = (data || []).filter((s: any) => s.class_id !== selectedClass?.id);
-      setAvailableStudents(filtered);
+        if (error) throw error;
+        if (data) {
+          allStudents = [...allStudents, ...data];
+          if (data.length < pageSize) hasMore = false;
+          else page++;
+        } else {
+          hasMore = false;
+        }
+      }
+      setAllStudentsLight(allStudents);
     } catch (e) {
-      console.error('Error searching students:', e);
+      console.error('Error loading students list:', e);
+    } finally {
+      setLoadingAvailable(false);
     }
   };
+
+  // Client-side search with normalization
+  useEffect(() => {
+    if (!studentSearchTerm || studentSearchTerm.length < 2) {
+      setAvailableStudents([]);
+    } else {
+      const term = normalizeText(studentSearchTerm);
+      const filtered = allStudentsLight
+        .filter(s => normalizeText(s.name).includes(term))
+        .filter(s => s.class_id !== selectedClass?.id)
+        .slice(0, 50);
+      setAvailableStudents(filtered);
+    }
+  }, [studentSearchTerm, allStudentsLight, selectedClass]);
+
+  // fetchAvailableStudents removido em favor da busca local normalizada no useEffect acima
 
   const handleAddStudent = async () => {
     if (!newStudent.name) return;
@@ -300,7 +315,8 @@ const Schools: React.FC = () => {
       if (error) throw error;
       alert('Estudante vinculado!');
       fetchClassStudents(selectedClass.id);
-      fetchAvailableStudents(); // Refresh available list
+      // Refresh local cache to remove from available list
+      setAllStudentsLight(prev => prev.map(s => s.id === studentId ? { ...s, class_id: selectedClass.id } : s));
     } catch (e) {
       console.error(e);
       alert('Erro ao vincular.');
@@ -466,8 +482,8 @@ const Schools: React.FC = () => {
   };
 
   const filteredSchools = schools.filter(s =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.region.toLowerCase().includes(searchTerm.toLowerCase())
+    normalizeText(s.name).includes(normalizeText(searchTerm)) ||
+    normalizeText(s.region).includes(normalizeText(searchTerm))
   );
 
   const handleManageClasses = (school: School) => {

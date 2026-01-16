@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Staff } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
+import { normalizeText } from '../lib/stringUtils';
 import { BulkImporter } from '../components/BulkImporter';
 
 const StaffPage: React.FC = () => {
@@ -68,8 +69,8 @@ const StaffPage: React.FC = () => {
   };
 
   const filteredStaff = staffList.filter((s: Staff) => {
-    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = normalizeText(s.name).includes(normalizeText(searchTerm)) ||
+      normalizeText(s.role).includes(normalizeText(searchTerm)) ||
       s.registration.includes(searchTerm);
 
     const matchesRole = roleFilter === 'Todos os Cargos' || s.role === roleFilter;
