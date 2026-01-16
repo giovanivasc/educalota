@@ -131,15 +131,42 @@ const Students: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [studentsRes, schoolsRes] = await Promise.all([
-        supabase.from('students').select('*, schools(name), classes:class_id(series, section, shift, modality)').range(0, 4999),
+      // Função auxiliar para buscar todos os estudantes (paginação manual)
+      const fetchAllStudents = async () => {
+        let allStudents: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('students')
+            .select('*, schools(name), classes:class_id(series, section, shift, modality)')
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+
+          if (error) throw error;
+
+          if (data) {
+            allStudents = [...allStudents, ...data];
+            // Se retornou menos que o tamanho da página, acabou
+            if (data.length < pageSize) hasMore = false;
+            else page++;
+          } else {
+            hasMore = false;
+          }
+        }
+        return allStudents;
+      };
+
+      const [allStudentsData, schoolsRes] = await Promise.all([
+        fetchAllStudents(),
         supabase.from('schools').select('id, name')
       ]);
 
-      if (studentsRes.error) throw studentsRes.error;
+      // if (studentsRes.error) throw studentsRes.error; // Removido pois agora tratamos no loop
       if (schoolsRes.error) throw schoolsRes.error;
 
-      const mappedStudents: Student[] = (studentsRes.data || []).map((s: any) => {
+      const mappedStudents: Student[] = (allStudentsData || []).map((s: any) => {
         let displaySeries = s.series;
 
         if (s.classes) {
@@ -167,7 +194,7 @@ const Students: React.FC = () => {
       const distortionDetails: any[] = [];
       const refDate = new Date(new Date().getFullYear(), 2, 31);
 
-      (studentsRes.data || []).forEach((s: any) => {
+      (allStudentsData || []).forEach((s: any) => {
         if (!s.birth_date) return;
 
         const birth = new Date(s.birth_date);
