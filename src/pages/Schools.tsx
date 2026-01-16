@@ -835,7 +835,7 @@ const Schools: React.FC = () => {
                     <span className="material-symbols-outlined text-primary">groups</span>
                     Gerenciar Estudantes
                   </h2>
-                  <p className="text-sm text-slate-500">{selectedClass.name} - {selectedSchool.name}</p>
+                  <p className="text-sm text-slate-500">{selectedSchool.name} - {selectedClass.series} {selectedClass.section ? ` ${selectedClass.section}` : ''} ({selectedClass.shift})</p>
                 </div>
                 <button onClick={() => setShowStudentModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors relative">
                   <span className="material-symbols-outlined text-slate-500">close</span>
