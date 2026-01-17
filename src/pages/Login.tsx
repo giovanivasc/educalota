@@ -10,6 +10,7 @@ const Login: React.FC = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +19,13 @@ const Login: React.FC = () => {
   useEffect(() => {
     if (session) {
       navigate('/dashboard');
+    }
+
+    // Recuperar email salvo
+    const savedEmail = localStorage.getItem('educalota_user_email');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
     }
   }, [session, navigate]);
 
@@ -33,6 +41,13 @@ const Login: React.FC = () => {
         password,
       });
       if (error) throw error;
+
+      if (rememberMe) {
+        localStorage.setItem('educalota_user_email', email);
+      } else {
+        localStorage.removeItem('educalota_user_email');
+      }
+
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao tentar autenticar.');
@@ -103,6 +118,22 @@ const Login: React.FC = () => {
                   required
                 />
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 px-1">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer accent-primary"
+              />
+              <label
+                htmlFor="rememberMe"
+                className="text-sm font-medium text-slate-600 dark:text-slate-400 select-none cursor-pointer"
+              >
+                Lembrar meus dados
+              </label>
             </div>
 
             <Button
