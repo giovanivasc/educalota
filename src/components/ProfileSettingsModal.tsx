@@ -77,9 +77,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                     .upload(filePath, avatarFile);
 
                 if (uploadError) {
-                    // Fallback visual se storage falhar (apenas erro de log, não bloqueia user update)
                     console.error("Erro ao fazer upload da imagem:", uploadError);
-                    // Opcional: throw uploadError se quiser bloquear
+                    throw new Error("Falha ao enviar a imagem de perfil. Verifique sua conexão ou tente uma imagem menor.");
                 } else {
                     const { data: { publicUrl } } = supabase.storage
                         .from('avatars')
