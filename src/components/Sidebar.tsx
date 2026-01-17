@@ -2,6 +2,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { User } from '../types';
+import dashboardIcon from '../assets/icons/dashboard-icon.png';
+import schoolsIcon from '../assets/icons/schools-icon.png';
+import staffIcon from '../assets/icons/staff-icon.png';
+import studentsIcon from '../assets/icons/students-icon.png';
+import reportsIcon from '../assets/icons/reports-icon.png';
+
 
 interface SidebarProps {
     isOpen: boolean;
@@ -52,12 +58,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
     };
 
     const navItems = [
-        { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { path: '/schools', label: 'Escolas', icon: 'school' },
-        { path: '/staff', label: 'Profissionais', icon: 'badge' },
-        { path: '/students', label: 'Estudantes', icon: 'accessibility_new' },
-        { path: '/allotment', label: 'Lotação', icon: 'location_on' },
-        { path: '/reports', label: 'Relatórios', icon: 'description' },
+        { path: '/dashboard', label: 'Dashboard', icon: dashboardIcon, isImage: true },
+        { path: '/schools', label: 'Escolas', icon: schoolsIcon, isImage: true },
+        { path: '/staff', label: 'Profissionais', icon: staffIcon, isImage: true },
+        { path: '/students', label: 'Estudantes', icon: studentsIcon, isImage: true },
+        { path: '/allotment', label: 'Lotação', icon: 'location_on', isImage: false },
+        { path: '/reports', label: 'Relatórios', icon: reportsIcon, isImage: true },
     ].filter(item => hasPermission(item.path));
 
     const configItems = [
@@ -87,7 +93,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
                                 }`
                             }
                         >
-                            <span className="material-symbols-outlined">{item.icon}</span>
+                            {/* @ts-ignore */}
+                            {(item as any).isImage ? (
+                                <img src={item.icon} alt={item.label} className="w-6 h-6 object-contain" />
+                            ) : (
+                                <span className="material-symbols-outlined">{item.icon}</span>
+                            )}
                             {isOpen && <span className="text-sm font-medium">{item.label}</span>}
                         </NavLink>
                     ))}
@@ -108,7 +119,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
                                 }`
                             }
                         >
-                            <span className="material-symbols-outlined">{item.icon}</span>
+                            {/* @ts-ignore */}
+                            {(item as any).isImage ? (
+                                <img src={item.icon} alt={item.label} className="w-6 h-6 object-contain" />
+                            ) : (
+                                <span className="material-symbols-outlined">{item.icon}</span>
+                            )}
                             {isOpen && <span className="text-sm font-medium">{item.label}</span>}
                         </NavLink>
                     ))}
