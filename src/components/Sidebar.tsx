@@ -2,7 +2,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { User } from '../types';
+import { ProfileSettingsModal } from './ProfileSettingsModal';
 import dashboardIcon from '../assets/icons/dashboard-icon.png';
+
 import schoolsIcon from '../assets/icons/schools-icon.png';
 import staffIcon from '../assets/icons/staff-icon.png';
 import studentsIcon from '../assets/icons/students-icon.png';
@@ -17,7 +19,10 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
+    const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
+
     // Map path to permission id
+
     const getPermissionId = (path: string) => {
         const map: Record<string, string> = {
             '/dashboard': 'dashboard',
@@ -133,7 +138,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
             </div>
 
             <div className="p-4 border-t border-white/10 shrink-0">
-                <div className={`flex items-center gap-3 rounded-lg bg-white/10 p-2 ${!isOpen && 'justify-center'}`}>
+                <button
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className={`flex items-center gap-3 rounded-lg bg-white/10 p-2 w-full text-left transition-colors hover:bg-white/20 ${!isOpen && 'justify-center'}`}
+                >
                     <img src={user.avatar} alt={user.name} className="size-10 rounded-full object-cover shrink-0" />
                     {isOpen && (
                         <div className="flex flex-col overflow-hidden">
@@ -141,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
                             <span className="truncate text-xs text-blue-200">{user.email}</span>
                         </div>
                     )}
-                </div>
+                </button>
                 <button
                     onClick={onLogout}
                     className="mt-2 flex w-full items-center gap-3 px-3 py-2 text-blue-100 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -150,6 +158,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
                     {isOpen && <span className="text-sm font-medium">Sair</span>}
                 </button>
             </div>
+
+            <ProfileSettingsModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                user={user}
+                onUpdateUser={(updates) => {
+                    // Update user logic here would normally update global context
+                    // For now, we rely on the App wrapper or a reload to reflect global changes
+                    // but the modal updates its own internal state or triggers a callback
+                    console.log('User updated:', updates);
+                    window.location.reload(); // Simple way to refresh user data from session
+                }}
+            />
         </aside>
     );
 };
