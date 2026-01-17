@@ -31,11 +31,11 @@ const AppRoutes = () => {
   // Supabase user metadata can store these. For now we might mix them.
   const currentUser = user ? {
     id: user.id,
-    name: user.email?.split('@')[0] || 'Usuário',
+    name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
     email: user.email || '',
     role: user.user_metadata?.role || 'Admin', // Default role for now
     permissions: user.user_metadata?.permissions || [],
-    avatar: 'https://i.pravatar.cc/150?u=' + user.id
+    avatar: user.user_metadata?.avatar_url || 'https://i.pravatar.cc/150?u=' + user.id
   } : {
     id: 'guest',
     name: 'Convidado',
