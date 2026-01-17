@@ -7,6 +7,7 @@ import schoolsIcon from '../assets/icons/schools-icon.png';
 import staffIcon from '../assets/icons/staff-icon.png';
 import studentsIcon from '../assets/icons/students-icon.png';
 import reportsIcon from '../assets/icons/reports-icon.png';
+import allotmentIcon from '../assets/icons/allotment-icon.png';
 
 
 interface SidebarProps {
@@ -62,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
         { path: '/schools', label: 'Escolas', icon: schoolsIcon, isImage: true },
         { path: '/staff', label: 'Profissionais', icon: staffIcon, isImage: true },
         { path: '/students', label: 'Estudantes', icon: studentsIcon, isImage: true },
-        { path: '/allotment', label: 'Lotação', icon: 'location_on', isImage: false },
+        { path: '/allotment', label: 'Lotação', icon: allotmentIcon, isImage: true },
         { path: '/reports', label: 'Relatórios', icon: reportsIcon, isImage: true },
     ].filter(item => hasPermission(item.path));
 
