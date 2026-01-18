@@ -18,6 +18,11 @@ const Dashboard: React.FC = () => {
   const [staffDistData, setStaffDistData] = useState<any[]>([]);
   const [groupDistData, setGroupDistData] = useState<any[]>([]);
 
+  // Modal states
+  const [showAllotmentsModal, setShowAllotmentsModal] = useState(false);
+  const [allAllotments, setAllAllotments] = useState<AllotmentRecord[]>([]);
+  const [loadingAllotments, setLoadingAllotments] = useState(false);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -117,6 +122,28 @@ const Dashboard: React.FC = () => {
 
     } catch (e) {
       console.error('Error fetching dashboard data:', e);
+    }
+  };
+
+  const fetchAllAllotments = async () => {
+    setLoadingAllotments(true);
+    setShowAllotmentsModal(true);
+    try {
+      const { data } = await supabase.from('allotments').select('*').order('created_at', { ascending: false });
+      if (data) {
+        setAllAllotments(data.map((a: any) => ({
+          id: a.id,
+          staffName: a.staff_name,
+          staffRole: a.staff_role,
+          schoolName: a.school_name,
+          date: a.date,
+          status: a.status as any
+        })));
+      }
+    } catch (e) {
+      console.error('Error fetching all allotments:', e);
+    } finally {
+      setLoadingAllotments(false);
     }
   };
 
@@ -233,7 +260,13 @@ const Dashboard: React.FC = () => {
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4">
           <h3 className="text-lg font-bold">Últimas Lotações Realizadas</h3>
-          <button type="button" className="text-sm font-bold text-primary hover:underline">Ver todas</button>
+          <button
+            type="button"
+            className="text-sm font-bold text-primary hover:underline"
+            onClick={fetchAllAllotments}
+          >
+            Ver todas
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -267,6 +300,78 @@ const Dashboard: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* All Allotments Modal */}
+      {showAllotmentsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-4xl shadow-2xl flex flex-col h-[80vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">history</span>
+                Histórico de Lotações
+              </h2>
+              <button
+                onClick={() => setShowAllotmentsModal(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <span className="material-symbols-outlined text-slate-500">close</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+              {loadingAllotments ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold sticky top-0 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="px-6 py-3 bg-slate-50 dark:bg-slate-900">Profissional</th>
+                      <th className="px-6 py-3 bg-slate-50 dark:bg-slate-900">Cargo</th>
+                      <th className="px-6 py-3 bg-slate-50 dark:bg-slate-900">Escola Destino</th>
+                      <th className="px-6 py-3 bg-slate-50 dark:bg-slate-900">Data</th>
+                      <th className="px-6 py-3 bg-slate-50 dark:bg-slate-900 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {allAllotments.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                          Nenhuma lotação registrada.
+                        </td>
+                      </tr>
+                    ) : (
+                      allAllotments.map((allotment) => (
+                        <tr key={allotment.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                          <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{allotment.staffName}</td>
+                          <td className="px-6 py-4">{allotment.staffRole}</td>
+                          <td className="px-6 py-4">{allotment.schoolName}</td>
+                          <td className="px-6 py-4">{allotment.date}</td>
+                          <td className="px-6 py-4 text-right">
+                            <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${allotment.status === 'Concluído'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                              }`}>
+                              {allotment.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <Button variant="outline" onClick={() => setShowAllotmentsModal(false)}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
