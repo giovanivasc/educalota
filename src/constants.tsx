@@ -83,7 +83,7 @@ export const MOCK_STUDENTS: Student[] = [
   {
     id: 'std1',
     name: 'João Pedro Santos',
-    age: 10,
+    birthDate: '2014-05-10',
     series: '5º Ano A',
     cid: 'F84.0',
     specialGroup: 'TEA',
@@ -92,7 +92,7 @@ export const MOCK_STUDENTS: Student[] = [
   {
     id: 'std2',
     name: 'Maria Luiza Lima',
-    age: 12,
+    birthDate: '2012-08-20',
     series: '7º Ano B',
     cid: 'G80',
     specialGroup: 'Def. Física',

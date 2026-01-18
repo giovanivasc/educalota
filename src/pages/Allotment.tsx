@@ -115,7 +115,7 @@ const Allotment: React.FC = () => {
   const fetchStudentsForClass = async (classId: string) => {
     const { data } = await supabase.from('students').select('*').eq('class_id', classId);
     setStudents(data?.map((s: any) => ({
-      id: s.id, name: s.name, age: s.age, series: s.series, cid: s.cid,
+      id: s.id, name: s.name, birthDate: s.birth_date, series: s.series, cid: s.cid,
       specialGroup: s.special_group, needsSupport: s.needs_support || [], additionalInfo: s.additional_info // Added additionalInfo
     })) || []);
   };
@@ -274,7 +274,6 @@ const Allotment: React.FC = () => {
           staff_name: staff?.name,
           staff_role: finalRoleString,
           school_name: school?.name,
-          status: 'Ativo',
           status: 'Ativo',
           date: allotmentDate.split('-').reverse().join('/') // Convert YYYY-MM-DD to DD/MM/YYYY for storage
         });
