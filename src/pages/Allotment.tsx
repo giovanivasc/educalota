@@ -215,6 +215,26 @@ const Allotment: React.FC = () => {
           .eq('staff_id', staffId)
           .eq('status', 'Ativo');
 
+        // Validação de Turno Duplicado
+        const newClassShift = cls?.shift;
+        if (newClassShift && currentAllotments && currentAllotments.length > 0) {
+          let conflictSync = false;
+          for (const existAllot of currentAllotments) {
+            if (!existAllot.class_id) continue;
+            // Busca o turno da turma existente
+            const { data: existClass } = await supabase.from('classes').select('shift').eq('id', existAllot.class_id).single();
+            if (existClass && existClass.shift === newClassShift) {
+              conflictSync = true;
+              break;
+            }
+          }
+
+          if (conflictSync) {
+            alert(`O servidor ${staff?.name} já possui uma lotação no turno ${newClassShift}.`);
+            continue;
+          }
+        }
+
         if (isSpecialRole && currentAllotments && currentAllotments.length > 0) {
           // Get shift weights
           const shiftWeight: Record<string, number> = { 'Manhã': 1, 'Tarde': 2, 'Noite': 3, 'Integral': 4 };
