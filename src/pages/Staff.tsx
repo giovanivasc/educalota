@@ -69,9 +69,9 @@ const StaffPage: React.FC = () => {
   };
 
   const filteredStaff = staffList.filter((s: Staff) => {
-    const matchesSearch = normalizeText(s.name).includes(normalizeText(searchTerm)) ||
-      normalizeText(s.role).includes(normalizeText(searchTerm)) ||
-      s.registration.includes(searchTerm);
+    const matchesSearch = normalizeText(s.name || '').includes(normalizeText(searchTerm)) ||
+      normalizeText(s.role || '').includes(normalizeText(searchTerm)) ||
+      (s.registration && s.registration.includes(searchTerm));
 
     const matchesRole = roleFilter === 'Todos os Cargos' || s.role === roleFilter;
 
