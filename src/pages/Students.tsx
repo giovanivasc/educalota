@@ -12,7 +12,7 @@ const Students: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [distortionList, setDistortionList] = useState<any[]>([]);
   const [showDistortionModal, setShowDistortionModal] = useState(false);
 
@@ -164,7 +164,6 @@ const Students: React.FC = () => {
         supabase.from('schools').select('id, name')
       ]);
 
-      // if (studentsRes.error) throw studentsRes.error; // Removido pois agora tratamos no loop
       if (schoolsRes.error) throw schoolsRes.error;
 
       const mappedStudents: Student[] = (allStudentsData || []).map((s: any) => {
@@ -191,19 +190,16 @@ const Students: React.FC = () => {
         };
       });
 
-      // Calculate Distortion
+      // Calculate Distortion (unchanged logic)
       const distortionDetails: any[] = [];
       const refDate = new Date(new Date().getFullYear(), 2, 31);
 
       (allStudentsData || []).forEach((s: any) => {
         if (!s.birth_date) return;
-
         const birth = new Date(s.birth_date);
         let age = refDate.getFullYear() - birth.getFullYear();
         const m = refDate.getMonth() - birth.getMonth();
-        if (m < 0 || (m === 0 && refDate.getDate() < birth.getDate())) {
-          age--;
-        }
+        if (m < 0 || (m === 0 && refDate.getDate() < birth.getDate())) age--;
 
         let expectedAge: number | null = null;
         let series = '';
@@ -249,7 +245,6 @@ const Students: React.FC = () => {
         }
       });
       setDistortionList(distortionDetails);
-
       setStudents(mappedStudents);
       setSchools(schoolsRes.data || []);
     } catch (e) {
@@ -257,22 +252,51 @@ const Students: React.FC = () => {
     }
   };
 
-  // Função normalizeText removida, usando global agora importada no topo.
+  const handleSort = (key: string) => {
+    setSortConfig(current => {
+      if (current?.key === key) {
+        return current.direction === 'asc' ? { key, direction: 'desc' } : null;
+      }
+      return { key, direction: 'asc' };
+    });
+  };
 
   const filteredStudents = students
     .filter(s => {
       const search = normalizeText(searchTerm);
       const name = normalizeText(s.name || '');
       const cid = normalizeText(s.cid || '');
-
       return name.includes(search) || cid.includes(search);
     })
     .sort((a, b) => {
-      if (!sortOrder) return 0;
-      const nameA = (a.name || '').toLowerCase();
-      const nameB = (b.name || '').toLowerCase();
-      if (nameA < nameB) return sortOrder === 'asc' ? -1 : 1;
-      if (nameA > nameB) return sortOrder === 'asc' ? 1 : -1;
+      if (!sortConfig) return 0;
+
+      let valA = '';
+      let valB = '';
+
+      switch (sortConfig.key) {
+        case 'name':
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+          break;
+        case 'cid':
+          valA = (a.cid || '').toLowerCase();
+          valB = (b.cid || '').toLowerCase();
+          break;
+        case 'series':
+          valA = (a.series || '').toLowerCase();
+          valB = (b.series || '').toLowerCase();
+          break;
+        case 'needs':
+          valA = (a.needsSupport || []).join(', ').toLowerCase();
+          valB = (b.needsSupport || []).join(', ').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
 
@@ -487,18 +511,48 @@ const Students: React.FC = () => {
               <tr>
                 <th
                   className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
-                  onClick={() => setSortOrder(current => current === 'asc' ? 'desc' : 'asc')}
+                  onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-1">
                     Estudante
                     <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
-                      {sortOrder === 'asc' ? 'arrow_upward' : sortOrder === 'desc' ? 'arrow_downward' : 'unfold_more'}
+                      {sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
                     </span>
                   </div>
                 </th>
-                <th className="px-6 py-4">Diagnóstico</th>
-                <th className="px-6 py-4">Série / Turma</th>
-                <th className="px-6 py-4">Necessidades</th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  onClick={() => handleSort('cid')}
+                >
+                  <div className="flex items-center gap-1">
+                    Diagnóstico
+                    <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
+                      {sortConfig?.key === 'cid' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  onClick={() => handleSort('series')}
+                >
+                  <div className="flex items-center gap-1">
+                    Série / Turma
+                    <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
+                      {sortConfig?.key === 'series' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  onClick={() => handleSort('needs')}
+                >
+                  <div className="flex items-center gap-1">
+                    Necessidades
+                    <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
+                      {sortConfig?.key === 'needs' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+                    </span>
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-right">Ações</th>
               </tr>
             </thead>
