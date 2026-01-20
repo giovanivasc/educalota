@@ -404,24 +404,34 @@ const getStaffDisplay = (staffMember: any) => {
     let name = '-', role = '-', hours = '-';
 
     if (staffMember.staff_name) {
-        name = staffMember.staff_name;
         const r = staffMember.staff_role || '';
-        const hoursMatch = r.match(/(\d{3})h/);
-        if (hoursMatch) {
-            hours = hoursMatch[0];
-            const parts = r.split(' - ');
-            if (parts.length > 1) {
-                role = parts[0];
-            } else {
-                role = r.replace(hoursMatch[0], '').trim();
-            }
+
+        // Check if Vacancy
+        if (staffMember.staff_name === 'Disponível') {
+            // "Disponível - Cargo" format requested
+            // If staff_role is just "Mediador", we show that.
+            name = `Disponível - ${r}`;
+            role = r;
+            hours = '-';
         } else {
-            const parts = r.split(' - ');
-            if (parts.length > 1) {
-                hours = parts.pop();
-                role = parts.join(' - ');
+            name = staffMember.staff_name;
+            const hoursMatch = r.match(/(\d{3})h/);
+            if (hoursMatch) {
+                hours = hoursMatch[0];
+                const parts = r.split(' - ');
+                if (parts.length > 1) {
+                    role = parts[0];
+                } else {
+                    role = r.replace(hoursMatch[0], '').trim();
+                }
             } else {
-                role = r;
+                const parts = r.split(' - ');
+                if (parts.length > 1) {
+                    hours = parts.pop();
+                    role = parts.join(' - ');
+                } else {
+                    role = r;
+                }
             }
         }
     } else if (staffMember.name) {

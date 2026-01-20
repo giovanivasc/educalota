@@ -778,7 +778,6 @@ const Allotment: React.FC = () => {
                       const roleParts = (allotment.staff_role || '').split(' - ');
                       const roleName = roleParts[0];
                       const hoursVal = roleParts[1] || '-';
-
                       const isVacancy = !allotment.staff_id || allotment.staff_name === 'Disponível';
 
                       return (
@@ -793,7 +792,6 @@ const Allotment: React.FC = () => {
                               ) : (
                                 allotment.staff_name
                               )}
-
                               {!isVacancy && staffList.find(s => s.id === allotment.staff_id)?.observations && (
                                 <span
                                   className="material-symbols-outlined text-[16px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
