@@ -279,6 +279,10 @@ const Students: React.FC = () => {
           valA = (a.name || '').toLowerCase();
           valB = (b.name || '').toLowerCase();
           break;
+        case 'birthDate':
+          valA = a.birthDate || '';
+          valB = b.birthDate || '';
+          break;
         case 'cid':
           valA = (a.cid || '').toLowerCase();
           valB = (b.cid || '').toLowerCase();
@@ -522,6 +526,17 @@ const Students: React.FC = () => {
                 </th>
                 <th
                   className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  onClick={() => handleSort('birthDate')}
+                >
+                  <div className="flex items-center gap-1">
+                    Data Nasc.
+                    <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
+                      {sortConfig?.key === 'birthDate' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
                   onClick={() => handleSort('cid')}
                 >
                   <div className="flex items-center gap-1">
@@ -572,6 +587,9 @@ const Students: React.FC = () => {
                         </span>
                       )}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-mono text-slate-500">
+                    {student.birthDate ? new Date(student.birthDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono font-bold">
