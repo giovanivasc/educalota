@@ -30,6 +30,7 @@ const Allotment: React.FC = () => {
   const [savingObs, setSavingObs] = useState(false);
   const [showReportMenu, setShowReportMenu] = useState(false);
   const [allotmentDate, setAllotmentDate] = useState(new Date().toISOString().split('T')[0]); // Default YYYY-MM-DD
+  const [vacancyRole, setVacancyRole] = useState('Mediador'); // New state for vacancy role registration
 
   useEffect(() => {
     if (selectedSchool) {
@@ -407,6 +408,37 @@ const Allotment: React.FC = () => {
     }
   };
 
+  const handleAddVacancy = async () => {
+    if (!selectedSchool || !selectedClass) return;
+
+    setLoading(true);
+    try {
+      const school = schools.find(s => s.id === selectedSchool);
+
+      // Insert Vacancy
+      const { error } = await supabase.from('allotments').insert({
+        staff_id: null,
+        school_id: selectedSchool,
+        class_id: selectedClass,
+        staff_name: 'Disponível',
+        staff_role: vacancyRole,
+        school_name: school?.name,
+        status: 'Ativo',
+        date: allotmentDate.split('-').reverse().join('/')
+      });
+
+      if (error) throw error;
+
+      alert('Necessidade registrada com sucesso!');
+      fetchExistingAllotments(selectedClass);
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao registrar necessidade.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isSelectionLocked = !!(selectedSchool && selectedClass && selectedStaff.length > 0);
   const lockMessage = isSelectionLocked ? "Desmarque os servidores selecionados ou confirme a lotação para alterar a escola/turma." : "";
 
@@ -752,113 +784,147 @@ const Allotment: React.FC = () => {
       {/* Existing Allotments List */}
       {
         selectedClass && (
-          <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-              <h2 className="font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">assignment_ind</span>
-                Servidores lotados
-              </h2>
+          <>
+            {/* Vacancy Registration */}
+            <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-6 flex flex-col md:flex-row md:items-end gap-4">
+              <div className="flex-1 space-y-2 w-full md:w-auto">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Registrar Necessidade (Vaga)</label>
+                <div className="flex gap-4">
+                  <select
+                    className="flex-1 h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-1 focus:ring-primary"
+                    value={vacancyRole}
+                    onChange={(e) => setVacancyRole(e.target.value)}
+                  >
+                    <option>Mediador</option>
+                    <option>Cuidador</option>
+                    <option>Professor de AEE</option>
+                    <option>Intérprete de Libras</option>
+                    <option>Psicólogo</option>
+                  </select>
+                  <Button
+                    variant="outline"
+                    icon="add_circle"
+                    onClick={handleAddVacancy}
+                    isLoading={loading}
+                    size="sm"
+                  >
+                    Adicionar
+                  </Button>
+                </div>
+              </div>
+              <div className="text-xs text-slate-400 max-w-md leading-tight pb-2 hidden md:block">
+                Adicione uma vaga pendente para indicar a necessidade de um profissional para esta turma.
+              </div>
             </div>
-            <div className="p-0">
-              {existingAllotments.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-sm">Nenhum servidor lotado nesta turma ainda.</div>
-              ) : (
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400">
-                    <tr>
-                      <th className="px-6 py-3">Servidor</th>
-                      <th className="px-6 py-3">Cargo</th>
-                      <th className="px-6 py-3">Carga Horária</th>
-                      <th className="px-6 py-3">Data Lotação</th>
-                      <th className="px-6 py-3 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {existingAllotments.map(allotment => {
-                      const roleParts = (allotment.staff_role || '').split(' - ');
-                      const roleName = roleParts[0];
-                      const hoursVal = roleParts[1] || '-';
-                      const isVacancy = !allotment.staff_id || allotment.staff_name === 'Disponível';
 
-                      return (
-                        <tr key={allotment.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <span className={`font-bold text-sm flex items-center gap-2 ${isVacancy ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                              {isVacancy ? (
-                                <>
-                                  <span className="material-symbols-outlined text-lg">person_search</span>
-                                  Disponível
-                                </>
-                              ) : (
-                                allotment.staff_name
-                              )}
-                              {!isVacancy && staffList.find(s => s.id === allotment.staff_id)?.observations && (
-                                <span
-                                  className="material-symbols-outlined text-[16px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
-                                  title={staffList.find(s => s.id === allotment.staff_id)?.observations}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    alert(`Observações de ${allotment.staff_name}:\n\n${staffList.find(s => s.id === allotment.staff_id)?.observations}`);
+            <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                <h2 className="font-bold flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">assignment_ind</span>
+                  Servidores lotados
+                </h2>
+              </div>
+              <div className="p-0">
+                {existingAllotments.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 text-sm">Nenhum servidor lotado nesta turma ainda.</div>
+                ) : (
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400">
+                      <tr>
+                        <th className="px-6 py-3">Servidor</th>
+                        <th className="px-6 py-3">Cargo</th>
+                        <th className="px-6 py-3">Carga Horária</th>
+                        <th className="px-6 py-3">Data Lotação</th>
+                        <th className="px-6 py-3 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {existingAllotments.map(allotment => {
+                        const roleParts = (allotment.staff_role || '').split(' - ');
+                        const roleName = roleParts[0];
+                        const hoursVal = roleParts[1] || '-';
+                        const isVacancy = !allotment.staff_id || allotment.staff_name === 'Disponível';
+
+                        return (
+                          <tr key={allotment.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <span className={`font-bold text-sm flex items-center gap-2 ${isVacancy ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                                {isVacancy ? (
+                                  <>
+                                    <span className="material-symbols-outlined text-lg">person_search</span>
+                                    Disponível
+                                  </>
+                                ) : (
+                                  allotment.staff_name
+                                )}
+                                {!isVacancy && staffList.find(s => s.id === allotment.staff_id)?.observations && (
+                                  <span
+                                    className="material-symbols-outlined text-[16px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
+                                    title={staffList.find(s => s.id === allotment.staff_id)?.observations}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      alert(`Observações de ${allotment.staff_name}:\n\n${staffList.find(s => s.id === allotment.staff_id)?.observations}`);
+                                    }}
+                                  >
+                                    info
+                                  </span>
+                                )}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold ${isVacancy ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                                {/* If Vacancy, the whole staff_role might be just the Role Name (e.g. "Mediador") without hours */}
+                                {isVacancy ? allotment.staff_role : roleName}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                              {hoursVal}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-slate-500">
+                              <div className="flex items-center gap-2 group">
+                                <span>{allotment.date}</span>
+                                <button
+                                  className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-primary transition-opacity"
+                                  title="Alterar Data"
+                                  onClick={() => {
+                                    const newDate = prompt("Nova data de lotação (DD/MM/AAAA):", allotment.date);
+                                    // Regex validation roughly DD/MM/YYYY
+                                    if (newDate && /^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) {
+                                      supabase.from('allotments').update({ date: newDate }).eq('id', allotment.id)
+                                        .then(({ error }) => {
+                                          if (!error) {
+                                            setExistingAllotments(prev => prev.map(a => a.id === allotment.id ? { ...a, date: newDate } : a));
+                                          } else {
+                                            alert('Erro ao atualizar data.');
+                                          }
+                                        });
+                                    } else if (newDate) {
+                                      alert('Formato inválido. Use DD/MM/AAAA.');
+                                    }
                                   }}
                                 >
-                                  info
-                                </span>
-                              )}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold ${isVacancy ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                              {/* If Vacancy, the whole staff_role might be just the Role Name (e.g. "Mediador") without hours */}
-                              {isVacancy ? allotment.staff_role : roleName}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
-                            {hoursVal}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-slate-500">
-                            <div className="flex items-center gap-2 group">
-                              <span>{allotment.date}</span>
+                                  <span className="material-symbols-outlined text-sm">edit</span>
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
                               <button
-                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-primary transition-opacity"
-                                title="Alterar Data"
-                                onClick={() => {
-                                  const newDate = prompt("Nova data de lotação (DD/MM/AAAA):", allotment.date);
-                                  // Regex validation roughly DD/MM/YYYY
-                                  if (newDate && /^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) {
-                                    supabase.from('allotments').update({ date: newDate }).eq('id', allotment.id)
-                                      .then(({ error }) => {
-                                        if (!error) {
-                                          setExistingAllotments(prev => prev.map(a => a.id === allotment.id ? { ...a, date: newDate } : a));
-                                        } else {
-                                          alert('Erro ao atualizar data.');
-                                        }
-                                      });
-                                  } else if (newDate) {
-                                    alert('Formato inválido. Use DD/MM/AAAA.');
-                                  }
-                                }}
+                                onClick={() => handleDeleteAllotment(allotment.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors border border-transparent hover:border-red-200"
+                                title="Remover Lotação"
                               >
-                                <span className="material-symbols-outlined text-sm">edit</span>
+                                <span className="material-symbols-outlined text-base">delete</span>
                               </button>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={() => handleDeleteAllotment(allotment.id)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors border border-transparent hover:border-red-200"
-                              title="Remover Lotação"
-                            >
-                              <span className="material-symbols-outlined text-base">delete</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )
       }
 
