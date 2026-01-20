@@ -304,9 +304,53 @@ const Students: React.FC = () => {
       return 0;
     });
 
+  /* New State for Multi-Selection */
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredStudents.map(s => s.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds);
+    if (checked) newSelected.add(id);
+    else newSelected.delete(id);
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.size} estudantes selecionados?`)) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+
+      setStudents(prev => prev.filter(s => !selectedIds.has(s.id)));
+      setSelectedIds(new Set());
+      alert('Estudantes excluídos com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir em massa:', error);
+      alert('Erro ao excluir estudantes.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (view === 'create') {
+    // ... (rest of the create view remains unchanged)
     return (
       <div className="mx-auto max-w-4xl space-y-8 pb-10">
+        {/* ... */}
         <div className="flex flex-col gap-2">
           <Button
             variant="ghost"
@@ -497,8 +541,8 @@ const Students: React.FC = () => {
       </div>
 
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
-          <div className="relative flex-1">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4 flex-wrap">
+          <div className="relative flex-1 min-w-[300px]">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined">search</span>
             <input
               type="text"
@@ -508,13 +552,31 @@ const Students: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          {selectedIds.size > 0 && (
+            <Button
+              variant="secondary"
+              className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+              onClick={handleBulkDelete}
+              icon="delete"
+            >
+              Excluir ({selectedIds.size})
+            </Button>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
               <tr>
+                <th className="px-3 py-3 w-[40px] text-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300 text-primary focus:ring-primary"
+                    checked={filteredStudents.length > 0 && selectedIds.size === filteredStudents.length}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                  />
+                </th>
                 <th
-                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  className="px-3 py-3 w-[30%] min-w-[250px] cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-1">
@@ -525,7 +587,7 @@ const Students: React.FC = () => {
                   </div>
                 </th>
                 <th
-                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  className="px-3 py-3 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
                   onClick={() => handleSort('birthDate')}
                 >
                   <div className="flex items-center gap-1">
@@ -536,7 +598,7 @@ const Students: React.FC = () => {
                   </div>
                 </th>
                 <th
-                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  className="px-3 py-3 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
                   onClick={() => handleSort('cid')}
                 >
                   <div className="flex items-center gap-1">
@@ -547,7 +609,7 @@ const Students: React.FC = () => {
                   </div>
                 </th>
                 <th
-                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  className="px-3 py-3 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
                   onClick={() => handleSort('series')}
                 >
                   <div className="flex items-center gap-1">
@@ -558,7 +620,7 @@ const Students: React.FC = () => {
                   </div>
                 </th>
                 <th
-                  className="px-6 py-4 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
+                  className="px-3 py-3 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
                   onClick={() => handleSort('needs')}
                 >
                   <div className="flex items-center gap-1">
@@ -568,18 +630,26 @@ const Students: React.FC = () => {
                     </span>
                   </div>
                 </th>
-                <th className="px-6 py-4 text-right">Ações</th>
+                <th className="px-3 py-3 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
               {filteredStudents.map(student => (
-                <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 font-bold">
+                <tr key={student.id} className={`hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors ${selectedIds.has(student.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                  <td className="px-3 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-300 text-primary focus:ring-primary"
+                      checked={selectedIds.has(student.id)}
+                      onChange={(e) => handleSelectOne(student.id, e.target.checked)}
+                    />
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2 font-bold truncate max-w-[300px]" title={student.name}>
                       {student.name}
                       {student.additionalInfo && (
                         <span
-                          className="material-symbols-outlined text-[18px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
+                          className="material-symbols-outlined text-[16px] text-blue-400 hover:text-blue-600 cursor-help transition-colors flex-shrink-0"
                           title={student.additionalInfo}
                           onClick={(e) => { e.stopPropagation(); alert(`Informações Adicionais:\n${student.additionalInfo}`); }}
                         >
@@ -588,41 +658,41 @@ const Students: React.FC = () => {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-mono text-slate-500">
+                  <td className="px-3 py-3 font-mono text-slate-500 whitespace-nowrap">
                     {student.birthDate ? new Date(student.birthDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono font-bold">
+                  <td className="px-3 py-3">
+                    <span className="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono font-bold whitespace-nowrap">
                       {student.cid}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-500">
+                  <td className="px-3 py-3 text-slate-500 whitespace-nowrap">
                     {student.series}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 py-3">
                     <div className="flex flex-wrap gap-1">
                       {student.needsSupport.map((n, i) => (
-                        <span key={i} className="text-[10px] font-bold uppercase tracking-tight bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded">
+                        <span key={i} className="text-[10px] font-bold uppercase tracking-tight bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded whitespace-nowrap">
                           {n}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
+                  <td className="px-3 py-3 text-right">
+                    <div className="flex justify-end gap-1">
                       <button
                         onClick={() => handleEdit(student)}
-                        className="text-slate-400 hover:text-primary transition-colors"
+                        className="text-slate-400 hover:text-primary transition-colors p-1"
                         title="Editar"
                       >
-                        <span className="material-symbols-outlined">edit</span>
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
                       </button>
                       <button
                         onClick={() => handleDelete(student.id)}
-                        className="text-slate-400 hover:text-red-500 transition-colors"
+                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
                         title="Excluir"
                       >
-                        <span className="material-symbols-outlined">delete</span>
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
                       </button>
                     </div>
                   </td>
