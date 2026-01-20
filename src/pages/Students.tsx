@@ -283,17 +283,13 @@ const Students: React.FC = () => {
           valA = a.birthDate || '';
           valB = b.birthDate || '';
           break;
-        case 'cid':
-          valA = (a.cid || '').toLowerCase();
-          valB = (b.cid || '').toLowerCase();
+        case 'specialGroup':
+          valA = (a.specialGroup || '').toLowerCase();
+          valB = (b.specialGroup || '').toLowerCase();
           break;
         case 'series':
           valA = (a.series || '').toLowerCase();
           valB = (b.series || '').toLowerCase();
-          break;
-        case 'needs':
-          valA = (a.needsSupport || []).join(', ').toLowerCase();
-          valB = (b.needsSupport || []).join(', ').toLowerCase();
           break;
         default:
           return 0;
@@ -599,12 +595,12 @@ const Students: React.FC = () => {
                 </th>
                 <th
                   className="px-3 py-3 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
-                  onClick={() => handleSort('cid')}
+                  onClick={() => handleSort('specialGroup')}
                 >
                   <div className="flex items-center gap-1">
-                    Diagnóstico
+                    Grupo Educação Especial
                     <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
-                      {sortConfig?.key === 'cid' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
+                      {sortConfig?.key === 'specialGroup' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
                     </span>
                   </div>
                 </th>
@@ -616,17 +612,6 @@ const Students: React.FC = () => {
                     Série / Turma
                     <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
                       {sortConfig?.key === 'series' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
-                    </span>
-                  </div>
-                </th>
-                <th
-                  className="px-3 py-3 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
-                  onClick={() => handleSort('needs')}
-                >
-                  <div className="flex items-center gap-1">
-                    Necessidades
-                    <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
-                      {sortConfig?.key === 'needs' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
                     </span>
                   </div>
                 </th>
@@ -662,21 +647,12 @@ const Students: React.FC = () => {
                     {student.birthDate ? new Date(student.birthDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}
                   </td>
                   <td className="px-3 py-3">
-                    <span className="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-mono font-bold whitespace-nowrap">
-                      {student.cid}
+                    <span className="inline-flex rounded-lg bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 px-2 py-1 text-xs font-bold whitespace-nowrap">
+                      {student.specialGroup || '-'}
                     </span>
                   </td>
                   <td className="px-3 py-3 text-slate-500 whitespace-nowrap">
                     {student.series}
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {student.needsSupport.map((n, i) => (
-                        <span key={i} className="text-[10px] font-bold uppercase tracking-tight bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded whitespace-nowrap">
-                          {n}
-                        </span>
-                      ))}
-                    </div>
                   </td>
                   <td className="px-3 py-3 text-right">
                     <div className="flex justify-end gap-1">
