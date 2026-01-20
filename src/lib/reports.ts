@@ -66,7 +66,7 @@ export const fetchReportData = async (schoolId: string) => {
             shift: cls.shift,
             modality: cls.modality || '-',
             year: cls.year,
-            obs: cls.obs,
+            obs: cls.obs, // Ensure this is passed
             students: studentList,
             allotments: classAllotments, // Return full allotments to get role/hours
             staff: staffList // Keep for compatibility if needed, but prefer allotments
@@ -642,10 +642,28 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
             ]
         });
 
+        // Notes Section
+        const notesElements: Paragraph[] = [];
+        const classesWithObs = reportData.filter(c => c.obs);
+
+        if (classesWithObs.length > 0) {
+            notesElements.push(new Paragraph({ spacing: { before: 400 }, children: [new TextRun({ text: "Notas / Observações:", bold: true, size: 16 })] }));
+
+            classesWithObs.forEach(c => {
+                notesElements.push(new Paragraph({
+                    bullet: { level: 0 },
+                    children: [
+                        new TextRun({ text: `${c.series} ${c.section ? '- ' + c.section : ''} (${c.shift}): `, bold: true, size: 14 }),
+                        new TextRun({ text: c.obs || '', size: 14 })
+                    ]
+                }));
+            });
+        }
+
         const doc = new Document({
             sections: [{
                 properties: { page: { size: { orientation: PageOrientation.LANDSCAPE }, margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
-                children: [headerTable, separator, title, ...schoolInfo, mainTable, terms, datePara, sigTable]
+                children: [headerTable, separator, title, ...schoolInfo, mainTable, terms, ...notesElements, datePara, sigTable]
             }]
         });
 
@@ -774,6 +792,17 @@ export const generatePDF = async (schoolId: string, selectedYear: string) => {
                 <div class="terms">
                     Declaro que, no exercício de minhas funções como gestor escolar, realizei e estou de pleno acordo com a pré-lotação dos servidores da Educação Especial, efetuada em conjunto com a Coordenadoria de Educação Especial, para o exercício de suas funções no ano letivo de 2026. Declaro, ainda, que fui devidamente informado(a) e estou ciente de que essa pré-lotação poderá sofrer alterações, a critério da Secretaria Municipal de Educação, sempre que houver necessidade em razão do interesse público.
                 </div>
+
+                ${reportData.some(c => c.obs) ? `
+                <div style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                    <h3 style="font-size: 12px; margin: 0 0 5px 0;">Notas / Observações:</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 10px;">
+                        ${reportData.filter(c => c.obs).map(c => `
+                            <li style="margin-bottom: 4px;"><strong>${c.series} ${c.section ? '- ' + c.section : ''} (${c.shift}):</strong> ${c.obs}</li>
+                        `).join('')}
+                    </ul>
+                </div>` : ''}
+
                 <div class="date">Castanhal, ${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}.</div>
                 <div class="signatures">
                     <div class="sig-block">Diretor</div>

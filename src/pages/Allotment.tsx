@@ -52,19 +52,50 @@ const Allotment: React.FC = () => {
     }
   };
 
+  // Auto-save effect for observation
+  useEffect(() => {
+    if (!selectedClass) return;
+
+    // Don't save on initial load (empty or matching DB content handled by not setting dirty flag or just comparing?)
+    // Simplest debounce:
+    const timer = setTimeout(async () => {
+      // Only update if we have a valid class and value changed (Supabase won't error if same but efficient to check? 
+      // Actually comparing with 'classes' state is hard since we update 'classes' only on save.
+      // Let's just save.
+      setSavingObs(true);
+      try {
+        await supabase.from('classes').update({ obs: classObs }).eq('id', selectedClass);
+        // Update local classes store to reflect saved state
+        setClasses(prev => prev.map(c => c.id === selectedClass ? { ...c, obs: classObs } : c));
+      } catch (err) {
+        console.error("Auto-save obs error", err);
+      } finally {
+        setSavingObs(false);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [classObs, selectedClass]);
+
   useEffect(() => {
     if (selectedClass) {
       fetchStudentsForClass(selectedClass);
       fetchExistingAllotments(selectedClass);
       // Load observation
       const cls = classes.find(c => c.id === selectedClass);
+      // We only set if it's different to avoid loop with the auto-save effect above if not careful
+      // But selecting class changes selectedClass, triggering this.
+      // We should probably safeguard the auto-save to not run immediately on selection change if value is just loaded.
+      // However, setting state here will trigger the other effect.
+      // A common pattern is using a ref 'isLoaded' or ensuring the first render doesn't save.
+      // But given simpler requirements:
       setClassObs(cls?.obs || '');
     } else {
       setStudents([]);
       setExistingAllotments([]);
       setClassObs('');
     }
-  }, [selectedClass, classes]);
+  }, [selectedClass]); // Removed 'classes' from deps to avoid re-triggering when we update local state after save
 
   const fetchExistingAllotments = async (classId: string) => {
     const { data } = await supabase
@@ -475,7 +506,7 @@ const Allotment: React.FC = () => {
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
               <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Observações da Turma</label>
-              <Button size="sm" icon="save" onClick={handleSaveObs} isLoading={savingObs} variant="ghost">Salvar Observação</Button>
+              {savingObs && <span className="text-xs text-slate-400 animate-pulse">Salvando...</span>}
             </div>
             <textarea
               className="w-full min-h-[80px] p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-1 focus:ring-primary resize-y"
@@ -748,15 +779,22 @@ const Allotment: React.FC = () => {
                       const roleName = roleParts[0];
                       const hoursVal = roleParts[1] || '-';
 
+                      const isVacancy = !allotment.staff_id || allotment.staff_name === 'Disponível';
+
                       return (
                         <tr key={allotment.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                           <td className="px-6 py-4">
-                            <span className="font-bold text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                              {allotment.staff_name}
-                              {/* We need to find the staff in staffList to get observations because allotment doesn't have it joined yet? 
-                                  Actually allotment is just allotment data. staffList is available in scope. 
-                              */}
-                              {staffList.find(s => s.id === allotment.staff_id)?.observations && (
+                            <span className={`font-bold text-sm flex items-center gap-2 ${isVacancy ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                              {isVacancy ? (
+                                <>
+                                  <span className="material-symbols-outlined text-lg">person_search</span>
+                                  Disponível
+                                </>
+                              ) : (
+                                allotment.staff_name
+                              )}
+
+                              {!isVacancy && staffList.find(s => s.id === allotment.staff_id)?.observations && (
                                 <span
                                   className="material-symbols-outlined text-[16px] text-blue-400 hover:text-blue-600 cursor-help transition-colors"
                                   title={staffList.find(s => s.id === allotment.staff_id)?.observations}
@@ -771,8 +809,9 @@ const Allotment: React.FC = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="inline-flex rounded px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                              {roleName}
+                            <span className={`inline-flex rounded px-2 py-0.5 text-[10px] font-bold ${isVacancy ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                              {/* If Vacancy, the whole staff_role might be just the Role Name (e.g. "Mediador") without hours */}
+                              {isVacancy ? allotment.staff_role : roleName}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
