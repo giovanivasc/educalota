@@ -613,10 +613,11 @@ const Allotment: React.FC = () => {
                   onChange={e => setStaffRoleFilter(e.target.value)}
                 >
                   <option value="">Todos Cargos</option>
-                  <option>Professor de AEE</option>
-                  <option>Profissional de Apoio</option>
-                  <option>Intérprete de Libras</option>
-                  <option>Psicólogo</option>
+                  <option>Professor de Educação Especial</option>
+                  <option>Mediador</option>
+                  <option>Cuidador</option>
+                  <option>Professor de Braille</option>
+                  <option>Professor Bilíngue</option>
                 </select>
                 <select
                   className="text-xs p-1 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 w-1/2"
@@ -797,9 +798,9 @@ const Allotment: React.FC = () => {
                   >
                     <option>Mediador</option>
                     <option>Cuidador</option>
-                    <option>Professor de AEE</option>
-                    <option>Intérprete de Libras</option>
-                    <option>Psicólogo</option>
+                    <option>Professor de Educação Especial</option>
+                    <option>Professor de Braille</option>
+                    <option>Professor Bilíngue</option>
                   </select>
                   <Button
                     variant="outline"
