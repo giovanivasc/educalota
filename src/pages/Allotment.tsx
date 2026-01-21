@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // Mocks removed
 import { School, Staff, Student } from '../types';
 import { supabase } from '../lib/supabase';
@@ -31,6 +31,9 @@ const Allotment: React.FC = () => {
   const [showReportMenu, setShowReportMenu] = useState(false);
   const [allotmentDate, setAllotmentDate] = useState(new Date().toISOString().split('T')[0]); // Default YYYY-MM-DD
   const [vacancyRole, setVacancyRole] = useState('Mediador'); // New state for vacancy role registration
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [pendingAllotments, setPendingAllotments] = useState<any[]>([]);
+  const pendingClassTarget = useRef<string | null>(null);
 
   useEffect(() => {
     if (selectedSchool) {
@@ -45,12 +48,72 @@ const Allotment: React.FC = () => {
     if (data) {
       const sorted = data.sort(sortClasses);
       setClasses(sorted);
-      if (sorted.length > 0) setSelectedClass(sorted[0].id);
-      else setSelectedClass('');
+
+      // Check if we have a pending target class to select
+      if (pendingClassTarget.current) {
+        const targetExists = sorted.find(c => c.id === pendingClassTarget.current);
+        if (targetExists) {
+          setSelectedClass(pendingClassTarget.current);
+        } else if (sorted.length > 0) {
+          setSelectedClass(sorted[0].id);
+        }
+        pendingClassTarget.current = null; // Reset target
+      } else if (sorted.length > 0) {
+        setSelectedClass(sorted[0].id);
+      } else {
+        setSelectedClass('');
+      }
     } else {
       setClasses([]);
       setSelectedClass('');
     }
+  };
+
+  const fetchPendingAllotments = async () => {
+    setLoading(true);
+    try {
+      // Fetch allotments marked as available/vacancy
+      const { data: allotments } = await supabase
+        .from('allotments')
+        .select('*')
+        .eq('staff_name', 'Disponível')
+        .eq('status', 'Ativo');
+
+      if (!allotments || allotments.length === 0) {
+        setPendingAllotments([]);
+        return;
+      }
+
+      // Get unique class IDs to fetch details
+      const classIds = [...new Set(allotments.map(a => a.class_id))];
+
+      // Fetch class details
+      const { data: classesData } = await supabase
+        .from('classes')
+        .select('id, series, section, shift')
+        .in('id', classIds);
+
+      // Merge data
+      const merged = allotments.map(a => {
+        const classInfo = classesData?.find(c => c.id === a.class_id);
+        return {
+          ...a,
+          classDetails: classInfo
+        };
+      });
+
+      setPendingAllotments(merged);
+    } catch (error) {
+      console.error('Error fetching pending allotments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResolvePending = (schoolId: string, classId: string) => {
+    pendingClassTarget.current = classId;
+    setSelectedSchool(schoolId); // This triggers fetchClasses via useEffect
+    setShowPendingModal(false);
   };
 
   // Auto-save effect for observation
@@ -562,6 +625,18 @@ const Allotment: React.FC = () => {
           Gerar Pré-Lotação
         </Button>
 
+        <Button
+          variant="ghost"
+          className="ml-2 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
+          icon="warning"
+          onClick={() => {
+            fetchPendingAllotments();
+            setShowPendingModal(true);
+          }}
+        >
+          Lotações Pendentes
+        </Button>
+
         {showReportMenu && (
           <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 overflow-hidden">
             <button
@@ -587,6 +662,75 @@ const Allotment: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Pending Allotments Modal */}
+      {showPendingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-primary/5">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">pending_actions</span>
+                Lotações Pendentes (Vagas Sinalizadas)
+              </h2>
+              <button
+                onClick={() => setShowPendingModal(false)}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar">
+              {pendingAllotments.length === 0 ? (
+                <div className="text-center py-10 text-slate-500">
+                  <span className="material-symbols-outlined text-4xl mb-2">check_circle</span>
+                  <p>Nenhuma vaga pendente encontrada.</p>
+                </div>
+              ) : (
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400">
+                    <tr>
+                      <th className="px-5 py-3">Escola</th>
+                      <th className="px-5 py-3">Turma</th>
+                      <th className="px-5 py-3">Vaga Disponível</th>
+                      <th className="px-5 py-3 text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {pendingAllotments.map(item => (
+                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td className="px-5 py-4 font-medium text-slate-700 dark:text-slate-300">
+                          {item.school_name}
+                        </td>
+                        <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
+                          {item.classDetails ? (
+                            `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''} (${item.classDetails.shift})`
+                          ) : 'Turma não encontrada'}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            <span className="material-symbols-outlined text-[14px]">person_search</span>
+                            {item.staff_role}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <Button
+                            size="sm"
+                            onClick={() => handleResolvePending(item.school_id, item.class_id)}
+                            icon="arrow_forward"
+                          >
+                            Resolver
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Staff Selection */}
