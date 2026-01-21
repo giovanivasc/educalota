@@ -548,16 +548,6 @@ const Students: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          {selectedIds.size > 0 && (
-            <Button
-              variant="secondary"
-              className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-              onClick={handleBulkDelete}
-              icon="delete"
-            >
-              Excluir ({selectedIds.size})
-            </Button>
-          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -678,6 +668,31 @@ const Students: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Floating Action Bar for Bulk Selection */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-6 py-3 bg-white dark:bg-slate-800 rounded-full shadow-xl border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-bottom-4">
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+            <span className="font-bold text-slate-900 dark:text-white">{selectedIds.size}</span> selecionado{selectedIds.size > 1 ? 's' : ''}
+          </span>
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-2" />
+          <Button
+            variant="secondary"
+            className="h-8 bg-red-50 text-red-600 hover:bg-red-100 border-red-200 text-xs px-3"
+            onClick={handleBulkDelete}
+            icon="delete"
+          >
+            Excluir Selecionados
+          </Button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+            title="Cancelar seleção"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      )}
 
       {/* Distortion Modal */}
       {showDistortionModal && (
