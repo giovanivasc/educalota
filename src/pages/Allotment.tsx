@@ -29,7 +29,7 @@ const Allotment: React.FC = () => {
   const [classObs, setClassObs] = useState(''); // New state for class observations
   const [savingObs, setSavingObs] = useState(false);
   const [showReportMenu, setShowReportMenu] = useState(false);
-  const [allotmentDate, setAllotmentDate] = useState(new Date().toISOString().split('T')[0]); // Default YYYY-MM-DD
+  const [allotmentDate, setAllotmentDate] = useState('2026-02-19'); // Default fixed date per user request
   const [vacancyRole, setVacancyRole] = useState('Mediador'); // New state for vacancy role registration
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [pendingAllotments, setPendingAllotments] = useState<any[]>([]);
