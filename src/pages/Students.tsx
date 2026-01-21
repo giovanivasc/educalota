@@ -549,7 +549,9 @@ const Students: React.FC = () => {
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
+      </div>
+      <div className="flex relative">
+        <div className="overflow-x-auto flex-1">
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
               <tr>
@@ -610,7 +612,11 @@ const Students: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
               {filteredStudents.map(student => (
-                <tr key={student.id} className={`hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors ${selectedIds.has(student.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                <tr
+                  key={student.id}
+                  id={`student-row-${student.name.charAt(0).toUpperCase()}`}
+                  className={`hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors ${selectedIds.has(student.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                >
                   <td className="px-3 py-3 text-center">
                     <input
                       type="checkbox"
@@ -667,107 +673,131 @@ const Students: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* A-Z Navigation Sidebar */}
+        <div className="hidden md:flex flex-col gap-1 p-2 sticky top-0 h-fit max-h-[calc(100vh-200px)] overflow-y-auto w-10 items-center border-l border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50">
+          {Array.from('ABCDEFGHIJKLMNOPQRSTUVWXYZ').map(letter => (
+            <button
+              key={letter}
+              onClick={() => {
+                const el = document.getElementById(`student-row-${letter}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
+              className="text-[10px] font-bold text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 w-6 h-6 flex items-center justify-center rounded-full transition-all"
+              title={`Ir para letra ${letter}`}
+            >
+              {letter}
+            </button>
+          ))}
+        </div>
       </div>
 
+
       {/* Floating Action Bar for Bulk Selection */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-6 py-3 bg-white dark:bg-slate-800 rounded-full shadow-xl border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-bottom-4">
-          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-            <span className="font-bold text-slate-900 dark:text-white">{selectedIds.size}</span> selecionado{selectedIds.size > 1 ? 's' : ''}
-          </span>
-          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-2" />
-          <Button
-            variant="secondary"
-            className="h-8 bg-red-50 text-red-600 hover:bg-red-100 border-red-200 text-xs px-3"
-            onClick={handleBulkDelete}
-            icon="delete"
-          >
-            Excluir Selecionados
-          </Button>
-          <button
-            onClick={() => setSelectedIds(new Set())}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-600"
-            title="Cancelar seleção"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
-        </div>
-      )}
+      {
+        selectedIds.size > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-6 py-3 bg-white dark:bg-slate-800 rounded-full shadow-xl border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-bottom-4">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+              <span className="font-bold text-slate-900 dark:text-white">{selectedIds.size}</span> selecionado{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-2" />
+            <Button
+              variant="secondary"
+              className="h-8 bg-red-50 text-red-600 hover:bg-red-100 border-red-200 text-xs px-3"
+              onClick={handleBulkDelete}
+              icon="delete"
+            >
+              Excluir Selecionados
+            </Button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+              title="Cancelar seleção"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+        )
+      }
 
       {/* Distortion Modal */}
-      {showDistortionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-surface-dark">
-              <div>
-                <h2 className="text-xl font-bold flex items-center gap-2 text-red-600">
-                  <span className="material-symbols-outlined">warning</span>
-                  Estudantes em Defasagem Idade-Série
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Total de {distortionList.length} estudantes identificados com idade acima do esperado para a série.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDistortionModal(false)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-              >
-                <span className="material-symbols-outlined text-slate-500">close</span>
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-0">
-              {distortionList.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                  <span className="material-symbols-outlined text-4xl mb-2">check_circle</span>
-                  <p>Nenhuma distorção encontrada.</p>
+      {
+        showDistortionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-surface-dark">
+                <div>
+                  <h2 className="text-xl font-bold flex items-center gap-2 text-red-600">
+                    <span className="material-symbols-outlined">warning</span>
+                    Estudantes em Defasagem Idade-Série
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    Total de {distortionList.length} estudantes identificados com idade acima do esperado para a série.
+                  </p>
                 </div>
-              ) : (
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500 sticky top-0">
-                    <tr>
-                      <th className="px-6 py-4">Estudante</th>
-                      <th className="px-6 py-4">Idade</th>
-                      <th className="px-6 py-4">Escola / Série</th>
-                      <th className="px-6 py-4 text-center">Defasagem (Anos)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {distortionList.map((student) => (
-                      <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
-                          {student.name}
-                        </td>
-                        <td className="px-6 py-4">
-                          {student.age} anos
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">{student.schoolName}</span>
-                            <span className="text-xs text-slate-500">{student.series} ({student.modality})</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="inline-flex rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 text-xs font-bold">
-                            +{student.gap} anos
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                <button
+                  onClick={() => setShowDistortionModal(false)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                >
+                  <span className="material-symbols-outlined text-slate-500">close</span>
+                </button>
+              </div>
 
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
-              <Button onClick={() => setShowDistortionModal(false)}>
-                Fechar
-              </Button>
+              <div className="flex-1 overflow-y-auto p-0">
+                {distortionList.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                    <span className="material-symbols-outlined text-4xl mb-2">check_circle</span>
+                    <p>Nenhuma distorção encontrada.</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500 sticky top-0">
+                      <tr>
+                        <th className="px-6 py-4">Estudante</th>
+                        <th className="px-6 py-4">Idade</th>
+                        <th className="px-6 py-4">Escola / Série</th>
+                        <th className="px-6 py-4 text-center">Defasagem (Anos)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {distortionList.map((student) => (
+                        <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                          <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
+                            {student.name}
+                          </td>
+                          <td className="px-6 py-4">
+                            {student.age} anos
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-slate-700 dark:text-slate-300">{student.schoolName}</span>
+                              <span className="text-xs text-slate-500">{student.series} ({student.modality})</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="inline-flex rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 text-xs font-bold">
+                              +{student.gap} anos
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
+                <Button onClick={() => setShowDistortionModal(false)}>
+                  Fechar
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
