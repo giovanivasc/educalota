@@ -10,46 +10,52 @@ export const getModalityOrder = (m: string | undefined | null) => {
 };
 
 export const getSeriesOrder = (s: string | undefined | null) => {
-    if (!s) return 99;
+    if (!s) return 999;
     const v = s.toLowerCase();
-    if (v.includes("2 anos")) return 1;
-    if (v.includes("3 anos")) return 2;
-    if (v.includes("4 anos")) return 3;
-    if (v.includes("5 anos")) return 4;
-    if (v.includes("1º")) return 5;
-    if (v.includes("2º")) return 6;
-    if (v.includes("3º")) return 7;
-    if (v.includes("4º")) return 8;
-    if (v.includes("5º")) return 9;
-    if (v.includes("6º")) return 10;
-    if (v.includes("7º")) return 11;
-    if (v.includes("8º")) return 12;
-    if (v.includes("9º")) return 13;
-    if (v.includes("1ª etapa")) return 14;
-    if (v.includes("2ª etapa")) return 15;
-    if (v.includes("srm")) return 16;
-    return 99;
+
+    // Check specific keywords first
+    if (v.includes("berçário")) return 0;
+    if (v.includes("maternal")) return 1;
+    if (v.includes("pré") || v.includes("pre")) return 2;
+
+    // Try to extract numbers
+    const match = v.match(/(\d+)/);
+    if (match) {
+        const num = parseInt(match[1]);
+        // Adjust for "stages" vs "years" if needed, but usually simple numeric sort works
+        // If it's a "Stage" (Etapa) usually for EJA, we might want to group them after regular years
+        if (v.includes("etapa")) return 20 + num;
+        if (v.includes("ano")) return 10 + num; // 1º Ano -> 11, 9º Ano -> 19
+        return 10 + num; // Fallback
+    }
+
+    return 999;
 };
 
 export const getSectionOrder = (s: string | undefined | null) => {
     if (!s) return 99;
-    const v = s.toLowerCase();
-    if (v === 'a') return 1;
-    if (v === 'b') return 2;
-    if (v === 'c') return 3;
-    if (v === 'd') return 4;
-    if (v.includes("mista")) return 5;
-    if (v.includes("multi")) return 6;
-    if (v.includes("aee")) return 7;
-    return 50;
+    const v = s.toLowerCase().trim();
+
+    // Extract single letter if present (e.g., "Turma A" -> "a")
+    const match = v.match(/\b([a-z])\b$/) || v.match(/^([a-z])$/);
+    if (match) {
+        return match[1].charCodeAt(0) - 96; // 'a' -> 1, 'b' -> 2
+    }
+
+    if (v.includes("mista")) return 50;
+    if (v.includes("multi")) return 51;
+    if (v.includes("aee")) return 52;
+
+    return 99;
 };
 
 export const getShiftOrder = (s: string | undefined | null) => {
     if (!s) return 99;
     const v = s.toLowerCase();
-    if (v.includes("matutino")) return 1;
-    if (v.includes("vespertino")) return 2;
-    if (v.includes("integral")) return 3;
+    if (v.includes("manhã") || v.includes("matutino")) return 1;
+    if (v.includes("tarde") || v.includes("vespertino")) return 2;
+    if (v.includes("noite") || v.includes("noturno")) return 3;
+    if (v.includes("integral")) return 4;
     return 99;
 };
 
@@ -59,13 +65,13 @@ export const sortClasses = (a: any, b: any) => {
     const modB = getModalityOrder(b.modality);
     if (modA !== modB) return modA - modB;
 
-    // 2. Series
+    // 2. Series (Numeric)
     const serA = getSeriesOrder(a.series);
     const serB = getSeriesOrder(b.series);
     if (serA !== serB) return serA - serB;
 
     // 3. Section (Turma)
-    const secA = getSectionOrder(a.section || a.name); // Handle 'section' or generic name if needed? Usually section.
+    const secA = getSectionOrder(a.section || a.name);
     const secB = getSectionOrder(b.section || b.name);
     if (secA !== secB) return secA - secB;
 

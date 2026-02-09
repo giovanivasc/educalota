@@ -449,11 +449,11 @@ const buildClassRows = (cls: any) => {
     const studentsList = cls.students || [];
     const studentRows = studentsList.map((s: any) => {
         const support = s.needs_support ? (Array.isArray(s.needs_support) ? s.needs_support.join(', ') : s.needs_support) : "Não";
-        const needs = !(support.includes("Não necessita") || support.includes("Necessita de avaliação"));
+        // const needs = !(support.includes("Não necessita") || support.includes("Necessita de avaliação")); // Removed Logic
         return {
             studentName: s.name,
             studentSupport: support,
-            needsStaff: needs
+            // needsStaff: needs // Removed
         };
     });
 
@@ -467,7 +467,8 @@ const buildClassRows = (cls: any) => {
         const sRow = studentRows[i];
         const sName = sRow ? sRow.studentName : "";
         const sSupport = sRow ? sRow.studentSupport : "";
-        const showStaff = !sRow || sRow.needsStaff;
+        // const showStaff = !sRow || sRow.needsStaff; // Old Logic
+        const showStaff = true; // Always show staff logic distribution
 
         rows.push({
             mod: i === 0 ? mod : null,
@@ -481,7 +482,7 @@ const buildClassRows = (cls: any) => {
     }
 
     let eligibleCounter = 0;
-    const totalEligible = rows.filter(r => r.showStaff).length;
+    const totalEligible = rows.filter(r => r.showStaff).length; // Will be totalRows
     const distinctStaffCount = staffList.length || 1;
     const chunk = Math.ceil(totalEligible / distinctStaffCount);
 
@@ -489,9 +490,15 @@ const buildClassRows = (cls: any) => {
         if (r.showStaff) {
             let sIndex = Math.floor(eligibleCounter / chunk);
             if (sIndex >= staffList.length) sIndex = staffList.length - 1;
+            // Prevention for empty staffList resulting in -1 access if length 0 (handled by distinctStaffCount=1 but staffList empty)
+            if (staffList.length === 0) sIndex = -1;
 
             r.staffIndex = sIndex;
-            r.staffData = getStaffDisplay(staffList[sIndex]);
+            if (sIndex >= 0) {
+                r.staffData = getStaffDisplay(staffList[sIndex]);
+            } else {
+                r.staffData = { name: '-', role: '-', hours: '-' };
+            }
 
             eligibleCounter++;
         }
