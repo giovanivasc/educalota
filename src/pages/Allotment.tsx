@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 // Mocks removed
 import { School, Staff, Student } from '../types';
 import { supabase } from '../lib/supabase';
@@ -258,17 +258,19 @@ const Allotment: React.FC = () => {
       }
 
       // Unique IDs
-      const classIds = [...new Set(allotments.map(a => a.class_id).filter(Boolean))];
+      const schoolIds = [...new Set(allotments.map(a => a.school_id).filter(Boolean))];
       const staffIds = [...new Set(allotments.map(a => a.staff_id).filter(Boolean))];
 
       // Fetch details in parallel
       const [classesRes, staffRes] = await Promise.all([
-        supabase.from('classes').select('id, series, section, shift').in('id', classIds),
+        supabase.from('classes').select('*').in('school_id', schoolIds),
         supabase.from('staff').select('id, contract_type').in('id', staffIds)
       ]);
 
       const classesData = classesRes.data || [];
       const staffData = staffRes.data || [];
+
+
 
       // Merge
       const merged = allotments.map(a => {
