@@ -484,11 +484,14 @@ const buildClassRows = (cls: any) => {
     let eligibleCounter = 0;
     const totalEligible = rows.filter(r => r.showStaff).length; // Will be totalRows
     const distinctStaffCount = staffList.length || 1;
-    const chunk = Math.ceil(totalEligible / distinctStaffCount);
+
+    // Removed fixed chunk calculation based on Math.ceil which caused overflow/cutoff
 
     rows.forEach(r => {
         if (r.showStaff) {
-            let sIndex = Math.floor(eligibleCounter / chunk);
+            // Linear Interpolation: map [0, totalEligible-1] to [0, distinctStaffCount-1]
+            let sIndex = Math.floor((eligibleCounter * distinctStaffCount) / totalEligible);
+
             if (sIndex >= staffList.length) sIndex = staffList.length - 1;
             // Prevention for empty staffList resulting in -1 access if length 0 (handled by distinctStaffCount=1 but staffList empty)
             if (staffList.length === 0) sIndex = -1;
