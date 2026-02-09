@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { sortClasses } from '../lib/sorting';
 import { normalizeText } from '../lib/stringUtils';
-import { generateExcel, generateDoc, generatePDF, generatePendingPDF } from '../lib/reports';
+import { generateExcel, generateDoc, generatePDF, generatePendingPDF, generateRealizedPDF } from '../lib/reports';
 
 const Allotment: React.FC = () => {
   const [schools, setSchools] = useState<School[]>([]);
@@ -40,6 +40,74 @@ const Allotment: React.FC = () => {
   const [pendingDateFilter, setPendingDateFilter] = useState('all'); // all, week, month, custom
   const [pendingStartDate, setPendingStartDate] = useState('');
   const [pendingEndDate, setPendingEndDate] = useState('');
+
+  // States for Realized Modal
+  const [showRealizedModal, setShowRealizedModal] = useState(false);
+  const [realizedAllotments, setRealizedAllotments] = useState<any[]>([]);
+  // States for Realized Modal Filtering
+  const [realizedRoleFilter, setRealizedRoleFilter] = useState('');
+  const [realizedDateFilter, setRealizedDateFilter] = useState('all');
+  const [realizedStartDate, setRealizedStartDate] = useState('');
+  const [realizedEndDate, setRealizedEndDate] = useState('');
+
+  // Filter Logic for Realized Allotments
+  const filteredRealizedAllotments = useMemo(() => {
+    return realizedAllotments.filter(item => {
+      // Role Filter (matches part of the string e.g. "Mediador" in "Mediador - 100h")
+      if (realizedRoleFilter && !item.staff_role.includes(realizedRoleFilter)) return false;
+
+      if (realizedDateFilter !== 'all') {
+        const itemDateParts = (item.date || '').split('/');
+        if (itemDateParts.length !== 3) return false;
+
+        const itemDate = new Date(
+          parseInt(itemDateParts[2]),
+          parseInt(itemDateParts[1]) - 1,
+          parseInt(itemDateParts[0])
+        );
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (realizedDateFilter === 'week') {
+          const lastWeek = new Date(today);
+          lastWeek.setDate(today.getDate() - 7);
+          if (itemDate < lastWeek) return false;
+        } else if (realizedDateFilter === 'month') {
+          const lastMonth = new Date(today);
+          lastMonth.setMonth(today.getMonth() - 1);
+          if (itemDate < lastMonth) return false;
+        } else if (realizedDateFilter === 'custom') {
+          if (realizedStartDate) {
+            const [y, m, d] = realizedStartDate.split('-').map(Number);
+            const start = new Date(y, m - 1, d);
+            if (itemDate < start) return false;
+          }
+          if (realizedEndDate) {
+            const [y, m, d] = realizedEndDate.split('-').map(Number);
+            const end = new Date(y, m - 1, d);
+            end.setHours(23, 59, 59, 999);
+            if (itemDate > end) return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [realizedAllotments, realizedRoleFilter, realizedDateFilter, realizedStartDate, realizedEndDate]);
+
+  const handlePrintRealized = () => {
+    let periodText = "Período: Geral";
+    if (realizedDateFilter === 'week') periodText = "Período: Última Semana";
+    if (realizedDateFilter === 'month') periodText = "Período: Último Mês";
+    if (realizedDateFilter === 'custom') {
+      const startStr = realizedStartDate ? realizedStartDate.split('-').reverse().join('/') : '...';
+      const endStr = realizedEndDate ? realizedEndDate.split('-').reverse().join('/') : '...';
+      periodText = `Período: ${startStr} a ${endStr}`;
+    }
+
+    generateRealizedPDF(filteredRealizedAllotments, periodText);
+  };
+
 
   // Filter Logic with useMemo
   const filteredPendingAllotments = useMemo(() => {
@@ -169,6 +237,55 @@ const Allotment: React.FC = () => {
       setPendingAllotments(merged);
     } catch (error) {
       console.error('Error fetching pending allotments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRealizedAllotments = async () => {
+    setLoading(true);
+    try {
+      // Fetch active allotments that are NOT vacancies
+      const { data: allotments } = await supabase
+        .from('allotments')
+        .select('*')
+        .neq('staff_name', 'Disponível')
+        .eq('status', 'Ativo');
+
+      if (!allotments || allotments.length === 0) {
+        setRealizedAllotments([]);
+        return;
+      }
+
+      // Unique IDs
+      const classIds = [...new Set(allotments.map(a => a.class_id).filter(Boolean))];
+      const staffIds = [...new Set(allotments.map(a => a.staff_id).filter(Boolean))];
+
+      // Fetch details in parallel
+      const [classesRes, staffRes] = await Promise.all([
+        supabase.from('classes').select('id, series, section, shift').in('id', classIds),
+        supabase.from('staff').select('id, contract_type').in('id', staffIds)
+      ]);
+
+      const classesData = classesRes.data || [];
+      const staffData = staffRes.data || [];
+
+      // Merge
+      const merged = allotments.map(a => {
+        const classInfo = classesData.find(c => c.id === a.class_id);
+        const staffInfo = staffData.find(s => s.id === a.staff_id);
+        const staffDetails = staffInfo ? { contractType: staffInfo.contract_type } : null;
+
+        return {
+          ...a,
+          classDetails: classInfo,
+          staffDetails
+        };
+      });
+
+      setRealizedAllotments(merged);
+    } catch (error) {
+      console.error('Error fetching realized allotments:', error);
     } finally {
       setLoading(false);
     }
@@ -701,6 +818,18 @@ const Allotment: React.FC = () => {
           Lotações Pendentes
         </Button>
 
+        <Button
+          variant="ghost"
+          className="ml-2 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+          icon="check_circle"
+          onClick={() => {
+            fetchRealizedAllotments();
+            setShowRealizedModal(true);
+          }}
+        >
+          Lotações Realizadas
+        </Button>
+
         {showReportMenu && (
           <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 overflow-hidden">
             <button
@@ -906,6 +1035,153 @@ const Allotment: React.FC = () => {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Realized Allotments Modal */}
+      {showRealizedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-7xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/10">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-emerald-600">check_circle</span>
+                Lotações Realizadas
+              </h2>
+              <button
+                onClick={() => setShowRealizedModal(false)}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Filters Bar */}
+            <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 flex flex-wrap gap-4 items-end">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Cargo</label>
+                <select
+                  className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                  value={realizedRoleFilter}
+                  onChange={e => setRealizedRoleFilter(e.target.value)}
+                >
+                  <option value="">Todos os Cargos</option>
+                  <option>Mediador</option>
+                  <option>Cuidador</option>
+                  <option>Professor de Educação Especial</option>
+                  <option>Professor de Braille</option>
+                  <option>Professor Bilíngue</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Período</label>
+                <select
+                  className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                  value={realizedDateFilter}
+                  onChange={e => setRealizedDateFilter(e.target.value)}
+                >
+                  <option value="all">Todo o Período</option>
+                  <option value="week">Última Semana</option>
+                  <option value="month">Último Mês</option>
+                  <option value="custom">Período Específico</option>
+                </select>
+              </div>
+
+              {realizedDateFilter === 'custom' && (
+                <div className="flex gap-2 items-end">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
+                    <input
+                      type="date"
+                      className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                      value={realizedStartDate}
+                      onChange={e => setRealizedStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Fim</label>
+                    <input
+                      type="date"
+                      className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                      value={realizedEndDate}
+                      onChange={e => setRealizedEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="ml-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon="print"
+                  onClick={handlePrintRealized}
+                >
+                  Imprimir Lista
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              {filteredRealizedAllotments.length === 0 ? (
+                <div className="text-center py-10 text-slate-500">
+                  <span className="material-symbols-outlined text-4xl mb-2">check_circle</span>
+                  <p>Nenhuma lotação realizada encontrada com os filtros selecionados.</p>
+                </div>
+              ) : (
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400">
+                    <tr>
+                      <th className="px-5 py-3">Escola</th>
+                      <th className="px-5 py-3">Servidor</th>
+                      <th className="px-5 py-3">Vínculo</th>
+                      <th className="px-5 py-3">Cargo</th>
+                      <th className="px-5 py-3">Turma</th>
+                      <th className="px-5 py-3">Turno</th>
+                      <th className="px-5 py-3">CH</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredRealizedAllotments.map(item => {
+                      const roleParts = (item.staff_role || '').split(' - ');
+                      const roleName = roleParts[0];
+                      const hours = roleParts[1] || '-';
+
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="px-5 py-4 font-medium text-slate-700 dark:text-slate-300">
+                            {item.school_name}
+                          </td>
+                          <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
+                            {item.staff_name}
+                          </td>
+                          <td className="px-5 py-4 text-xs text-slate-500">
+                            {item.staffDetails?.contractType || '-'}
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                              {roleName}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
+                            {item.classDetails ? (
+                              `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''}`
+                            ) : 'Turma não encontrada'}
+                          </td>
+                          <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
+                            {item.classDetails?.shift || '-'}
+                          </td>
+                          <td className="px-5 py-4 text-xs text-slate-500">
+                            {hours}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               )}

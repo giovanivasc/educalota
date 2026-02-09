@@ -943,3 +943,113 @@ export const generatePendingPDF = async (pendingItems: any[], periodText: string
         alert('Erro ao gerar PDF.');
     }
 };
+
+export const generateRealizedPDF = async (realizedItems: any[], periodText: string) => {
+    try {
+        if (realizedItems.length === 0) {
+            alert('Nenhuma lotação realizada para imprimir.');
+            return;
+        }
+
+        let tableRowsHtml = '';
+        realizedItems.forEach((item: any, i: number) => {
+            const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F0F8FF";
+            const schoolName = item.school_name || '-';
+            const staffName = item.staff_name || '-';
+            const bond = item.staffDetails?.contract_type || item.staffDetails?.contractType || '-';
+            const role = item.staff_role || '-';
+
+            // Extract hours from role string if possible or use a specific field if we add one.
+            // Usually role is "Mediador - 100h", so we can split.
+            const roleParts = role.split(' - ');
+            const roleName = roleParts[0];
+            const hours = roleParts[1] || '-';
+
+            const className = item.classDetails ? `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''}` : '-';
+            const shift = item.classDetails?.shift || '-';
+
+            tableRowsHtml += `<tr style="background-color: ${bgColor};">
+                <td style="text-align: left;">${schoolName}</td>
+                <td style="text-align: left;">${staffName}</td>
+                <td>${bond}</td>
+                <td>${roleName}</td>
+                <td>${className}</td>
+                <td>${shift}</td>
+                <td>${hours}</td>
+             </tr>`;
+        });
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Lotações Realizadas</title>
+            <style>
+                body { font-family: Arial, sans-serif; font-size: 10px; color: #000; }
+                .container { width: 100%; max-width: 100%; margin: 0 auto; }
+                .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 10px; }
+                .header-logo { width: 80px; height: auto; }
+                .header-center { text-align: center; flex: 1; margin: 0 20px; }
+                .header-center h1 { margin: 2px 0; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+                .header-right { text-align: right; display: flex; gap: 10px; align-items: center; }
+                .doc-title { text-align: center; font-size: 14px; font-weight: bold; margin: 15px 0; text-transform: uppercase; }
+                .period-info { text-align: center; font-size: 11px; margin-bottom: 15px; font-style: italic; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { border: 1px solid #000; padding: 4px; text-align: center; vertical-align: middle; font-size: 10px; }
+                th { background-color: #2980B9; color: white; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .date { text-align: right; margin: 20px 0 40px 0; font-size: 11px; }
+                @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div><img src="${window.location.origin}/img/logo_pref.jpg" alt="Logo Pref" style="height: 40px;" /></div>
+                    <div class="header-center">
+                        <h1>Prefeitura Municipal de Castanhal</h1>
+                        <h1>Secretaria Municipal de Educação</h1>
+                        <h1>Coordenadoria de Educação Especial</h1>
+                    </div>
+                    <div class="header-right">
+                         <img src="${window.location.origin}/img/logo_semed.jpg" alt="Semed" style="height: 30px;" />
+                         <img src="${window.location.origin}/img/logo_coord.jpg" alt="Coord" style="height: 35px;" />
+                    </div>
+                </div>
+                <div class="doc-title">RELATÓRIO DE LOTAÇÕES REALIZADAS</div>
+                <div class="period-info">${periodText}</div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="20%">Escola</th>
+                            <th width="20%">Servidor</th>
+                            <th width="10%">Vínculo</th>
+                            <th width="15%">Cargo</th>
+                            <th width="15%">Turma</th>
+                            <th width="10%">Turno</th>
+                            <th width="10%">CH</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRowsHtml}</tbody>
+                </table>
+                
+                <div class="date">Castanhal, ${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}.</div>
+            </div>
+            <script>window.onload = function() { window.print(); }</script>
+        </body>
+        </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        } else {
+            alert('Por favor, permita popups.');
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao gerar PDF.');
+    }
+};
