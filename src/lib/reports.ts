@@ -848,3 +848,98 @@ export const generatePDF = async (schoolId: string, selectedYear: string) => {
         alert('Erro ao gerar visualização de impressão.');
     }
 };
+
+export const generatePendingPDF = async (pendingItems: any[], periodText: string) => {
+    try {
+        if (pendingItems.length === 0) {
+            alert('Nenhuma vaga pendente para imprimir.');
+            return;
+        }
+
+        let tableRowsHtml = '';
+        pendingItems.forEach((item: any, i: number) => {
+            const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F0F8FF";
+            const schoolName = item.school_name || '-';
+            const className = item.classDetails ? `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''} (${item.classDetails.shift})` : 'Turma não encontrada';
+            const role = item.staff_role || '-';
+            const date = item.date || '-';
+
+            tableRowsHtml += `<tr style="background-color: ${bgColor};">
+                <td>${schoolName}</td>
+                <td>${className}</td>
+                <td>${role}</td>
+                <td>${date}</td>
+             </tr>`;
+        });
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Lotações Pendentes</title>
+            <style>
+                body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+                .container { width: 100%; max-width: 100%; margin: 0 auto; }
+                .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 10px; }
+                .header-logo { width: 80px; height: auto; }
+                .header-center { text-align: center; flex: 1; margin: 0 20px; }
+                .header-center h1 { margin: 2px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; }
+                .header-right { text-align: right; display: flex; gap: 10px; align-items: center; }
+                .doc-title { text-align: center; font-size: 16px; font-weight: bold; margin: 20px 0; text-transform: uppercase; }
+                .period-info { text-align: center; font-size: 12px; margin-bottom: 20px; font-style: italic; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { border: 1px solid #000; padding: 4px 6px; text-align: center; vertical-align: middle; font-size: 11px; }
+                th { background-color: #2980B9; color: white; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .date { text-align: right; margin: 20px 0 40px 0; font-size: 12px; }
+                @media print { @page { size: portrait; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div><img src="${window.location.origin}/img/logo_pref.jpg" alt="Logo Pref" style="height: 50px;" /></div>
+                    <div class="header-center">
+                        <h1>Prefeitura Municipal de Castanhal</h1>
+                        <h1>Secretaria Municipal de Educação</h1>
+                        <h1>Coordenadoria de Educação Especial</h1>
+                    </div>
+                    <div class="header-right">
+                         <img src="${window.location.origin}/img/logo_semed.jpg" alt="Semed" style="height: 35px;" />
+                         <img src="${window.location.origin}/img/logo_coord.jpg" alt="Coord" style="height: 40px;" />
+                    </div>
+                </div>
+                <div class="doc-title">RELATÓRIO DE VAGAS PENDENTES (NECESSIDADES)</div>
+                <div class="period-info">${periodText}</div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Escola</th>
+                            <th>Turma</th>
+                            <th>Vaga Disponível (Cargo)</th>
+                            <th>Data de Registro</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRowsHtml}</tbody>
+                </table>
+                
+                <div class="date">Castanhal, ${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}.</div>
+            </div>
+            <script>window.onload = function() { window.print(); }</script>
+        </body>
+        </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        } else {
+            alert('Por favor, permita popups.');
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao gerar PDF.');
+    }
+};
