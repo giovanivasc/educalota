@@ -41,6 +41,64 @@ const Allotment: React.FC = () => {
   const [pendingStartDate, setPendingStartDate] = useState('');
   const [pendingEndDate, setPendingEndDate] = useState('');
 
+  // Filter Logic with useMemo
+  const filteredPendingAllotments = useMemo(() => {
+    return pendingAllotments.filter(item => {
+      if (pendingRoleFilter && item.staff_role !== pendingRoleFilter) return false;
+      if (pendingDateFilter !== 'all') {
+        const itemDateParts = (item.date || '').split('/');
+        if (itemDateParts.length !== 3) return false;
+
+        // Parse DD/MM/YYYY
+        const itemDate = new Date(
+          parseInt(itemDateParts[2]),
+          parseInt(itemDateParts[1]) - 1,
+          parseInt(itemDateParts[0])
+        );
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (pendingDateFilter === 'week') {
+          const lastWeek = new Date(today);
+          lastWeek.setDate(today.getDate() - 7);
+          if (itemDate < lastWeek) return false;
+        } else if (pendingDateFilter === 'month') {
+          const lastMonth = new Date(today);
+          lastMonth.setMonth(today.getMonth() - 1);
+          if (itemDate < lastMonth) return false;
+        } else if (pendingDateFilter === 'custom') {
+          if (pendingStartDate) {
+            // Fix: Parse YYYY-MM-DD from input explicitly to avoid timezone issues with Date constructor string parsing
+            const [y, m, d] = pendingStartDate.split('-').map(Number);
+            const start = new Date(y, m - 1, d);
+            if (itemDate < start) return false;
+          }
+          if (pendingEndDate) {
+            const [y, m, d] = pendingEndDate.split('-').map(Number);
+            const end = new Date(y, m - 1, d);
+            end.setHours(23, 59, 59, 999);
+            if (itemDate > end) return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [pendingAllotments, pendingRoleFilter, pendingDateFilter, pendingStartDate, pendingEndDate]);
+
+  const handlePrintPending = () => {
+    let periodText = "Período: Geral";
+    if (pendingDateFilter === 'week') periodText = "Período: Última Semana";
+    if (pendingDateFilter === 'month') periodText = "Período: Último Mês";
+    if (pendingDateFilter === 'custom') {
+      const startStr = pendingStartDate ? pendingStartDate.split('-').reverse().join('/') : '...';
+      const endStr = pendingEndDate ? pendingEndDate.split('-').reverse().join('/') : '...';
+      periodText = `Período: ${startStr} a ${endStr}`;
+    }
+
+    generatePendingPDF(filteredPendingAllotments, periodText);
+  };
+
   useEffect(() => {
     if (selectedSchool) {
       fetchClasses(selectedSchool);
@@ -801,96 +859,56 @@ const Allotment: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-              {(() => {
-                // Filter Logix in Render
-                const filteredPending = pendingAllotments.filter(item => {
-                  if (pendingRoleFilter && item.staff_role !== pendingRoleFilter) return false;
-                  if (pendingDateFilter !== 'all') {
-                    const itemDateParts = (item.date || '').split('/');
-                    if (itemDateParts.length !== 3) return false;
-                    const itemDate = new Date(parseInt(itemDateParts[2]), parseInt(itemDateParts[1]) - 1, parseInt(itemDateParts[0]));
-
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-
-                    if (pendingDateFilter === 'week') {
-                      const lastWeek = new Date(today);
-                      lastWeek.setDate(today.getDate() - 7);
-                      if (itemDate < lastWeek) return false;
-                    } else if (pendingDateFilter === 'month') {
-                      const lastMonth = new Date(today);
-                      lastMonth.setMonth(today.getMonth() - 1);
-                      if (itemDate < lastMonth) return false;
-                    } else if (pendingDateFilter === 'custom') {
-                      if (pendingStartDate) {
-                        const start = new Date(pendingStartDate);
-                        if (itemDate < start) return false;
-                      }
-                      if (pendingEndDate) {
-                        const end = new Date(pendingEndDate);
-                        end.setHours(23, 59, 59, 999);
-                        if (itemDate > end) return false;
-                      }
-                    }
-                  }
-                  return true;
-                });
-
-                if (filteredPending.length === 0) {
-                  return (
-                    <div className="text-center py-10 text-slate-500">
-                      <span className="material-symbols-outlined text-4xl mb-2">check_circle</span>
-                      <p>Nenhuma vaga pendente encontrada com os filtros selecionados.</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400">
-                      <tr>
-                        <th className="px-5 py-3">Escola</th>
-                        <th className="px-5 py-3">Turma</th>
-                        <th className="px-5 py-3">Vaga Disponível</th>
-                        <th className="px-5 py-3">Data</th>
-                        <th className="px-5 py-3 text-right">Ação</th>
+              {filteredPendingAllotments.length === 0 ? (
+                <div className="text-center py-10 text-slate-500">
+                  <span className="material-symbols-outlined text-4xl mb-2">check_circle</span>
+                  <p>Nenhuma vaga pendente encontrada com os filtros selecionados.</p>
+                </div>
+              ) : (
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400">
+                    <tr>
+                      <th className="px-5 py-3">Escola</th>
+                      <th className="px-5 py-3">Turma</th>
+                      <th className="px-5 py-3">Vaga Disponível</th>
+                      <th className="px-5 py-3">Data</th>
+                      <th className="px-5 py-3 text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredPendingAllotments.map(item => (
+                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td className="px-5 py-4 font-medium text-slate-700 dark:text-slate-300">
+                          {item.school_name}
+                        </td>
+                        <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
+                          {item.classDetails ? (
+                            `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''} (${item.classDetails.shift})`
+                          ) : 'Turma não encontrada'}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            <span className="material-symbols-outlined text-[14px]">person_search</span>
+                            {item.staff_role}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-xs text-slate-500">
+                          {item.date}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <Button
+                            size="sm"
+                            onClick={() => handleResolvePending(item.school_id, item.class_id)}
+                            icon="arrow_forward"
+                          >
+                            Resolver
+                          </Button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {filteredPending.map(item => (
-                        <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                          <td className="px-5 py-4 font-medium text-slate-700 dark:text-slate-300">
-                            {item.school_name}
-                          </td>
-                          <td className="px-5 py-4 text-slate-600 dark:text-slate-400">
-                            {item.classDetails ? (
-                              `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''} (${item.classDetails.shift})`
-                            ) : 'Turma não encontrada'}
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                              <span className="material-symbols-outlined text-[14px]">person_search</span>
-                              {item.staff_role}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-xs text-slate-500">
-                            {item.date}
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <Button
-                              size="sm"
-                              onClick={() => handleResolvePending(item.school_id, item.class_id)}
-                              icon="arrow_forward"
-                            >
-                              Resolver
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                );
-              })()}
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
