@@ -133,6 +133,7 @@ const StaffPage: React.FC = () => {
 
         tableRowsHtml += `
           <tr style="background-color: ${bgColor};">
+            <td style="width: 30px; text-align: center;">${index + 1}</td>
             <td style="text-align: left; padding-left: 10px;">${staff.name}</td>
             <td>${staff.role}</td>
             <td>${staff.contractType}</td>
@@ -195,6 +196,7 @@ const StaffPage: React.FC = () => {
           <table>
             <thead>
               <tr>
+                <th style="width: 5%;">#</th>
                 <th style="width: 25%;">Servidor</th>
                 <th style="width: 20%;">Cargo</th>
                 <th style="width: 15%;">Vínculo</th>
