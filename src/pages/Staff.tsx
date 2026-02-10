@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 import { Staff } from '../types';
 import { supabase } from '../lib/supabase';
@@ -76,16 +78,58 @@ const StaffPage: React.FC = () => {
     const matchesRole = roleFilter === 'Todos os Cargos' || s.role === roleFilter;
 
     let matchesAvailability = true;
-    if (availabilityFilter === 'Com Disponibilidade') {
-      matchesAvailability = s.hoursAvailable > 0;
-    } else if (availabilityFilter === 'Sem Disponibilidade') {
-      matchesAvailability = s.hoursAvailable === 0;
-    } else if (availabilityFilter === 'Totalmente Livre') {
-      matchesAvailability = s.hoursAvailable === s.hoursTotal;
+    if (availabilityFilter !== 'Todas as Disponibilidades') {
+      const hours = parseInt(availabilityFilter.replace('h', ''));
+      matchesAvailability = s.hoursAvailable === hours;
     }
 
     return matchesSearch && matchesRole && matchesAvailability;
   });
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text('Relatório de Servidores', 14, 22);
+
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 28);
+
+    // Filtros aplicados no texto
+    let filterText = 'Filtros: ';
+    if (roleFilter !== 'Todos os Cargos') filterText += `Cargo: ${roleFilter} | `;
+    if (availabilityFilter !== 'Todas as Disponibilidades') filterText += `Disponibilidade: ${availabilityFilter}`;
+    if (filterText === 'Filtros: ') filterText += 'Nenhum';
+
+    doc.text(filterText, 14, 34);
+
+    const tableData = filteredStaff.map(staff => [
+      staff.name,
+      staff.role,
+      staff.contractType,
+      `${staff.hoursAvailable}h livres / ${staff.hoursTotal}h total`,
+      staff.observations || '-'
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Nome', 'Cargo', 'Vínculo', 'Carga Horária', 'Observações']],
+      body: tableData,
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        0: { cellWidth: 40 }, // Nome
+        1: { cellWidth: 40 }, // Cargo
+        2: { cellWidth: 30 }, // Vínculo
+        3: { cellWidth: 35 }, // Carga Horária
+        4: { cellWidth: 'auto' } // Observações
+      }
+    });
+
+    const fileName = `servidores_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+  };
 
   const handleSaveStaff = async () => {
     if (!newStaff.name || !newStaff.role || !newStaff.contractType) {
@@ -399,6 +443,9 @@ const StaffPage: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400">Gerencie a carga horária e alocação dos profissionais da rede.</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={handleExportPDF} variant="secondary" icon="print">
+            Imprimir / PDF
+          </Button>
           <BulkImporter type="staff" onSuccess={fetchStaff} label="Importar Servidores" />
           <Button onClick={() => { setView('create'); setEditingId(null); setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '', observations: '' }); }} icon="person_add">
             Novo Servidor
@@ -438,9 +485,9 @@ const StaffPage: React.FC = () => {
             className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark text-sm font-medium px-4 focus:ring-1 focus:ring-primary outline-none"
           >
             <option>Todas as Disponibilidades</option>
-            <option>Com Disponibilidade</option>
-            <option>Sem Disponibilidade</option>
-            <option>Totalmente Livre</option>
+            <option>50h</option>
+            <option>100h</option>
+            <option>200h</option>
           </select>
         </div>
 
