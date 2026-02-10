@@ -485,6 +485,7 @@ const StaffPage: React.FC = () => {
             className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark text-sm font-medium px-4 focus:ring-1 focus:ring-primary outline-none"
           >
             <option>Todas as Disponibilidades</option>
+            <option>0h</option>
             <option>50h</option>
             <option>100h</option>
             <option>200h</option>
