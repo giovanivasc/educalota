@@ -196,7 +196,7 @@ const StaffPage: React.FC = () => {
           <table>
             <thead>
               <tr>
-                <th style="width: 5%;">#</th>
+                <th style="width: 5%;">Nº</th>
                 <th style="width: 25%;">Servidor</th>
                 <th style="width: 20%;">Cargo</th>
                 <th style="width: 15%;">Vínculo</th>
