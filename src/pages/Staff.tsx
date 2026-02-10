@@ -86,49 +86,148 @@ const StaffPage: React.FC = () => {
     return matchesSearch && matchesRole && matchesAvailability;
   });
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
+  const handleExportPDF = async () => {
+    try {
+      setLoading(true);
+      const staffIds = filteredStaff.map(s => s.id);
 
-    doc.setFontSize(18);
-    doc.text('Relatório de Servidores', 14, 22);
+      // Buscar lotações para os servidores filtrados
+      const { data: allotmentsData } = await supabase
+        .from('allotments')
+        .select(`
+          staff_id,
+          school_name,
+          schools ( name )
+        `)
+        .in('staff_id', staffIds)
+        .eq('status', 'Ativo');
 
-    doc.setFontSize(10);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 14, 28);
-
-    // Filtros aplicados no texto
-    let filterText = 'Filtros: ';
-    if (roleFilter !== 'Todos os Cargos') filterText += `Cargo: ${roleFilter} | `;
-    if (availabilityFilter !== 'Todas as Disponibilidades') filterText += `Disponibilidade: ${availabilityFilter}`;
-    if (filterText === 'Filtros: ') filterText += 'Nenhum';
-
-    doc.text(filterText, 14, 34);
-
-    const tableData = filteredStaff.map(staff => [
-      staff.name,
-      staff.role,
-      staff.contractType,
-      `${staff.hoursAvailable}h livres / ${staff.hoursTotal}h total`,
-      staff.observations || '-'
-    ]);
-
-    autoTable(doc, {
-      startY: 40,
-      head: [['Nome', 'Cargo', 'Vínculo', 'Carga Horária', 'Observações']],
-      body: tableData,
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
-      styles: { fontSize: 9 },
-      columnStyles: {
-        0: { cellWidth: 40 }, // Nome
-        1: { cellWidth: 40 }, // Cargo
-        2: { cellWidth: 30 }, // Vínculo
-        3: { cellWidth: 35 }, // Carga Horária
-        4: { cellWidth: 'auto' } // Observações
+      // Agrupar lotações por servidor
+      const allotmentsMap = new Map<string, string[]>();
+      if (allotmentsData) {
+        allotmentsData.forEach((a: any) => {
+          const schoolName = a.schools?.name || a.school_name || 'Escola Desconhecida';
+          if (!allotmentsMap.has(a.staff_id)) {
+            allotmentsMap.set(a.staff_id, []);
+          }
+          const currentList = allotmentsMap.get(a.staff_id);
+          if (currentList && !currentList.includes(schoolName)) {
+            currentList.push(schoolName);
+          }
+        });
       }
-    });
 
-    const fileName = `servidores_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
+      // Montar HTML
+      const d = new Date();
+      const dateText = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+
+      // Filtros texto
+      let filterText = '';
+      if (roleFilter !== 'Todos os Cargos') filterText += `Cargo: ${roleFilter} | `;
+      if (availabilityFilter !== 'Todas as Disponibilidades') filterText += `Disponibilidade: ${availabilityFilter}`;
+
+      let tableRowsHtml = '';
+      filteredStaff.forEach((staff, index) => {
+        const bgColor = index % 2 === 0 ? "#FFFFFF" : "#F8F9FA";
+        const places = allotmentsMap.get(staff.id)?.join(', ') || 'Sem lotação';
+
+        tableRowsHtml += `
+          <tr style="background-color: ${bgColor};">
+            <td style="text-align: left; padding-left: 10px;">${staff.name}</td>
+            <td>${staff.role}</td>
+            <td>${staff.contractType}</td>
+            <td style="text-align: left; padding-left: 10px;">${places}</td>
+            <td>${staff.hoursAvailable}h</td>
+          </tr>
+        `;
+      });
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Relatório de Servidores</title>
+          <style>
+            body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 20px; }
+            .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 15px; }
+            .header-logo { height: 60px; width: auto; object-fit: contain; }
+            .header-center { text-align: center; flex: 1; margin: 0 20px; }
+            .header-center h1 { margin: 3px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; line-height: 1.2; }
+            .doc-info { margin-bottom: 20px; }
+            .doc-title { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+            .filters { font-size: 12px; color: #444; text-align: center; margin-bottom: 20px; font-style: italic; }
+            
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ccc; padding: 6px 4px; text-align: center; vertical-align: middle; font-size: 10px; }
+            th { background-color: #2980B9; color: white; font-weight: bold; border-color: #2980B9; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            tr:nth-child(even) { background-color: #f2f2f2; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            
+            @media print { 
+              @page { size: portrait; margin: 10mm; } 
+              body { -webkit-print-color-adjust: exact; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div><img src="/img/logo_pref.jpg" alt="Pref" class="header-logo" onerror="this.style.display='none'" /></div>
+            <div class="header-center">
+              <h1>Prefeitura Municipal de Castanhal</h1>
+              <h1>Secretaria Municipal de Educação</h1>
+              <h1>Coordenadoria de Educação Especial</h1>
+            </div>
+            <div>
+              <div style="display: flex; gap: 10px;">
+                <img src="/img/logo_semed.jpg" alt="Semed" class="header-logo" style="height: 50px;" onerror="this.style.display='none'" />
+                <img src="/img/logo_coord.jpg" alt="Coord" class="header-logo" style="height: 55px;" onerror="this.style.display='none'" />
+              </div>
+            </div>
+          </div>
+
+          <div class="doc-info">
+            <div class="doc-title">Relatório de Servidores e Disponibilidade</div>
+            <div style="text-align: center; font-size: 12px;">Gerado em: ${dateText}</div>
+          </div>
+
+          ${filterText ? `<div class="filters">Filtros aplicados - ${filterText}</div>` : ''}
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 25%;">Servidor</th>
+                <th style="width: 20%;">Cargo</th>
+                <th style="width: 15%;">Vínculo</th>
+                <th style="width: 30%;">Local de Lotação</th>
+                <th style="width: 10%;">Disponível</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRowsHtml}
+            </tbody>
+          </table>
+
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+      } else {
+        alert('Pop-up bloqueado. Permita pop-ups para imprimir.');
+      }
+
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+      alert('Erro ao gerar relatório para impressão.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveStaff = async () => {
