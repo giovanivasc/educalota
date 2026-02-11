@@ -222,7 +222,7 @@ const Allotment: React.FC = () => {
       // Fetch class details
       const { data: classesData } = await supabase
         .from('classes')
-        .select('id, series, section, shift')
+        .select('id, series, section, shift, obs')
         .in('id', classIds);
 
       // Merge data
@@ -1003,6 +1003,7 @@ const Allotment: React.FC = () => {
                       <th className="px-5 py-3">Turma</th>
                       <th className="px-5 py-3">Vaga Disponível</th>
                       <th className="px-5 py-3">Data</th>
+                      <th className="px-5 py-3">Observações</th>
                       <th className="px-5 py-3 text-right">Ação</th>
                     </tr>
                   </thead>
@@ -1025,6 +1026,9 @@ const Allotment: React.FC = () => {
                         </td>
                         <td className="px-5 py-4 text-xs text-slate-500">
                           {item.date}
+                        </td>
+                        <td className="px-5 py-4 text-xs text-slate-500 max-w-[200px] truncate" title={item.classDetails?.obs || ''}>
+                          {item.classDetails?.obs || '-'}
                         </td>
                         <td className="px-5 py-4 text-right">
                           <Button
