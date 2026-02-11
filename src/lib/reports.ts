@@ -862,12 +862,14 @@ export const generatePendingPDF = async (pendingItems: any[], periodText: string
             const schoolName = item.school_name || '-';
             const className = item.classDetails ? `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''} (${item.classDetails.shift})` : 'Turma não encontrada';
             const role = item.staff_role || '-';
+            const obs = item.classDetails?.obs || '-';
             const date = item.date || '-';
 
             tableRowsHtml += `<tr style="background-color: ${bgColor};">
                 <td>${schoolName}</td>
                 <td>${className}</td>
                 <td>${role}</td>
+                <td>${obs}</td>
                 <td>${date}</td>
              </tr>`;
         });
@@ -891,7 +893,7 @@ export const generatePendingPDF = async (pendingItems: any[], periodText: string
                 th, td { border: 1px solid #000; padding: 4px 6px; text-align: center; vertical-align: middle; font-size: 11px; }
                 th { background-color: #2980B9; color: white; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 .date { text-align: right; margin: 20px 0 40px 0; font-size: 12px; }
-                @media print { @page { size: portrait; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }
+                @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }
             </style>
         </head>
         <body>
@@ -917,6 +919,7 @@ export const generatePendingPDF = async (pendingItems: any[], periodText: string
                             <th>Escola</th>
                             <th>Turma</th>
                             <th>Vaga Disponível (Cargo)</th>
+                            <th>Observações</th>
                             <th>Data de Registro</th>
                         </tr>
                     </thead>
