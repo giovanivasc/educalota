@@ -915,9 +915,10 @@ const Allotment: React.FC = () => {
                     onChange={e => setPendingModalityFilter(e.target.value)}
                   >
                     <option value="">Todas</option>
-                    <option value="Educação Infantil">Ed. Infantil</option>
-                    <option value="Ensino Fundamental - Anos Iniciais">Anos Iniciais</option>
-                    <option value="Ensino Fundamental - Anos Finais">Anos Finais</option>
+                    <option value="Educação Infantil">Educação Infantil</option>
+                    <option value="Ensino Fundamental 1º/5º ano">Ensino Fundamental 1º/5º ano</option>
+                    <option value="Ensino Fundamental 6º/9º ano">Ensino Fundamental 6º/9º ano</option>
+                    <option value="Educação Especial">Educação Especial</option>
                     <option value="EJA">EJA</option>
                   </select>
                 </div>
