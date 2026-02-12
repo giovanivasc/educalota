@@ -37,6 +37,10 @@ const Allotment: React.FC = () => {
 
   // States for Pending Modal Filtering
   const [pendingRoleFilter, setPendingRoleFilter] = useState('');
+  const [pendingSchoolFilter, setPendingSchoolFilter] = useState('');
+  const [pendingModalityFilter, setPendingModalityFilter] = useState('');
+  const [pendingSeriesFilter, setPendingSeriesFilter] = useState('');
+  const [pendingShiftFilter, setPendingShiftFilter] = useState('');
   const [pendingDateFilter, setPendingDateFilter] = useState('all'); // all, week, month, custom
   const [pendingStartDate, setPendingStartDate] = useState('');
   const [pendingEndDate, setPendingEndDate] = useState('');
@@ -109,10 +113,24 @@ const Allotment: React.FC = () => {
   };
 
 
-  // Filter Logic with useMemo
   const filteredPendingAllotments = useMemo(() => {
     return pendingAllotments.filter(item => {
+      // Role Filter
       if (pendingRoleFilter && item.staff_role !== pendingRoleFilter) return false;
+
+      // School Filter (match part of name)
+      if (pendingSchoolFilter && !normalizeText(item.school_name || '').includes(normalizeText(pendingSchoolFilter))) return false;
+
+      // Modality Filter
+      if (pendingModalityFilter && item.classDetails?.modality !== pendingModalityFilter) return false;
+
+      // Series Filter (match part of series name)
+      if (pendingSeriesFilter && !normalizeText(item.classDetails?.series || '').includes(normalizeText(pendingSeriesFilter))) return false;
+
+      // Shift Filter
+      if (pendingShiftFilter && item.classDetails?.shift !== pendingShiftFilter) return false;
+
+
       if (pendingDateFilter !== 'all') {
         const itemDateParts = (item.date || '').split('/');
         if (itemDateParts.length !== 3) return false;
@@ -152,7 +170,7 @@ const Allotment: React.FC = () => {
       }
       return true;
     });
-  }, [pendingAllotments, pendingRoleFilter, pendingDateFilter, pendingStartDate, pendingEndDate]);
+  }, [pendingAllotments, pendingRoleFilter, pendingDateFilter, pendingStartDate, pendingEndDate, pendingSchoolFilter, pendingModalityFilter, pendingSeriesFilter, pendingShiftFilter]);
 
   const handlePrintPending = () => {
     let periodText = "Período: Geral";
@@ -222,7 +240,7 @@ const Allotment: React.FC = () => {
       // Fetch class details
       const { data: classesData } = await supabase
         .from('classes')
-        .select('id, series, section, shift, obs')
+        .select('id, series, section, shift, obs, modality')
         .in('id', classIds);
 
       // Merge data
@@ -876,116 +894,137 @@ const Allotment: React.FC = () => {
             </div>
 
             {/* Filters Bar */}
-            <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 flex flex-wrap gap-4 items-end">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Cargo Solicitado</label>
-                <select
-                  className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
-                  value={pendingRoleFilter}
-                  onChange={e => setPendingRoleFilter(e.target.value)}
-                >
-                  <option value="">Todos os Cargos</option>
-                  <option>Mediador</option>
-                  <option>Cuidador</option>
-                  <option>Professor de Educação Especial</option>
-                  <option>Professor de Braille</option>
-                  <option>Professor Bilíngue</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Período</label>
-                <select
-                  className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
-                  value={pendingDateFilter}
-                  onChange={e => setPendingDateFilter(e.target.value)}
-                >
-                  <option value="all">Todo o Período</option>
-                  <option value="week">Última Semana</option>
-                  <option value="month">Último Mês</option>
-                  <option value="custom">Período Específico</option>
-                </select>
-              </div>
-
-              {pendingDateFilter === 'custom' && (
-                <div className="flex gap-2 items-end">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
-                    <input
-                      type="date"
-                      className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
-                      value={pendingStartDate}
-                      onChange={e => setPendingStartDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Fim</label>
-                    <input
-                      type="date"
-                      className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
-                      value={pendingEndDate}
-                      onChange={e => setPendingEndDate(e.target.value)}
-                    />
-                  </div>
+            <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 flex flex-col gap-4">
+              {/* Row 1: Primary Filters */}
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex flex-col gap-1 w-48">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Escola</label>
+                  <input
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Filtrar escola..."
+                    value={pendingSchoolFilter}
+                    onChange={e => setPendingSchoolFilter(e.target.value)}
+                  />
                 </div>
-              )}
 
-              <div className="ml-auto">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon="print"
-                  onClick={() => {
-                    // Filter logic duplicated here just for passing to print function or reuse 'filteredPending' variable if extracted
-                    // Better option: Extract filtered list in render scope
-                    const filteredForPrint = pendingAllotments.filter(item => {
-                      if (pendingRoleFilter && item.staff_role !== pendingRoleFilter) return false;
-                      if (pendingDateFilter !== 'all') {
-                        const itemDateParts = (item.date || '').split('/');
-                        if (itemDateParts.length !== 3) return false;
-                        const itemDate = new Date(parseInt(itemDateParts[2]), parseInt(itemDateParts[1]) - 1, parseInt(itemDateParts[0]));
+                <div className="flex flex-col gap-1 w-32">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={pendingModalityFilter}
+                    onChange={e => setPendingModalityFilter(e.target.value)}
+                  >
+                    <option value="">Todas</option>
+                    <option value="Educação Infantil">Ed. Infantil</option>
+                    <option value="Ensino Fundamental - Anos Iniciais">Anos Iniciais</option>
+                    <option value="Ensino Fundamental - Anos Finais">Anos Finais</option>
+                    <option value="EJA">EJA</option>
+                  </select>
+                </div>
 
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
+                <div className="flex flex-col gap-1 w-32">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Série/Turma</label>
+                  <input
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Filtrar série..."
+                    value={pendingSeriesFilter}
+                    onChange={e => setPendingSeriesFilter(e.target.value)}
+                  />
+                </div>
 
-                        if (pendingDateFilter === 'week') {
-                          const lastWeek = new Date(today);
-                          lastWeek.setDate(today.getDate() - 7);
-                          if (itemDate < lastWeek) return false;
-                        } else if (pendingDateFilter === 'month') {
-                          const lastMonth = new Date(today);
-                          lastMonth.setMonth(today.getMonth() - 1);
-                          if (itemDate < lastMonth) return false;
-                        } else if (pendingDateFilter === 'custom') {
-                          if (pendingStartDate) {
-                            const start = new Date(pendingStartDate);
-                            // start.setHours(0,0,0,0); // compare date only
-                            if (itemDate < start) return false;
-                          }
-                          if (pendingEndDate) {
-                            const end = new Date(pendingEndDate);
-                            end.setHours(23, 59, 59, 999);
-                            if (itemDate > end) return false;
-                          }
-                        }
+                <div className="flex flex-col gap-1 w-28">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Turno</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={pendingShiftFilter}
+                    onChange={e => setPendingShiftFilter(e.target.value)}
+                  >
+                    <option value="">Todos</option>
+                    <option value="Manhã">Manhã</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noite">Noite</option>
+                    <option value="Integral">Integral</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Secondary Filters & Action */}
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex flex-col gap-1 w-48">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Cargo Solicitado</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={pendingRoleFilter}
+                    onChange={e => setPendingRoleFilter(e.target.value)}
+                  >
+                    <option value="">Todos os Cargos</option>
+                    <option>Mediador</option>
+                    <option>Cuidador</option>
+                    <option>Professor de Educação Especial</option>
+                    <option>Professor de Braille</option>
+                    <option>Professor Bilíngue</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Período</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={pendingDateFilter}
+                    onChange={e => setPendingDateFilter(e.target.value)}
+                  >
+                    <option value="all">Todo o Período</option>
+                    <option value="week">Última Semana</option>
+                    <option value="month">Último Mês</option>
+                    <option value="custom">Período Específico</option>
+                  </select>
+                </div>
+
+                {pendingDateFilter === 'custom' && (
+                  <div className="flex gap-2 items-end">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
+                      <input
+                        type="date"
+                        className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                        value={pendingStartDate}
+                        onChange={e => setPendingStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Fim</label>
+                      <input
+                        type="date"
+                        className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                        value={pendingEndDate}
+                        onChange={e => setPendingEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="ml-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon="print"
+                    onClick={() => {
+                      // Use the filtered list directly
+                      let periodText = "Período: Geral";
+                      if (pendingDateFilter === 'week') periodText = "Período: Última Semana";
+                      if (pendingDateFilter === 'month') periodText = "Período: Último Mês";
+                      if (pendingDateFilter === 'custom') {
+                        const startStr = pendingStartDate ? pendingStartDate.split('-').reverse().join('/') : '...';
+                        const endStr = pendingEndDate ? pendingEndDate.split('-').reverse().join('/') : '...';
+                        periodText = `Período: ${startStr} a ${endStr}`;
                       }
-                      return true;
-                    });
 
-                    let periodText = "Período: Geral";
-                    if (pendingDateFilter === 'week') periodText = "Período: Última Semana";
-                    if (pendingDateFilter === 'month') periodText = "Período: Último Mês";
-                    if (pendingDateFilter === 'custom') {
-                      const startStr = pendingStartDate ? pendingStartDate.split('-').reverse().join('/') : '...';
-                      const endStr = pendingEndDate ? pendingEndDate.split('-').reverse().join('/') : '...';
-                      periodText = `Período: ${startStr} a ${endStr}`;
-                    }
-
-                    generatePendingPDF(filteredForPrint, periodText);
-                  }}
-                >
-                  Imprimir Lista
-                </Button>
+                      generatePendingPDF(filteredPendingAllotments, periodText);
+                    }}
+                  >
+                    Imprimir Lista
+                  </Button>
+                </div>
               </div>
             </div>
 
