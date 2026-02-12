@@ -38,6 +38,7 @@ const Allotment: React.FC = () => {
   // States for Pending Modal Filtering
   const [pendingRoleFilter, setPendingRoleFilter] = useState('');
   const [pendingSchoolFilter, setPendingSchoolFilter] = useState('');
+  const [pendingRegionFilter, setPendingRegionFilter] = useState('');
   const [pendingModalityFilter, setPendingModalityFilter] = useState('');
   const [pendingSeriesFilter, setPendingSeriesFilter] = useState('');
   const [pendingShiftFilter, setPendingShiftFilter] = useState('');
@@ -121,6 +122,9 @@ const Allotment: React.FC = () => {
       // School Filter (match part of name)
       if (pendingSchoolFilter && !normalizeText(item.school_name || '').includes(normalizeText(pendingSchoolFilter))) return false;
 
+      // Region Filter
+      if (pendingRegionFilter && item.school_region !== pendingRegionFilter) return false;
+
       // Modality Filter
       if (pendingModalityFilter && item.classDetails?.modality !== pendingModalityFilter) return false;
 
@@ -170,7 +174,7 @@ const Allotment: React.FC = () => {
       }
       return true;
     });
-  }, [pendingAllotments, pendingRoleFilter, pendingDateFilter, pendingStartDate, pendingEndDate, pendingSchoolFilter, pendingModalityFilter, pendingSeriesFilter, pendingShiftFilter]);
+  }, [pendingAllotments, pendingRoleFilter, pendingDateFilter, pendingStartDate, pendingEndDate, pendingSchoolFilter, pendingModalityFilter, pendingSeriesFilter, pendingShiftFilter, pendingRegionFilter]);
 
   const handlePrintPending = () => {
     let periodText = "Período: Geral";
@@ -234,10 +238,15 @@ const Allotment: React.FC = () => {
         return;
       }
 
-      // Get unique class IDs to fetch details
       const classIds = [...new Set(allotments.map(a => a.class_id))];
+      const schoolIds = new Set(allotments.map(a => a.school_id));
 
-      // Fetch class details
+      // Fetch schools details for region
+      const { data: schoolsData } = await supabase
+        .from('schools')
+        .select('id, name, region')
+        .in('id', Array.from(schoolIds));
+
       const { data: classesData } = await supabase
         .from('classes')
         .select('id, series, section, shift, obs, modality')
@@ -246,9 +255,13 @@ const Allotment: React.FC = () => {
       // Merge data
       const merged = allotments.map(a => {
         const classInfo = classesData?.find(c => c.id === a.class_id);
+        const schoolInfo = schoolsData?.find(s => s.id === a.school_id);
+
         return {
           ...a,
-          classDetails: classInfo
+          classDetails: classInfo,
+          school_name: schoolInfo?.name || a.school_name,
+          school_region: schoolInfo?.region
         };
       });
 
@@ -905,6 +918,19 @@ const Allotment: React.FC = () => {
                     value={pendingSchoolFilter}
                     onChange={e => setPendingSchoolFilter(e.target.value)}
                   />
+                </div>
+
+                <div className="flex flex-col gap-1 w-28">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Zona (Região)</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={pendingRegionFilter}
+                    onChange={e => setPendingRegionFilter(e.target.value)}
+                  >
+                    <option value="">Todas</option>
+                    <option value="Urbano">Cidade (Urbano)</option>
+                    <option value="Campo">Campo (Rural)</option>
+                  </select>
                 </div>
 
                 <div className="flex flex-col gap-1 w-32">
