@@ -51,6 +51,11 @@ const Allotment: React.FC = () => {
   const [realizedAllotments, setRealizedAllotments] = useState<any[]>([]);
   // States for Realized Modal Filtering
   const [realizedRoleFilter, setRealizedRoleFilter] = useState('');
+  const [realizedSchoolFilter, setRealizedSchoolFilter] = useState('');
+  const [realizedRegionFilter, setRealizedRegionFilter] = useState('');
+  const [realizedModalityFilter, setRealizedModalityFilter] = useState('');
+  const [realizedSeriesFilter, setRealizedSeriesFilter] = useState('');
+  const [realizedShiftFilter, setRealizedShiftFilter] = useState('');
   const [realizedDateFilter, setRealizedDateFilter] = useState('all');
   const [realizedStartDate, setRealizedStartDate] = useState('');
   const [realizedEndDate, setRealizedEndDate] = useState('');
@@ -60,6 +65,21 @@ const Allotment: React.FC = () => {
     return realizedAllotments.filter(item => {
       // Role Filter (matches part of the string e.g. "Mediador" in "Mediador - 100h")
       if (realizedRoleFilter && !item.staff_role.includes(realizedRoleFilter)) return false;
+
+      // School Filter (match part of name)
+      if (realizedSchoolFilter && !normalizeText(item.school_name || '').includes(normalizeText(realizedSchoolFilter))) return false;
+
+      // Region Filter
+      if (realizedRegionFilter && item.school_region !== realizedRegionFilter) return false;
+
+      // Modality Filter
+      if (realizedModalityFilter && item.classDetails?.modality !== realizedModalityFilter) return false;
+
+      // Series Filter (match part of series name)
+      if (realizedSeriesFilter && !normalizeText(item.classDetails?.series || '').includes(normalizeText(realizedSeriesFilter))) return false;
+
+      // Shift Filter
+      if (realizedShiftFilter && item.classDetails?.shift !== realizedShiftFilter) return false;
 
       if (realizedDateFilter !== 'all') {
         const itemDateParts = (item.date || '').split('/');
@@ -98,7 +118,7 @@ const Allotment: React.FC = () => {
       }
       return true;
     });
-  }, [realizedAllotments, realizedRoleFilter, realizedDateFilter, realizedStartDate, realizedEndDate]);
+  }, [realizedAllotments, realizedRoleFilter, realizedDateFilter, realizedStartDate, realizedEndDate, realizedSchoolFilter, realizedRegionFilter, realizedModalityFilter, realizedSeriesFilter, realizedShiftFilter]);
 
   const handlePrintRealized = () => {
     let periodText = "Período: Geral";
@@ -1133,69 +1153,140 @@ const Allotment: React.FC = () => {
             </div>
 
             {/* Filters Bar */}
-            <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 flex flex-wrap gap-4 items-end">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Cargo</label>
-                <select
-                  className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
-                  value={realizedRoleFilter}
-                  onChange={e => setRealizedRoleFilter(e.target.value)}
-                >
-                  <option value="">Todos os Cargos</option>
-                  <option>Mediador</option>
-                  <option>Cuidador</option>
-                  <option>Professor de Educação Especial</option>
-                  <option>Professor de Braille</option>
-                  <option>Professor Bilíngue</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Período</label>
-                <select
-                  className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
-                  value={realizedDateFilter}
-                  onChange={e => setRealizedDateFilter(e.target.value)}
-                >
-                  <option value="all">Todo o Período</option>
-                  <option value="week">Última Semana</option>
-                  <option value="month">Último Mês</option>
-                  <option value="custom">Período Específico</option>
-                </select>
-              </div>
-
-              {realizedDateFilter === 'custom' && (
-                <div className="flex gap-2 items-end">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
-                    <input
-                      type="date"
-                      className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
-                      value={realizedStartDate}
-                      onChange={e => setRealizedStartDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Fim</label>
-                    <input
-                      type="date"
-                      className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
-                      value={realizedEndDate}
-                      onChange={e => setRealizedEndDate(e.target.value)}
-                    />
-                  </div>
+            {/* Filters Bar */}
+            <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 flex flex-col gap-4">
+              {/* Row 1: Primary Filters */}
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex flex-col gap-1 w-48">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Escola</label>
+                  <input
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Filtrar escola..."
+                    value={realizedSchoolFilter}
+                    onChange={e => setRealizedSchoolFilter(e.target.value)}
+                  />
                 </div>
-              )}
 
-              <div className="ml-auto">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon="print"
-                  onClick={handlePrintRealized}
-                >
-                  Imprimir Lista
-                </Button>
+                <div className="flex flex-col gap-1 w-28">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Zona (Região)</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={realizedRegionFilter}
+                    onChange={e => setRealizedRegionFilter(e.target.value)}
+                  >
+                    <option value="">Todas</option>
+                    <option value="Urbano">Cidade (Urbano)</option>
+                    <option value="Campo">Campo (Rural)</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1 w-32">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={realizedModalityFilter}
+                    onChange={e => setRealizedModalityFilter(e.target.value)}
+                  >
+                    <option value="">Todas</option>
+                    <option value="Educação Infantil">Educação Infantil</option>
+                    <option value="Ensino Fundamental 1º/5º ano">Ensino Fundamental 1º/5º ano</option>
+                    <option value="Ensino Fundamental 6º/9º ano">Ensino Fundamental 6º/9º ano</option>
+                    <option value="Educação Especial">Educação Especial</option>
+                    <option value="EJA">EJA</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1 w-32">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Série/Turma</label>
+                  <input
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Filtrar série..."
+                    value={realizedSeriesFilter}
+                    onChange={e => setRealizedSeriesFilter(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 w-28">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Turno</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={realizedShiftFilter}
+                    onChange={e => setRealizedShiftFilter(e.target.value)}
+                  >
+                    <option value="">Todos</option>
+                    <option value="Manhã">Manhã</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noite">Noite</option>
+                    <option value="Integral">Integral</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Secondary Filters & Action */}
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex flex-col gap-1 w-48">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Cargo</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={realizedRoleFilter}
+                    onChange={e => setRealizedRoleFilter(e.target.value)}
+                  >
+                    <option value="">Todos os Cargos</option>
+                    <option>Mediador</option>
+                    <option>Cuidador</option>
+                    <option>Professor de Educação Especial</option>
+                    <option>Professor de Braille</option>
+                    <option>Professor Bilíngue</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Período</label>
+                  <select
+                    className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    value={realizedDateFilter}
+                    onChange={e => setRealizedDateFilter(e.target.value)}
+                  >
+                    <option value="all">Todo o Período</option>
+                    <option value="week">Última Semana</option>
+                    <option value="month">Último Mês</option>
+                    <option value="custom">Período Específico</option>
+                  </select>
+                </div>
+
+                {realizedDateFilter === 'custom' && (
+                  <div className="flex gap-2 items-end">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Início</label>
+                      <input
+                        type="date"
+                        className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                        value={realizedStartDate}
+                        onChange={e => setRealizedStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">Fim</label>
+                      <input
+                        type="date"
+                        className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                        value={realizedEndDate}
+                        onChange={e => setRealizedEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="ml-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon="print"
+                    onClick={handlePrintRealized}
+                  >
+                    Imprimir Lista
+                  </Button>
+                </div>
               </div>
             </div>
 
