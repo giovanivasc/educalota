@@ -249,7 +249,7 @@ const StaffPage: React.FC = () => {
         // Find existing staff to calc current used hours
         const existingStaff = staffList.find(s => s.id === editingId);
         if (existingStaff) {
-          const hoursUsed = existingStaff.hoursTotal - existingStaff.hoursAvailable;
+          const hoursUsed = Math.max(0, existingStaff.hoursTotal - existingStaff.hoursAvailable);
           const newAvailable = Math.max(0, newStaff.hoursTotal - hoursUsed);
 
           // Update logic
@@ -515,7 +515,7 @@ const StaffPage: React.FC = () => {
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewStaff({ ...newStaff, hoursTotal: parseInt(e.target.value) })}
                     className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none"
                   >
-                    <option value="0">0h (Sem disponibilidade 2026)</option>
+                    <option value="0">0h</option>
                     <option value="100">100h</option>
                     <option value="150">150h</option>
                     <option value="200">200h</option>
