@@ -590,6 +590,7 @@ const StaffPage: React.FC = () => {
             <option>0h</option>
             <option>50h</option>
             <option>100h</option>
+            <option>150h</option>
             <option>200h</option>
           </select>
         </div>
