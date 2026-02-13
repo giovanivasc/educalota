@@ -246,17 +246,28 @@ const StaffPage: React.FC = () => {
       const registration = Math.floor(100000 + Math.random() * 900000).toString();
 
       if (editingId) {
-        // Update logic
-        const { error } = await supabase.from('staff').update({
-          name: newStaff.name,
-          role: newStaff.role,
-          contract_type: newStaff.contractType,
-          hours_total: newStaff.hoursTotal,
-          avatar: avatarUrl,
-          observations: newStaff.observations
-        }).eq('id', editingId);
-        if (error) throw error;
-        alert('Servidor atualizado com sucesso!');
+        // Find existing staff to calc current used hours
+        const existingStaff = staffList.find(s => s.id === editingId);
+        if (existingStaff) {
+          const hoursUsed = existingStaff.hoursTotal - existingStaff.hoursAvailable;
+          const newAvailable = Math.max(0, newStaff.hoursTotal - hoursUsed);
+
+          // Update logic
+          const { error } = await supabase.from('staff').update({
+            name: newStaff.name,
+            role: newStaff.role,
+            contract_type: newStaff.contractType,
+            hours_total: newStaff.hoursTotal,
+            hours_available: newAvailable, // Recalculate available based on usage
+            avatar: avatarUrl,
+            observations: newStaff.observations
+          }).eq('id', editingId);
+
+          if (error) throw error;
+          alert('Servidor atualizado com sucesso!');
+        } else {
+          throw new Error("Servidor não encontrado localmente para atualização.");
+        }
       } else {
         // Create logic
         const { error } = await supabase.from('staff').insert({
