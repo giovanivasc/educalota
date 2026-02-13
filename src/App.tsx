@@ -4,6 +4,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 // import { MOCK_USER } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { UserRole } from './types';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -33,14 +34,14 @@ const AppRoutes = () => {
     id: user.id,
     name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
     email: user.email || '',
-    role: user.user_metadata?.role || 'Admin', // Default role for now
+    role: (user.user_metadata?.role as string)?.toUpperCase() as UserRole || UserRole.ADMIN, // Default role for now
     permissions: user.user_metadata?.permissions || [],
     avatar: user.user_metadata?.avatar_url || 'https://i.pravatar.cc/150?u=' + user.id
   } : {
     id: 'guest',
     name: 'Convidado',
     email: 'guest@educalota.com',
-    role: 'Visitante',
+    role: UserRole.VISITANTE,
     avatar: ''
   };
 

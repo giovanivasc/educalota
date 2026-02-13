@@ -3,7 +3,8 @@ export enum UserRole {
   ADMIN = 'ADMIN',
   DIRETOR = 'DIRETOR',
   SECRETARIO = 'SECRETARIO',
-  COORDENADOR = 'COORDENADOR'
+  COORDENADOR = 'COORDENADOR',
+  VISITANTE = 'VISITANTE'
 }
 
 export interface User {

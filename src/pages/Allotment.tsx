@@ -761,6 +761,7 @@ const Allotment: React.FC = () => {
                 setSelectedSchool(''); // Clear selection on type to allow search
                 setShowSchoolDropdown(true);
               }}
+              title="Buscar Escola"
               onFocus={() => {
                 setSchoolSearchTerm(''); // Clear term to see all or keep? better clear if value matches name
                 setShowSchoolDropdown(true);
@@ -840,6 +841,7 @@ const Allotment: React.FC = () => {
             <textarea
               className="w-full min-h-[80px] p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-1 focus:ring-primary resize-y"
               placeholder="Adicione observações importantes sobre esta turma e sua lotação..."
+              title="Observações da Turma"
               value={classObs}
               onChange={(e) => setClassObs(e.target.value)}
             />
@@ -935,6 +937,7 @@ const Allotment: React.FC = () => {
                   <input
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
                     placeholder="Filtrar escola..."
+                    title="Filtrar por Escola"
                     value={pendingSchoolFilter}
                     onChange={e => setPendingSchoolFilter(e.target.value)}
                   />
@@ -944,6 +947,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Zona (Região)</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Região"
                     value={pendingRegionFilter}
                     onChange={e => setPendingRegionFilter(e.target.value)}
                   >
@@ -957,6 +961,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Modalidade"
                     value={pendingModalityFilter}
                     onChange={e => setPendingModalityFilter(e.target.value)}
                   >
@@ -974,6 +979,7 @@ const Allotment: React.FC = () => {
                   <input
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
                     placeholder="Filtrar série..."
+                    title="Filtrar por Série"
                     value={pendingSeriesFilter}
                     onChange={e => setPendingSeriesFilter(e.target.value)}
                   />
@@ -983,6 +989,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Turno</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Turno"
                     value={pendingShiftFilter}
                     onChange={e => setPendingShiftFilter(e.target.value)}
                   >
@@ -1001,6 +1008,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Cargo Solicitado</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Cargo Solicitado"
                     value={pendingRoleFilter}
                     onChange={e => setPendingRoleFilter(e.target.value)}
                   >
@@ -1017,6 +1025,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Período</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Período"
                     value={pendingDateFilter}
                     onChange={e => setPendingDateFilter(e.target.value)}
                   >
@@ -1034,6 +1043,7 @@ const Allotment: React.FC = () => {
                       <input
                         type="date"
                         className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                        title="Data Inicial"
                         value={pendingStartDate}
                         onChange={e => setPendingStartDate(e.target.value)}
                       />
@@ -1043,6 +1053,7 @@ const Allotment: React.FC = () => {
                       <input
                         type="date"
                         className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                        title="Data Final"
                         value={pendingEndDate}
                         onChange={e => setPendingEndDate(e.target.value)}
                       />
@@ -1162,6 +1173,7 @@ const Allotment: React.FC = () => {
                   <input
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
                     placeholder="Filtrar escola..."
+                    title="Filtrar por Escola"
                     value={realizedSchoolFilter}
                     onChange={e => setRealizedSchoolFilter(e.target.value)}
                   />
@@ -1171,6 +1183,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Zona (Região)</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Região"
                     value={realizedRegionFilter}
                     onChange={e => setRealizedRegionFilter(e.target.value)}
                   >
@@ -1184,6 +1197,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Modalidade</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Modalidade"
                     value={realizedModalityFilter}
                     onChange={e => setRealizedModalityFilter(e.target.value)}
                   >
@@ -1201,6 +1215,7 @@ const Allotment: React.FC = () => {
                   <input
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
                     placeholder="Filtrar série..."
+                    title="Filtrar por Série"
                     value={realizedSeriesFilter}
                     onChange={e => setRealizedSeriesFilter(e.target.value)}
                   />
@@ -1210,6 +1225,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Turno</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Turno"
                     value={realizedShiftFilter}
                     onChange={e => setRealizedShiftFilter(e.target.value)}
                   >
@@ -1228,6 +1244,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Cargo</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Cargo"
                     value={realizedRoleFilter}
                     onChange={e => setRealizedRoleFilter(e.target.value)}
                   >
@@ -1244,6 +1261,7 @@ const Allotment: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase">Período</label>
                   <select
                     className="h-9 px-2 rounded border border-slate-200 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    title="Filtrar por Período"
                     value={realizedDateFilter}
                     onChange={e => setRealizedDateFilter(e.target.value)}
                   >
@@ -1261,6 +1279,7 @@ const Allotment: React.FC = () => {
                       <input
                         type="date"
                         className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                        title="Data Inicial"
                         value={realizedStartDate}
                         onChange={e => setRealizedStartDate(e.target.value)}
                       />
@@ -1270,6 +1289,7 @@ const Allotment: React.FC = () => {
                       <input
                         type="date"
                         className="h-9 px-2 rounded border border-slate-200 text-xs outline-none"
+                        title="Data Final"
                         value={realizedEndDate}
                         onChange={e => setRealizedEndDate(e.target.value)}
                       />
