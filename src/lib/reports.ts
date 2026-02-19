@@ -145,13 +145,15 @@ export const fetchGeneralReportData = async (schoolId: string, startDate?: strin
         }
 
         return {
+            staffId: a.staff_id, // Added ID
+            schoolId: a.school_id, // Added ID
             schoolName,
             staffName: a.staff_name,
             role,
             vinculo,
             date: a.date || '-',
             shift: turno,
-            className, // Added
+            className,
             hours: cargaHoraria
         };
     }).sort((a, b) => {
@@ -172,38 +174,135 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
             return;
         }
 
-        // Requested Order: Nome da escola, nome do servidor, vínculo, cargo/função, turma, turno e CH.
-        const rows = rowsRaw.map(r => ({
-            "Nome da Escola": r.schoolName,
-            "Nome do Servidor": r.staffName,
-            "Vínculo": r.vinculo,
-            "Cargo/Função": r.role,
-            "Turma": r.className,
-            "Turno": r.shift,
-            "Carga Horária": r.hours
-        }));
+        // Group by Staff ID
+        const staffGroups = new Map<string, typeof rowsRaw>();
+        rowsRaw.forEach(r => {
+            if (!staffGroups.has(r.staffId)) {
+                staffGroups.set(r.staffId, []);
+            }
+            staffGroups.get(r.staffId)?.push(r);
+        });
 
-        let filename = schoolId ? `lotacao_escola.xlsx` : `lotacao_geral.xlsx`;
+        // Prepare Data Categories
+        const cat1_MesmaEscola2Turnos: any[] = [];
+        const cat2_EscolasDiferentes: any[] = [];
+        const cat3_UmTurno: any[] = [];
 
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const colWidths = [
-            { wch: 30 }, // Escola
-            { wch: 30 }, // Servidor
-            { wch: 15 }, // Vínculo
-            { wch: 25 }, // Cargo
-            { wch: 20 }, // Turma
-            { wch: 15 }, // Turno
-            { wch: 15 }  // Carga Horária
-        ];
-        ws['!cols'] = colWidths;
+        staffGroups.forEach(allotments => {
+            const uniqueSchools = new Set(allotments.map(a => a.schoolId));
+            const numAllotments = allotments.length;
+
+            if (numAllotments >= 2 && uniqueSchools.size === 1) {
+                // Categoria 1: >= 2 turnos na mesma escola
+                const base = allotments[0];
+                const shifts = Array.from(new Set(allotments.map(a => a.shift)));
+
+                // Sort Shifts: Manhã, Tarde, Noite, Integral
+                const shiftOrder = { "Manhã": 1, "Tarde": 2, "Noite": 3, "Integral": 4 };
+                shifts.sort((a, b) => (shiftOrder[a as keyof typeof shiftOrder] || 9) - (shiftOrder[b as keyof typeof shiftOrder] || 9));
+
+                const turmas = allotments.map(a => a.className).join(', ');
+
+                cat1_MesmaEscola2Turnos.push({
+                    "Nome da Escola": base.schoolName,
+                    "Nome do Servidor": base.staffName,
+                    "Vínculo": base.vinculo,
+                    "Cargo/Função": base.role,
+                    "Turmas": turmas,
+                    "Turnos": shifts.join(' / '),
+                    "Carga Horária": "200h sendo 50h em regime de hora extra"
+                });
+
+            } else if (numAllotments >= 2 && uniqueSchools.size > 1) {
+                // Categoria 2: >= 2 turnos em escolas diferentes
+                // Add rows for each allotment
+                // Sort allotments to try and keep consistent order if meaningful, e.g. by School Name
+                const sortedAllotments = [...allotments].sort((a, b) => a.schoolName.localeCompare(b.schoolName));
+
+                sortedAllotments.forEach((a, index) => {
+                    const chText = index === 0 ? "100h" : "100h (50h em regime de hora extra)";
+
+                    cat2_EscolasDiferentes.push({
+                        "Nome da Escola": a.schoolName,
+                        "Nome do Servidor": a.staffName,
+                        "Vínculo": a.vinculo,
+                        "Cargo/Função": a.role,
+                        "Turma": a.className,
+                        "Turno": a.shift,
+                        "Carga Horária": chText
+                    });
+                });
+
+            } else {
+                // Categoria 3: 1 Turno / Caso Padrão (ou restos que não caem acima)
+                // Even if uniqueSchools > 1 but numAllotments < 2 (impossible)
+                // If numAllotments = 1
+                allotments.forEach(a => {
+                    cat3_UmTurno.push({
+                        "Nome da Escola": a.schoolName,
+                        "Nome do Servidor": a.staffName,
+                        "Vínculo": a.vinculo,
+                        "Cargo/Função": a.role,
+                        "Turma": a.className,
+                        "Turno": a.shift,
+                        "Carga Horária": "150h"
+                    });
+                });
+            }
+        });
+
+        // Helper to adjust columns
+        const autoWidth = (data: any[]) => {
+            return [
+                { wch: 30 }, // Escola
+                { wch: 30 }, // Servidor
+                { wch: 15 }, // Vínculo
+                { wch: 25 }, // Cargo
+                { wch: 30 }, // Turma(s)
+                { wch: 20 }, // Turno(s)
+                { wch: 40 }  // CH
+            ];
+        };
 
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, ws, "Lotação");
+
+        // Sheet 1: 2 Turnos Mesma Escola
+        if (cat1_MesmaEscola2Turnos.length > 0) {
+            const ws1 = XLSX.utils.json_to_sheet(cat1_MesmaEscola2Turnos);
+            ws1['!cols'] = autoWidth(cat1_MesmaEscola2Turnos);
+            XLSX.utils.book_append_sheet(workbook, ws1, "Mesma Escola (2 Turnos)");
+        } else {
+            // Create empty if needed or just skip? Usually better to have structure
+            const ws1 = XLSX.utils.json_to_sheet([{ "Info": "Nenhum registro nesta categoria" }]);
+            XLSX.utils.book_append_sheet(workbook, ws1, "Mesma Escola (2 Turnos)");
+        }
+
+        // Sheet 2: Escolas Diferentes
+        if (cat2_EscolasDiferentes.length > 0) {
+            const ws2 = XLSX.utils.json_to_sheet(cat2_EscolasDiferentes);
+            ws2['!cols'] = autoWidth(cat2_EscolasDiferentes);
+            XLSX.utils.book_append_sheet(workbook, ws2, "Escolas Diferentes");
+        } else {
+            const ws2 = XLSX.utils.json_to_sheet([{ "Info": "Nenhum registro nesta categoria" }]);
+            XLSX.utils.book_append_sheet(workbook, ws2, "Escolas Diferentes");
+        }
+
+        // Sheet 3: 1 Turno
+        if (cat3_UmTurno.length > 0) {
+            const ws3 = XLSX.utils.json_to_sheet(cat3_UmTurno);
+            ws3['!cols'] = autoWidth(cat3_UmTurno);
+            XLSX.utils.book_append_sheet(workbook, ws3, "1 Turno (150h)");
+        } else {
+            const ws3 = XLSX.utils.json_to_sheet([{ "Info": "Nenhum registro nesta categoria" }]);
+            XLSX.utils.book_append_sheet(workbook, ws3, "1 Turno (150h)");
+        }
+
+        let filename = schoolId ? `mala_direta_escola.xlsx` : `mala_direta_geral.xlsx`;
         XLSX.writeFile(workbook, filename);
 
     } catch (e) {
         console.error(e);
-        alert('Erro ao gerar Excel.');
+        alert('Erro ao gerar Excel de Mala Direta.');
     }
 };
 
