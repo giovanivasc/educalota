@@ -86,7 +86,8 @@ export const fetchGeneralReportData = async (schoolId: string, startDate?: strin
     const { data: staffList } = await supabase.from('staff').select('id, contract_type');
     const staffMap = new Map(staffList?.map(s => [s.id, s.contract_type]));
 
-    const { data: classesList } = await supabase.from('classes').select('id, shift, school_id');
+    // Include series and section for class name generation
+    const { data: classesList } = await supabase.from('classes').select('id, shift, school_id, series, section');
     const classMap = new Map(classesList?.map(c => [c.id, c]));
 
     const { data: schools } = await supabase.from('schools').select('id, name');
@@ -130,6 +131,7 @@ export const fetchGeneralReportData = async (schoolId: string, startDate?: strin
         const schoolName = schoolId ? (a.school_name || '') : (schoolMap.get(a.school_id) || a.school_name || 'Desconhecida');
         const cls = classMap.get(a.class_id);
         const turno = cls ? cls.shift : '-';
+        const className = cls ? `${cls.series} ${cls.section ? '- ' + cls.section : ''}` : '-'; // Turma Name
         const vinculo = staffMap.get(a.staff_id) || '-';
 
         const roleStr = a.staff_role || '';
@@ -149,6 +151,7 @@ export const fetchGeneralReportData = async (schoolId: string, startDate?: strin
             vinculo,
             date: a.date || '-',
             shift: turno,
+            className, // Added
             hours: cargaHoraria
         };
     }).sort((a, b) => {
@@ -169,12 +172,13 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
             return;
         }
 
+        // Requested Order: Nome da escola, nome do servidor, vínculo, cargo/função, turma, turno e CH.
         const rows = rowsRaw.map(r => ({
             "Nome da Escola": r.schoolName,
             "Nome do Servidor": r.staffName,
-            "Cargo/Função": r.role,
             "Vínculo": r.vinculo,
-            "Data de Lotação": r.date,
+            "Cargo/Função": r.role,
+            "Turma": r.className,
             "Turno": r.shift,
             "Carga Horária": r.hours
         }));
@@ -182,7 +186,15 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
         let filename = schoolId ? `lotacao_escola.xlsx` : `lotacao_geral.xlsx`;
 
         const ws = XLSX.utils.json_to_sheet(rows);
-        const colWidths = [{ wch: 30 }, { wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 30 }];
+        const colWidths = [
+            { wch: 30 }, // Escola
+            { wch: 30 }, // Servidor
+            { wch: 15 }, // Vínculo
+            { wch: 25 }, // Cargo
+            { wch: 20 }, // Turma
+            { wch: 15 }, // Turno
+            { wch: 15 }  // Carga Horária
+        ];
         ws['!cols'] = colWidths;
 
         const workbook = XLSX.utils.book_new();
