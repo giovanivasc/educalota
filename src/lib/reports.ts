@@ -192,6 +192,11 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
             const uniqueSchools = new Set(allotments.map(a => a.schoolId));
             const numAllotments = allotments.length;
 
+            const isSupportRole = (role: string) => {
+                const r = (role || '').toLowerCase();
+                return r.includes('mediador') || r.includes('cuidador');
+            };
+
             if (numAllotments >= 2 && uniqueSchools.size === 1) {
                 // Categoria 1: >= 2 turnos na mesma escola
                 const base = allotments[0];
@@ -201,7 +206,7 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
                 const shiftOrder = { "Manhã": 1, "Tarde": 2, "Noite": 3, "Integral": 4 };
                 shifts.sort((a, b) => (shiftOrder[a as keyof typeof shiftOrder] || 9) - (shiftOrder[b as keyof typeof shiftOrder] || 9));
 
-                const turmas = allotments.map(a => a.className).join(', ');
+                const turmas = allotments.map(a => a.className).join(' e ');
 
                 cat1_MesmaEscola2Turnos.push({
                     "Nome da Escola": base.schoolName,
@@ -209,8 +214,8 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
                     "Vínculo": base.vinculo,
                     "Cargo/Função": base.role,
                     "Turmas": turmas,
-                    "Turnos": shifts.join(' / '),
-                    "Carga Horária": "200h sendo 50h em regime de hora extra"
+                    "Turnos": shifts.join(' e '),
+                    "Carga Horária": isSupportRole(base.role) ? "200h sendo 50h em regime de hora extra" : "200h"
                 });
 
             } else if (numAllotments >= 2 && uniqueSchools.size > 1) {
@@ -220,7 +225,10 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
                 const sortedAllotments = [...allotments].sort((a, b) => a.schoolName.localeCompare(b.schoolName));
 
                 sortedAllotments.forEach((a, index) => {
-                    const chText = index === 0 ? "100h" : "100h (50h em regime de hora extra)";
+                    let chText = "100h";
+                    if (isSupportRole(a.role) && index > 0) {
+                        chText = "100h (50h em regime de hora extra)";
+                    }
 
                     cat2_EscolasDiferentes.push({
                         "Nome da Escola": a.schoolName,
@@ -238,6 +246,15 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
                 // Even if uniqueSchools > 1 but numAllotments < 2 (impossible)
                 // If numAllotments = 1
                 allotments.forEach(a => {
+                    let chText = "100h";
+                    if (isSupportRole(a.role)) {
+                        chText = "150h";
+                    } else if (a.hours && (a.hours.includes('150') || a.hours.includes('200'))) {
+                        chText = a.hours; // Use allotted hours if 150/200
+                        if (chText.includes('150')) chText = "150h"; // Clean up if needed
+                        if (chText.includes('200')) chText = "200h";
+                    }
+
                     cat3_UmTurno.push({
                         "Nome da Escola": a.schoolName,
                         "Nome do Servidor": a.staffName,
@@ -245,7 +262,7 @@ export const generateExcel = async (schoolId: string, startDate?: string, endDat
                         "Cargo/Função": a.role,
                         "Turma": a.className,
                         "Turno": a.shift,
-                        "Carga Horária": "150h"
+                        "Carga Horária": chText
                     });
                 });
             }
