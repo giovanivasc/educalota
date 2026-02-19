@@ -6,7 +6,8 @@ import { Staff } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { normalizeText } from '../lib/stringUtils';
-import { BulkImporter } from '../components/BulkImporter';
+// import { BulkImporter } from '../components/BulkImporter'; // Removed
+import { UnavailableStaffModal } from '../components/UnavailableStaffModal';
 
 const StaffPage: React.FC = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
@@ -40,6 +41,9 @@ const StaffPage: React.FC = () => {
   // Edit Allotment Workload State
   const [editingAllotmentId, setEditingAllotmentId] = useState<string | null>(null);
   const [newWorkload, setNewWorkload] = useState(0);
+
+  // Unavailable Modal State
+  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
 
   useEffect(() => {
     fetchStaff();
@@ -559,7 +563,9 @@ const StaffPage: React.FC = () => {
           <Button onClick={handleExportPDF} variant="secondary" icon="print">
             Imprimir / PDF
           </Button>
-          <BulkImporter type="staff" onSuccess={fetchStaff} label="Importar Servidores" />
+          <Button onClick={() => setShowUnavailableModal(true)} variant="secondary" icon="block" className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30">
+            Indisponíveis
+          </Button>
           <Button onClick={() => { setView('create'); setEditingId(null); setNewStaff({ name: '', role: '', contractType: '', hoursTotal: 100, avatar: '', observations: '' }); }} icon="person_add">
             Novo Servidor
           </Button>
@@ -715,6 +721,13 @@ const StaffPage: React.FC = () => {
           </table>
         </div>
       </div>
+
+      <UnavailableStaffModal
+        isOpen={showUnavailableModal}
+        onClose={() => setShowUnavailableModal(false)}
+        staffList={staffList}
+      />
+
       {/* Modal View Allotment */}
       {viewAllotmentId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
