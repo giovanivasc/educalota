@@ -83,17 +83,17 @@ export const fetchReportData = async (schoolId: string) => {
 
 export const fetchGeneralReportData = async (schoolId: string, startDate?: string, endDate?: string) => {
     // Fetch needed data
-    const { data: staffList } = await supabase.from('staff').select('id, contract_type');
+    const { data: staffList } = await supabase.from('staff').select('id, contract_type').range(0, 4999);
     const staffMap = new Map(staffList?.map(s => [s.id, s.contract_type]));
 
     // Include series and section for class name generation
-    const { data: classesList } = await supabase.from('classes').select('id, shift, school_id, series, section');
+    const { data: classesList } = await supabase.from('classes').select('id, shift, school_id, series, section').range(0, 4999);
     const classMap = new Map(classesList?.map(c => [c.id, c]));
 
-    const { data: schools } = await supabase.from('schools').select('id, name');
+    const { data: schools } = await supabase.from('schools').select('id, name').range(0, 4999);
     const schoolMap = new Map(schools?.map(s => [s.id, s.name]));
 
-    let query = supabase.from('allotments').select('*');
+    let query = supabase.from('allotments').select('*').range(0, 4999);
 
     if (schoolId) {
         query = query.eq('school_id', schoolId);
