@@ -13,6 +13,7 @@ const StaffPage: React.FC = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('Todos os Cargos');
+  const [vinculoFilter, setVinculoFilter] = useState('Todos os Vínculos');
   const [availabilityFilter, setAvailabilityFilter] = useState('Todas as Disponibilidades');
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,13 +82,15 @@ const StaffPage: React.FC = () => {
 
     const matchesRole = roleFilter === 'Todos os Cargos' || s.role === roleFilter;
 
+    const matchesVinculo = vinculoFilter === 'Todos os Vínculos' || s.contractType === vinculoFilter;
+
     let matchesAvailability = true;
     if (availabilityFilter !== 'Todas as Disponibilidades') {
       const hours = parseInt(availabilityFilter.replace('h', ''));
       matchesAvailability = s.hoursAvailable === hours;
     }
 
-    return matchesSearch && matchesRole && matchesAvailability;
+    return matchesSearch && matchesRole && matchesVinculo && matchesAvailability;
   });
 
   const handleExportPDF = async () => {
@@ -128,6 +131,7 @@ const StaffPage: React.FC = () => {
       // Filtros texto
       let filterText = '';
       if (roleFilter !== 'Todos os Cargos') filterText += `Cargo: ${roleFilter} | `;
+      if (vinculoFilter !== 'Todos os Vínculos') filterText += `Vínculo: ${vinculoFilter} | `;
       if (availabilityFilter !== 'Todas as Disponibilidades') filterText += `Disponibilidade: ${availabilityFilter}`;
 
       let tableRowsHtml = '';
@@ -596,6 +600,20 @@ const StaffPage: React.FC = () => {
             <option>Cuidador</option>
             <option>Professor de Braille</option>
             <option>Professor Bilíngue</option>
+          </select>
+          <select
+            value={vinculoFilter}
+            title="Filtrar por Vínculo"
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVinculoFilter(e.target.value)}
+            className="h-11 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark text-sm font-medium px-4 focus:ring-1 focus:ring-primary outline-none"
+          >
+            <option>Todos os Vínculos</option>
+            <option>Efetivo</option>
+            <option>Efetivo Função</option>
+            <option>Efetivo Cargo</option>
+            <option>Temporário</option>
+            <option>Contrato</option>
+            <option>Municipalizado</option>
           </select>
           <select
             value={availabilityFilter}
