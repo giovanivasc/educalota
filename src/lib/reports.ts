@@ -837,37 +837,37 @@ export const buildPreLotacaoHTML = (school: any, reportData: any[], selectedYear
 
         rows.forEach((r, i) => {
             const isFirst = i === 0;
-            tableRowsHtml += `<tr style="background-color: ${bgColor};">`;
-
-            if (isFirst) {
-                tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.mod}</td>`;
-                tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.series}</td>`;
-                tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.shift}</td>`;
-            }
-
-            tableRowsHtml += `<td>${r.studentName}</td>`;
-            tableRowsHtml += `<td>${r.studentSupport}</td>`;
+            const isLast = i === maxRows - 1;
 
             const prevRow = i > 0 ? rows[i - 1] : null;
+            const nextRow = i < rows.length - 1 ? rows[i + 1] : null;
+
             const isStaffContinuous = (i > 0 && r.showStaff && prevRow && prevRow.showStaff && r.staffIndex === prevRow.staffIndex);
+            const isStaffLast = (!nextRow || !nextRow.showStaff || nextRow.staffIndex !== r.staffIndex);
+            const isStaffFirst = !isStaffContinuous;
+
+            tableRowsHtml += `<tr style="background-color: ${bgColor};">`;
+
+            const topBorderBlock = isFirst ? '1px solid #000' : 'none';
+            const bottomBorderBlock = isLast ? '1px solid #000' : 'none';
+
+            tableRowsHtml += `<td style="vertical-align: middle; border-top: ${topBorderBlock}; border-bottom: ${bottomBorderBlock}; border-left: 1px solid #000; border-right: 1px solid #000;">${isFirst ? r.mod : ''}</td>`;
+            tableRowsHtml += `<td style="vertical-align: middle; border-top: ${topBorderBlock}; border-bottom: ${bottomBorderBlock}; border-left: 1px solid #000; border-right: 1px solid #000;">${isFirst ? r.series : ''}</td>`;
+            tableRowsHtml += `<td style="vertical-align: middle; border-top: ${topBorderBlock}; border-bottom: ${bottomBorderBlock}; border-left: 1px solid #000; border-right: 1px solid #000;">${isFirst ? r.shift : ''}</td>`;
+
+            tableRowsHtml += `<td style="border: 1px solid #000;">${r.studentName}</td>`;
+            tableRowsHtml += `<td style="border: 1px solid #000;">${r.studentSupport}</td>`;
 
             if (r.showStaff) {
-                if (!isStaffContinuous) {
-                    let span = 1;
-                    for (let k = i + 1; k < rows.length; k++) {
-                        if (rows[k].showStaff && rows[k].staffIndex === r.staffIndex) {
-                            span++;
-                        } else {
-                            break;
-                        }
-                    }
-                    const staffData = r.staffData;
-                    tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.name}</td>`;
-                    tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.role}</td>`;
-                    tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.hours}</td>`;
-                }
+                const sTopBorder = isStaffFirst ? '1px solid #000' : 'none';
+                const sBottomBorder = isStaffLast ? '1px solid #000' : 'none';
+                const staffData = r.staffData;
+
+                tableRowsHtml += `<td style="vertical-align: middle; border-top: ${sTopBorder}; border-bottom: ${sBottomBorder}; border-left: 1px solid #000; border-right: 1px solid #000;">${isStaffFirst ? staffData.name : ''}</td>`;
+                tableRowsHtml += `<td style="vertical-align: middle; border-top: ${sTopBorder}; border-bottom: ${sBottomBorder}; border-left: 1px solid #000; border-right: 1px solid #000;">${isStaffFirst ? staffData.role : ''}</td>`;
+                tableRowsHtml += `<td style="vertical-align: middle; border-top: ${sTopBorder}; border-bottom: ${sBottomBorder}; border-left: 1px solid #000; border-right: 1px solid #000;">${isStaffFirst ? staffData.hours : ''}</td>`;
             } else {
-                tableRowsHtml += `<td></td><td></td><td></td>`;
+                tableRowsHtml += `<td style="border: 1px solid #000;"></td><td style="border: 1px solid #000;"></td><td style="border: 1px solid #000;"></td>`;
             }
 
             tableRowsHtml += '</tr>';
