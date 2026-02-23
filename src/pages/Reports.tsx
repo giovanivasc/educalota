@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
-import { generateExcel, generateDoc, generatePDF, generateGeneralDoc, generateGeneralPDF } from '../lib/reports';
+import { generateExcel, generateDoc, generatePDF, generateGeneralDoc, generateGeneralPDF, generateMultiSchoolPDFZip } from '../lib/reports';
 
 const Reports: React.FC = () => {
-  const [schools, setSchools] = useState<{ id: string, name: string, director?: string, vice_director?: string }[]>([]);
+  const [schools, setSchools] = useState<{ id: string, name: string, director_name?: string, vice_director_name?: string, region?: string }[]>([]);
 
   // Filters
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
@@ -21,6 +21,11 @@ const Reports: React.FC = () => {
 
 
   const [loading, setLoading] = useState(false);
+  const [showMultiSchoolModal, setShowMultiSchoolModal] = useState(false);
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>([]);
+  const [schoolRegionFilter, setSchoolRegionFilter] = useState<'all' | 'campo' | 'urbana'>('all');
+  const [zipProgress, setZipProgress] = useState({ done: 0, total: 0 });
+  const [zipLoading, setZipLoading] = useState(false);
 
   useEffect(() => {
     const fetchSchools = async () => {
@@ -74,6 +79,26 @@ const Reports: React.FC = () => {
     setLoading(true);
     await generatePDF(selectedSchoolId, selectedYear);
     setLoading(false);
+  };
+
+  const handleOpenMultiSchoolModal = () => {
+    setShowMultiSchoolModal(true);
+    setSelectedSchoolIds([]);
+    setSchoolRegionFilter('all');
+    setZipProgress({ done: 0, total: 0 });
+  };
+
+  const handleGenerateMultiZip = async () => {
+    if (selectedSchoolIds.length === 0) {
+      alert("Selecione pelo menos uma escola.");
+      return;
+    }
+    setZipLoading(true);
+    await generateMultiSchoolPDFZip(selectedSchoolIds, selectedYear, (done, total) => {
+      setZipProgress({ done, total });
+    });
+    setZipLoading(false);
+    setShowMultiSchoolModal(false);
   };
 
   return (
@@ -289,10 +314,104 @@ const Reports: React.FC = () => {
           >
             Visualizar Impressão (PDF)
           </Button>
+
+          <Button
+            className="mt-3 w-full h-12"
+            icon="folder_zip"
+            onClick={handleOpenMultiSchoolModal}
+            disabled={loading}
+          >
+            Exportar Lotações (ZIP)
+          </Button>
         </div>
       </div>
 
       {/* Hidden Recent Table for now or keep generic mock? Keeping generic mock removed since user focused on actions. */}
+
+      {showMultiSchoolModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="text-xl font-bold">Exportar Lotações (ZIP/PDF)</h3>
+              <button onClick={() => setShowMultiSchoolModal(false)} className="text-slate-400 hover:text-slate-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col overflow-y-auto">
+              {/* Region Filter */}
+              <div className="mb-4">
+                <span className="text-sm font-bold block mb-2">Filtrar por Região:</span>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" checked={schoolRegionFilter === 'all'} onChange={() => { setSchoolRegionFilter('all'); setSelectedSchoolIds([]); }} /> Todas
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" checked={schoolRegionFilter === 'campo'} onChange={() => { setSchoolRegionFilter('campo'); setSelectedSchoolIds([]); }} /> Campo
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" checked={schoolRegionFilter === 'urbana'} onChange={() => { setSchoolRegionFilter('urbana'); setSelectedSchoolIds([]); }} /> Urbana
+                  </label>
+                </div>
+              </div>
+
+              {/* Schools List */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                <div className="bg-slate-50 dark:bg-slate-800 p-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    onChange={(e) => {
+                      const filtered = schools.filter(s => {
+                        if (schoolRegionFilter === 'campo') return s.region === 'Campo';
+                        if (schoolRegionFilter === 'urbana') return s.region === 'Urbano' || s.region === 'Urbana';
+                        return true;
+                      });
+                      if (e.target.checked) setSelectedSchoolIds(filtered.map(s => s.id));
+                      else setSelectedSchoolIds([]);
+                    }}
+                    className="w-4 h-4 rounded text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                  <span className="text-sm font-bold">Selecionar Todas</span>
+                </div>
+                <div className="max-h-60 overflow-y-auto p-2">
+                  {schools.filter(s => {
+                    if (schoolRegionFilter === 'campo') return s.region === 'Campo';
+                    if (schoolRegionFilter === 'urbana') return s.region === 'Urbano' || s.region === 'Urbana';
+                    return true;
+                  }).map(s => (
+                    <label key={s.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer rounded-lg">
+                      <input
+                        type="checkbox"
+                        checked={selectedSchoolIds.includes(s.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedSchoolIds([...selectedSchoolIds, s.id]);
+                          else setSelectedSchoolIds(selectedSchoolIds.filter(id => id !== s.id));
+                        }}
+                        className="w-4 h-4 rounded text-primary focus:ring-primary/20 cursor-pointer"
+                      />
+                      <span className="text-sm">{s.name} <span className="text-slate-400">({s.region || 'N/A'})</span></span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+              {zipLoading && (
+                <div className="flex items-center gap-2 mr-auto text-sm text-slate-500">
+                  <span className="material-symbols-outlined animate-spin">sync</span>
+                  Gerando {zipProgress.done}/{zipProgress.total} PDFs...
+                </div>
+              )}
+              <Button variant="outline" onClick={() => setShowMultiSchoolModal(false)} disabled={zipLoading}>Cancelar</Button>
+              <Button onClick={handleGenerateMultiZip} disabled={zipLoading || selectedSchoolIds.length === 0} isLoading={zipLoading}>
+                Gerar e Baixar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div >
   );
 };

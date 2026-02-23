@@ -18,6 +18,9 @@ import {
     VerticalMergeType
 } from 'docx';
 import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
+import pLimit from 'p-limit';
+import html2pdf from 'html2pdf.js';
 import { sortClasses } from './sorting';
 
 // Helper to parse DD/MM/YYYY
@@ -824,144 +827,154 @@ export const generateDoc = async (schoolId: string, selectedYear: string) => {
     }
 };
 
+export const buildPreLotacaoHTML = (school: any, reportData: any[], selectedYear: string, excludeExtras: boolean = false) => {
+    let tableRowsHtml = '';
+
+    reportData.forEach((cls, classIndex) => {
+        const { rows, maxRows } = buildClassRows(cls);
+        const isAlternate = classIndex % 2 !== 0;
+        const bgColor = isAlternate ? "#F0F8FF" : "#FFFFFF"; // AliceBlue for web
+
+        rows.forEach((r, i) => {
+            const isFirst = i === 0;
+            tableRowsHtml += `<tr style="background-color: ${bgColor};">`;
+
+            if (isFirst) {
+                tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.mod}</td>`;
+                tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.series}</td>`;
+                tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.shift}</td>`;
+            }
+
+            tableRowsHtml += `<td>${r.studentName}</td>`;
+            tableRowsHtml += `<td>${r.studentSupport}</td>`;
+
+            const prevRow = i > 0 ? rows[i - 1] : null;
+            const isStaffContinuous = (i > 0 && r.showStaff && prevRow && prevRow.showStaff && r.staffIndex === prevRow.staffIndex);
+
+            if (r.showStaff) {
+                if (!isStaffContinuous) {
+                    let span = 1;
+                    for (let k = i + 1; k < rows.length; k++) {
+                        if (rows[k].showStaff && rows[k].staffIndex === r.staffIndex) {
+                            span++;
+                        } else {
+                            break;
+                        }
+                    }
+                    const staffData = r.staffData;
+                    tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.name}</td>`;
+                    tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.role}</td>`;
+                    tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.hours}</td>`;
+                }
+            } else {
+                tableRowsHtml += `<td></td><td></td><td></td>`;
+            }
+
+            tableRowsHtml += '</tr>';
+        });
+    });
+
+    const obsContent = (!excludeExtras && reportData.some(c => c.obs)) ? `
+    <div style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px;">
+        <h3 style="font-size: 12px; margin: 0 0 5px 0;">Notas / Observações:</h3>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 10px;">
+            ${reportData.filter(c => c.obs).map(c => `
+                <li style="margin-bottom: 4px;"><strong>${c.series} ${c.section ? '- ' + c.section : ''} (${c.shift}):</strong> ${c.obs}</li>
+            `).join('')}
+        </ul>
+    </div>` : '';
+
+    const declarationContent = !excludeExtras ? `
+    <div class="terms">
+        Declaro que, no exercício de minhas funções como gestor escolar, realizei e estou de pleno acordo com a pré-lotação dos servidores da Educação Especial, efetuada em conjunto com a Coordenadoria de Educação Especial, para o exercício de suas funções no ano letivo de 2026. Declaro, ainda, que fui devidamente informado(a) e estou ciente de que essa pré-lotação poderá sofrer alterações, a critério da Secretaria Municipal de Educação, sempre que houver necessidade em razão do interesse público.
+    </div>
+    ` : '';
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Pré-Lotação - ${school.name}</title>
+        <style>
+            body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+            .container { width: 100%; max-width: 100%; margin: 0 auto; }
+            .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 10px; }
+            .header-logo { width: 80px; height: auto; }
+            .header-center { text-align: center; flex: 1; margin: 0 20px; }
+            .header-center h1 { margin: 2px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; }
+            .header-right { text-align: right; display: flex; gap: 10px; align-items: center; }
+            .doc-title { text-align: center; font-size: 16px; font-weight: bold; margin: 20px 0; text-transform: uppercase; }
+            .school-info { font-size: 14px; margin-bottom: 20px; }
+            .school-info p { margin: 4px 0; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #000; padding: 4px 6px; text-align: center; vertical-align: top; font-size: 11px; }
+            th { background-color: #2980B9; color: white; font-weight: bold; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .terms { text-align: justify; margin: 20px 0; font-size: 12px; line-height: 1.4; }
+            .date { text-align: right; margin: 20px 0 40px 0; font-size: 12px; }
+            .signatures { display: flex; justify-content: space-between; margin-top: 50px; text-align: center; }
+            .sig-block { border-top: 1px solid #000; padding-top: 5px; width: 30%; font-weight: bold; font-size: 11px; }
+            @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }
+        </style>
+    </head>
+    <body>
+        <div class="container" id="pdf-content">
+            <div class="header">
+                <div><img src="${window.location.origin}/img/logo_pref.jpg" alt="Logo Pref" style="height: 50px;" /></div>
+                <div class="header-center">
+                    <h1>Prefeitura Municipal de Castanhal</h1>
+                    <h1>Secretaria Municipal de Educação</h1>
+                    <h1>Coordenadoria de Educação Especial</h1>
+                </div>
+                <div class="header-right">
+                     <img src="${window.location.origin}/img/logo_semed.jpg" alt="Semed" style="height: 35px;" />
+                     <img src="${window.location.origin}/img/logo_coord.jpg" alt="Coord" style="height: 40px;" />
+                </div>
+            </div>
+            <div class="doc-title">PRÉ-LOTAÇÃO DA EDUCAÇÃO ESPECIAL ${selectedYear}</div>
+            <div class="school-info">
+                <p><strong>Escola:</strong> ${school.name}</p>
+                <p><strong>Diretor:</strong> ${school.director_name || '-'} | <strong>Vice-Diretor:</strong> ${school.vice_director_name || '-'}</p>
+                <p><strong>Ano Letivo:</strong> ${selectedYear}</p>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Etapa/Modalidade</th>
+                        <th>Série/Turma</th>
+                        <th>Turno</th>
+                        <th>Estudante</th>
+                        <th>Suporte Especializado</th>
+                        <th>Servidor</th>
+                        <th>Cargo/Função</th>
+                        <th>CH</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRowsHtml}</tbody>
+            </table>
+            ${declarationContent}
+            ${obsContent}
+            <div class="date">Castanhal, ${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}.</div>
+            <div class="signatures">
+                <div class="sig-block">Diretor</div>
+                <div class="sig-block">Vice-Diretor</div>
+                <div class="sig-block">Coord. Educação Especial</div>
+            </div>
+        </div>
+        <script>window.onload = function() { window.print(); }</script>
+    </body>
+    </html>
+    `;
+
+    return htmlContent;
+};
+
 export const generatePDF = async (schoolId: string, selectedYear: string) => {
     try {
         const data = await fetchReportData(schoolId);
         if (!data) throw new Error("Dados não encontrados");
         const { school, reportData } = data;
 
-        let tableRowsHtml = '';
-
-        reportData.forEach((cls, classIndex) => {
-            const { rows, maxRows } = buildClassRows(cls);
-            const isAlternate = classIndex % 2 !== 0;
-            const bgColor = isAlternate ? "#F0F8FF" : "#FFFFFF"; // AliceBlue for web
-
-            rows.forEach((r, i) => {
-                const isFirst = i === 0;
-                tableRowsHtml += `<tr style="background-color: ${bgColor};">`;
-
-                if (isFirst) {
-                    tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.mod}</td>`;
-                    tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.series}</td>`;
-                    tableRowsHtml += `<td rowSpan="${maxRows}" style="vertical-align: middle;">${r.shift}</td>`;
-                }
-
-                tableRowsHtml += `<td>${r.studentName}</td>`;
-                tableRowsHtml += `<td>${r.studentSupport}</td>`;
-
-                const prevRow = i > 0 ? rows[i - 1] : null;
-                const isStaffContinuous = (i > 0 && r.showStaff && prevRow && prevRow.showStaff && r.staffIndex === prevRow.staffIndex);
-
-                if (r.showStaff) {
-                    if (!isStaffContinuous) {
-                        let span = 1;
-                        for (let k = i + 1; k < rows.length; k++) {
-                            if (rows[k].showStaff && rows[k].staffIndex === r.staffIndex) {
-                                span++;
-                            } else {
-                                break;
-                            }
-                        }
-                        const staffData = r.staffData;
-                        tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.name}</td>`;
-                        tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.role}</td>`;
-                        tableRowsHtml += `<td rowSpan="${span}" style="vertical-align: middle;">${staffData.hours}</td>`;
-                    }
-                } else {
-                    tableRowsHtml += `<td></td><td></td><td></td>`;
-                }
-
-                tableRowsHtml += '</tr>';
-            });
-        });
-
-        const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Pré-Lotação - ${school.name}</title>
-            <style>
-                body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
-                .container { width: 100%; max-width: 100%; margin: 0 auto; }
-                .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 10px; }
-                .header-logo { width: 80px; height: auto; }
-                .header-center { text-align: center; flex: 1; margin: 0 20px; }
-                .header-center h1 { margin: 2px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; }
-                .header-right { text-align: right; display: flex; gap: 10px; align-items: center; }
-                .doc-title { text-align: center; font-size: 16px; font-weight: bold; margin: 20px 0; text-transform: uppercase; }
-                .school-info { font-size: 14px; margin-bottom: 20px; }
-                .school-info p { margin: 4px 0; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                th, td { border: 1px solid #000; padding: 4px 6px; text-align: center; vertical-align: top; font-size: 11px; }
-                th { background-color: #2980B9; color: white; font-weight: bold; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                .terms { text-align: justify; margin: 20px 0; font-size: 12px; line-height: 1.4; }
-                .date { text-align: right; margin: 20px 0 40px 0; font-size: 12px; }
-                .signatures { display: flex; justify-content: space-between; margin-top: 50px; text-align: center; }
-                .sig-block { border-top: 1px solid #000; padding-top: 5px; width: 30%; font-weight: bold; font-size: 11px; }
-                @media print { @page { size: landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; } }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <div><img src="${window.location.origin}/img/logo_pref.jpg" alt="Logo Pref" style="height: 50px;" /></div>
-                    <div class="header-center">
-                        <h1>Prefeitura Municipal de Castanhal</h1>
-                        <h1>Secretaria Municipal de Educação</h1>
-                        <h1>Coordenadoria de Educação Especial</h1>
-                    </div>
-                    <div class="header-right">
-                         <img src="${window.location.origin}/img/logo_semed.jpg" alt="Semed" style="height: 35px;" />
-                         <img src="${window.location.origin}/img/logo_coord.jpg" alt="Coord" style="height: 40px;" />
-                    </div>
-                </div>
-                <div class="doc-title">PRÉ-LOTAÇÃO DA EDUCAÇÃO ESPECIAL ${selectedYear}</div>
-                <div class="school-info">
-                    <p><strong>Escola:</strong> ${school.name}</p>
-                    <p><strong>Diretor:</strong> ${school.director_name || '-'} | <strong>Vice-Diretor:</strong> ${school.vice_director_name || '-'}</p>
-                    <p><strong>Ano Letivo:</strong> ${selectedYear}</p>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Etapa/Modalidade</th>
-                            <th>Série/Turma</th>
-                            <th>Turno</th>
-                            <th>Estudante</th>
-                            <th>Suporte Especializado</th>
-                            <th>Servidor</th>
-                            <th>Cargo/Função</th>
-                            <th>CH</th>
-                        </tr>
-                    </thead>
-                    <tbody>${tableRowsHtml}</tbody>
-                </table>
-                <div class="terms">
-                    Declaro que, no exercício de minhas funções como gestor escolar, realizei e estou de pleno acordo com a pré-lotação dos servidores da Educação Especial, efetuada em conjunto com a Coordenadoria de Educação Especial, para o exercício de suas funções no ano letivo de 2026. Declaro, ainda, que fui devidamente informado(a) e estou ciente de que essa pré-lotação poderá sofrer alterações, a critério da Secretaria Municipal de Educação, sempre que houver necessidade em razão do interesse público.
-                </div>
-
-                ${reportData.some(c => c.obs) ? `
-                <div style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px;">
-                    <h3 style="font-size: 12px; margin: 0 0 5px 0;">Notas / Observações:</h3>
-                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 10px;">
-                        ${reportData.filter(c => c.obs).map(c => `
-                            <li style="margin-bottom: 4px;"><strong>${c.series} ${c.section ? '- ' + c.section : ''} (${c.shift}):</strong> ${c.obs}</li>
-                        `).join('')}
-                    </ul>
-                </div>` : ''}
-
-                <div class="date">Castanhal, ${new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}.</div>
-                <div class="signatures">
-                    <div class="sig-block">Diretor</div>
-                    <div class="sig-block">Vice-Diretor</div>
-                    <div class="sig-block">Coord. Educação Especial</div>
-                </div>
-            </div>
-            <script>window.onload = function() { window.print(); }</script>
-        </body>
-        </html>
-        `;
+        const htmlContent = buildPreLotacaoHTML(school, reportData, selectedYear, false);
 
         const printWindow = window.open('', '_blank');
         if (printWindow) {
@@ -977,6 +990,62 @@ export const generatePDF = async (schoolId: string, selectedYear: string) => {
     }
 };
 
+export const generateMultiSchoolPDFZip = async (schoolIds: string[], selectedYear: string, onProgress: (done: number, total: number) => void) => {
+    try {
+        const zip = new JSZip();
+        let completed = 0;
+        const total = schoolIds.length;
+        if (onProgress) onProgress(0, total);
+
+        const limit = pLimit(3);
+
+        const promises = schoolIds.map(schoolId => limit(async () => {
+            try {
+                const data = await fetchReportData(schoolId);
+                if (!data) return;
+                const { school, reportData } = data;
+
+                const htmlString = buildPreLotacaoHTML(school, reportData, selectedYear, true);
+
+                const container = document.createElement('div');
+                container.innerHTML = htmlString;
+                container.style.position = 'absolute';
+                container.style.left = '-9999px';
+                container.style.width = '1200px';
+                document.body.appendChild(container);
+
+                const elementToPrint = container.querySelector('#pdf-content');
+
+                const opt = {
+                    margin: 10,
+                    filename: `pre_lotacao_${school.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+                };
+
+                const pdfBlob = await html2pdf().set(opt).from(elementToPrint || container).output('blob');
+                zip.file(`pre_lotacao_${school.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`, pdfBlob);
+
+                document.body.removeChild(container);
+            } catch (e) {
+                console.error(`Erro ao gerar PDF para escola ${schoolId}:`, e);
+            } finally {
+                completed++;
+                if (onProgress) onProgress(completed, total);
+            }
+        }));
+
+        await Promise.all(promises);
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `pre_lotacoes_${selectedYear}.zip`);
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao gerar relatórios em lote.');
+    }
+};
+
 export const generatePendingPDF = async (pendingItems: any[], periodText: string) => {
     try {
         if (pendingItems.length === 0) {
@@ -988,18 +1057,19 @@ export const generatePendingPDF = async (pendingItems: any[], periodText: string
         pendingItems.forEach((item: any, i: number) => {
             const bgColor = i % 2 === 0 ? "#FFFFFF" : "#F0F8FF";
             const schoolName = item.school_name || '-';
-            const className = item.classDetails ? `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''} (${item.classDetails.shift})` : 'Turma não encontrada';
+            const className = item.classDetails ? `${item.classDetails.series} ${item.classDetails.section ? '- ' + item.classDetails.section : ''
+                } (${item.classDetails.shift})` : 'Turma não encontrada';
             const role = item.staff_role || '-';
             const obs = item.classDetails?.obs || '-';
             const date = item.date || '-';
 
-            tableRowsHtml += `<tr style="background-color: ${bgColor};">
-                <td>${schoolName}</td>
-                <td>${className}</td>
-                <td>${role}</td>
-                <td>${obs}</td>
-                <td>${date}</td>
-             </tr>`;
+            tableRowsHtml += `< tr style = "background-color: ${bgColor};" >
+        <td>${schoolName} </td>
+        < td > ${className} </td>
+        < td > ${role} </td>
+        < td > ${obs} </td>
+        < td > ${date} </td>
+        </tr>`;
         });
 
         const htmlContent = `
