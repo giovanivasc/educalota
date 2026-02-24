@@ -205,7 +205,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
         </div>
         
         <div class="corpo-texto">
-          Informamos a V. Sa. que o(a) servidor(a) ${contractType.charAt(0).toUpperCase() + contractType.slice(1).toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, cargo <strong>${displayRoleName}</strong>, que a partir desta data será lotado(a) nessa Unidade de Ensino, com carga horária de <strong>${processedHoursText}</strong>, na(s) turma(s) ${classesText}, no(s) turno(s) ${shiftsText}.
+          Informamos a V. Sa. que o(a) servidor(a) ${contractType.toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, cargo <strong>${displayRoleName}</strong>, a partir desta data será lotado(a) nessa Unidade de Ensino, com carga horária de <strong>${processedHoursText}</strong>, na(s) turma(s) ${classesText}, no(s) turno(s) ${shiftsText}.
         </div>
         
         <div class="assinatura-coordenacao">
@@ -222,8 +222,6 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           1. O servidor deverá apresentar-se à Unidade de Ensino no prazo máximo de <strong>24 (vinte e quatro) horas</strong>, contado a partir do recebimento deste memorando. O não comparecimento dentro do prazo estabelecido poderá implicar a <strong>perda da lotação</strong>, nos termos das normas administrativas vigentes.<br/>
           2. A Gestão da Unidade de Ensino deverá proceder à <strong>confirmação da lotação, ao endereço eletrônico: <a href="mailto:rhlotacao@semedcastanhal.pa.gov.br">rhlotacao@semedcastanhal.pa.gov.br</a></strong> com cópia para <strong><a href="mailto:especial.semed@castanhal.pa.gov.br">especial.semed@castanhal.pa.gov.br</a></strong>, no prazo de <strong>24 (vinte e quatro) horas</strong> após o recebimento deste memorando, a fim de assegurar a regularidade dos registros funcionais e a continuidade do serviço público.
         </div>
-        
-        <div class="spacer"></div>
         
         ${isLeftColumn ? `
         <div class="assinatura-recebimento">
@@ -286,7 +284,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           .header h2 {
             margin: 0;
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
             line-height: 1.2;
           }
@@ -322,16 +320,17 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
             text-indent: 35px;
             line-height: 1.6;
             margin-bottom: 20px;
+            font-size: 12.5pt;
           }
           
           .assinatura-coordenacao {
             text-align: center;
             margin: 20px 0;
-            font-size: 11pt;
+            font-size: 9pt;
             line-height: 1.2;
           }
           .assinatura-coordenacao img {
-            height: 55px;
+            height: 45px;
             margin: -5px 0;
           }
           .border-assinatura {
@@ -353,12 +352,9 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           
           .assinatura-recebimento {
-            font-size: 10pt;
+            font-size: 9.5pt;
+            margin-top: 25px;
             margin-bottom: 10px;
-          }
-          
-          .spacer {
-            flex-grow: 1;
           }
           
           .rodape-institucional {
