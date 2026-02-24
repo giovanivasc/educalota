@@ -243,17 +243,18 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
         <style>
           @page {
             size: A4 landscape;
-            margin: 10mm;
+            margin: 8mm;
           }
           body {
             font-family: "Times New Roman", Times, serif;
             margin: 0;
             padding: 0;
             color: black;
-            font-size: 13pt;
+            font-size: 11pt;
             display: flex;
             width: 100%;
-            height: 100vh;
+            height: 99vh;
+            overflow: hidden;
             box-sizing: border-box;
           }
           .page-container {
@@ -263,7 +264,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           .column {
             flex: 1;
-            padding: 0 15mm;
+            padding: 0 10mm;
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
@@ -273,10 +274,10 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
           }
           .header img {
-            height: 60px;
+            height: 55px;
             margin-bottom: 5px;
           }
           .header h2 {
@@ -287,14 +288,14 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           .border-bottom-header {
             border-bottom: 2px solid black;
-            margin-top: 10px;
-            margin-bottom: 15px;
+            margin-top: 8px;
+            margin-bottom: 10px;
             width: 100%;
           }
           
           .doc-dados {
             position: relative;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
           }
           .memo-number {
             text-align: left;
@@ -305,29 +306,29 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           
           .envio-dados {
-            margin-bottom: 30px;
+            margin-bottom: 15px;
           }
           .envio-dados p {
             margin: 0;
-            line-height: 1.5;
+            line-height: 1.4;
           }
 
           .corpo-texto {
             text-align: justify;
-            text-indent: 40px;
-            line-height: 1.8;
-            margin-bottom: 40px;
+            text-indent: 35px;
+            line-height: 1.6;
+            margin-bottom: 20px;
           }
           
           .assinatura-coordenacao {
             text-align: center;
-            margin: 40px 0;
-            font-size: 11pt;
+            margin: 20px 0;
+            font-size: 10pt;
             line-height: 1.2;
           }
           .assinatura-coordenacao img {
-            height: 65px;
-            margin: -10px 0;
+            height: 55px;
+            margin: -5px 0;
           }
           .border-assinatura {
             border-bottom: 1px solid black;
@@ -336,11 +337,11 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           
           .observacoes {
-            font-size: 9pt;
+            font-size: 8.5pt;
             color: #444;
             text-align: justify;
-            line-height: 1.3;
-            margin-bottom: 20px;
+            line-height: 1.25;
+            margin-bottom: 15px;
           }
           .observacoes a {
             color: #444;
@@ -348,8 +349,8 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           
           .assinatura-recebimento {
-            font-size: 11pt;
-            margin-bottom: 20px;
+            font-size: 10pt;
+            margin-bottom: 10px;
           }
           
           .spacer {
@@ -357,7 +358,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           }
           
           .rodape-institucional {
-            font-size: 8pt;
+            font-size: 7.5pt;
             text-align: center;
             color: #666;
             margin-top: auto;
@@ -373,13 +374,13 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           
           @media print {
             body { 
-              font-size: 12pt;
+              font-size: 11pt;
               margin: 0;
               -webkit-print-color-adjust: exact;
             }
-            .observacoes { color: #555; font-size: 9pt; }
+            .observacoes { color: #555; font-size: 8.5pt; }
             .rodape-institucional { color: #555; }
-            .column { padding: 0 10mm; }
+            .column { padding: 0 5mm; }
           }
         </style>
       </head>
