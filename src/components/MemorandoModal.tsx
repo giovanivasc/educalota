@@ -208,8 +208,11 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           Informamos a V. Sa. que o(a) servidor(a) ${contractType.toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, cargo <strong>${displayRoleName}</strong>, a partir desta data será lotado(a) nessa Unidade de Ensino, com carga horária de <strong>${processedHoursText}</strong>, na(s) turma(s) ${classesText}, no(s) turno(s) ${shiftsText}.
         </div>
         
+        <div class="atenciosamente">
+          Atenciosamente,
+        </div>
+        
         <div class="assinatura-coordenacao">
-          <p>Atenciosamente,</p>
           <img src="/img/assinatura_fernanda.png" alt="Assinatura Coordenação" onerror="this.onerror=null; this.src='/img/logo_coord.jpg'" />
           <div class="border-assinatura"></div>
           <strong>Fernanda de Oliveira Noronha</strong><br/>
@@ -321,6 +324,13 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
             line-height: 1.6;
             margin-bottom: 20px;
             font-size: 12.5pt;
+          }
+          
+          .atenciosamente {
+            text-align: left;
+            text-indent: 35px;
+            font-size: 12.5pt;
+            margin-bottom: 20px;
           }
           
           .assinatura-coordenacao {
