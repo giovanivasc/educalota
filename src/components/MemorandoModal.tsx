@@ -179,78 +179,234 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
       ? `${issueDateParts[2]}/${issueDateParts[1]}/${issueDateParts[0]}`
       : issueDate;
 
-    // Build HTML for PDF
     const mm = memoNumber;
     const year = new Date().getFullYear();
 
-    const viaTemplate = (isRightColumn: boolean) => `
-      <div style="flex: 1; padding: 20px 30px; border-right: ${isRightColumn ? 'none' : '1px dashed #ccc'}">
-        <div style="text-align: center; margin-bottom: 10px;">
-          <img src="/img/logo_pref.jpg" onerror="this.style.display='none'" style="height: 60px;" />
-          <h2 style="margin: 5px 0 2px 0; font-size: 14px; font-weight: bold;">PREFEITURA MUNICIPAL DE CASTANHAL</h2>
-          <h3 style="margin: 0 0 10px 0; font-size: 12px; font-weight: normal;">SECRETARIA MUNICIPAL DE EDUCAÇÃO</h3>
-          <h4 style="margin: 0; font-size: 13px; font-weight: bold;">MEM. N° ${mm}/${year}/CEES/SEMED/PMC</h4>
+    const viaTemplate = (isLeftColumn: boolean) => `
+      <div class="column ${isLeftColumn ? 'left-col' : 'right-col'}">
+        <div class="header">
+          <img src="/img/logo_pref.jpg" alt="Brasão Castanhal" onerror="this.style.display='none'" />
+          <h2>PREFEITURA MUNICIPAL DE CASTANHAL<br/>SECRETARIA MUNICIPAL DE EDUCAÇÃO</h2>
+          <div class="border-bottom-header"></div>
         </div>
         
-        <div style="margin-bottom: 20px; font-size: 12px; line-height: 1.5;">
-          <p style="margin: 2px 0;">Em: ${formattedIssueDate}</p>
-          <p style="margin: 2px 0;">Para: <strong>${schoolName}</strong></p>
-          <p style="margin: 2px 0;">Assunto: LOTAÇÃO DE SERVIDOR</p>
+        <div class="doc-dados">
+          <div class="memo-number">MEM. N° ${mm}/${year}/CEES/SEMED/PMC</div>
+          <div class="date-issue">Em: ${formattedIssueDate}</div>
         </div>
         
-        <div style="text-align: justify; font-size: 13px; line-height: 1.6; margin-bottom: 40px;">
-          Informamos a V. Sa. que o(a) servidor(a) ${contractType.toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, 
-          cargo <strong>${roleName.toUpperCase()}</strong>, a partir desta data será lotado(a) nessa Unidade de Ensino, 
-          com carga horária de <strong>${processedHoursText}</strong>, na(s) turma(s) <strong>${classesText}</strong>, 
-          no(s) turno(s) <strong>${shiftsText}</strong>.
+        <div class="envio-dados">
+          <p>Para: <span>${schoolName}</span></p>
+          <p>Assunto: <strong>LOTAÇÃO DE SERVIDOR</strong></p>
         </div>
         
-        <div style="text-align: center; margin-bottom: 30px;">
-          <p style="margin: 0 0 5px 0;">Atenciosamente,</p>
-          <img src="/img/assign_cees.jpg" onerror="this.style.display='none'" style="height: 60px; margin-bottom: 5px;" />
+        <div class="corpo-texto">
+          Informamos a V. Sa. que o(a) servidor(a) ${contractType.charAt(0).toUpperCase() + contractType.slice(1).toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, cargo <strong>${roleName}</strong>, que a partir desta data será lotado(a) nessa Unidade de Ensino, com carga horária de <strong>${processedHoursText}</strong>, na(s) turma(s) ${classesText}, no(s) turno(s) ${shiftsText}.
         </div>
         
-        <div style="font-size: 10px; line-height: 1.4; margin-bottom: 30px;">
+        <div class="assinatura-coordenacao">
+          <p>Atenciosamente,</p>
+          <img src="/img/assign_cees.jpg" alt="Assinatura Coordenação" onerror="this.onerror=null; this.style.display='none'" />
+          <div class="border-assinatura"></div>
+          <strong>Fernanda de Oliveira Noronha</strong><br/>
+          Coordenadora da Educação Especial<br/>
+          Portaria n.º 143/2025
+        </div>
+
+        <div class="observacoes">
           <strong>Observações Importantes:</strong><br/>
-          1. O servidor deverá apresentar-se à Unidade de Ensino no prazo máximo de 24 (vinte e quatro) horas, contado a partir do recebimento deste memorando. O não comparecimento dentro do prazo estabelecido poderá implicar a perda da lotação, nos termos das normas administrativas vigentes.<br/><br/>
-          2. A Gestão da Unidade de Ensino deverá proceder à confirmação da lotação, ao endereço eletrônico: rhlotacao@semedcastanhal.pa.gov.br com cópia para especial.semed@castanhal.pa.gov.br, no prazo de 24 (vinte e quatro) horas após o recebimento deste memorando, a fim de assegurar a regularidade dos registros funcionais e a continuidade do serviço público.
+          1. O servidor deverá apresentar-se à Unidade de Ensino no prazo máximo de <strong>24 (vinte e quatro) horas</strong>, contado a partir do recebimento deste memorando. O não comparecimento dentro do prazo estabelecido poderá implicar a <strong>perda da lotação</strong>, nos termos das normas administrativas vigentes.<br/>
+          2. A Gestão da Unidade de Ensino deverá proceder à <strong>confirmação da lotação, ao endereço eletrônico: <a href="mailto:rhlotacao@semedcastanhal.pa.gov.br">rhlotacao@semedcastanhal.pa.gov.br</a></strong> com cópia para <strong><a href="mailto:especial.semed@castanhal.pa.gov.br">especial.semed@castanhal.pa.gov.br</a></strong>, no prazo de <strong>24 (vinte e quatro) horas</strong> após o recebimento deste memorando, a fim de assegurar a regularidade dos registros funcionais e a continuidade do serviço público.
         </div>
         
-        ${isRightColumn ? `
-        <div style="margin-top: 40px; font-size: 12px;">
-          Recebido em: ____/____/________<br/><br/><br/>
-          _______________________________________________________
-        </div>
-        ` : '<div style="margin-top: 40px; height: 75px;"></div>'}
+        <div class="spacer"></div>
         
-        <div style="margin-top: auto; padding-top: 20px; text-align: center; font-size: 9px; line-height: 1.3;">
-          SEMED: Avenida Altamira, nº 200, CEP: 68741-320 - Castanhal-Pa - E-mail: especial.semed@castanhal.pa.gov.br<br/>
-          PMC: Avenida Barão do Rio Branco, nº 2332 – CEP: 68743-050 Castanhal-Pa www.castanhal.pa.gov.br
+        ${isLeftColumn ? `
+        <div class="assinatura-recebimento">
+          Recebido em: ____/____/________ &nbsp;&nbsp;&nbsp;&nbsp; _________________________________________ 
+        </div>
+        ` : ''}
+        
+        <div class="rodape-institucional">
+          <div class="border-top-footer"></div>
+          <p>SEMED: Avenida Altamira, nº 200, CEP: 68741-320-Castanhal-Pa - E-mail: especial.semed@castanhal.pa.gov.br</p>
+          <p>PMC: Avenida Barão do Rio Branco, nº 2332-CEP: 68743-050 Castanhal-Pa www.castanhal.pa.gov.br</p>
         </div>
       </div>
     `;
 
     const htmlContent = `
-      <div style="display: flex; flex-direction: row; width: 100%; height: 100%; font-family: Arial, sans-serif; color: black; background: white;">
-        ${viaTemplate(false)}
-        ${viaTemplate(true)}
-      </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Memorando de Lotação - ${staffName}</title>
+        <style>
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+          }
+          body {
+            font-family: "Times New Roman", Times, serif;
+            margin: 0;
+            padding: 0;
+            color: black;
+            font-size: 13pt;
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            box-sizing: border-box;
+          }
+          .page-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+          }
+          .column {
+            flex: 1;
+            padding: 0 15mm;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+          }
+          .column.left-col {
+            border-right: 1px dashed #ccc;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          .header img {
+            height: 60px;
+            margin-bottom: 5px;
+          }
+          .header h2 {
+            margin: 0;
+            font-size: 12pt;
+            font-weight: bold;
+            line-height: 1.2;
+          }
+          .border-bottom-header {
+            border-bottom: 2px solid black;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+          }
+          
+          .doc-dados {
+            position: relative;
+            margin-bottom: 25px;
+          }
+          .memo-number {
+            text-align: left;
+          }
+          .date-issue {
+            text-align: right;
+            margin-top: 5px;
+          }
+          
+          .envio-dados {
+            margin-bottom: 30px;
+          }
+          .envio-dados p {
+            margin: 0;
+            line-height: 1.5;
+          }
+
+          .corpo-texto {
+            text-align: justify;
+            text-indent: 40px;
+            line-height: 1.8;
+            margin-bottom: 40px;
+          }
+          
+          .assinatura-coordenacao {
+            text-align: center;
+            margin: 40px 0;
+            font-size: 11pt;
+            line-height: 1.2;
+          }
+          .assinatura-coordenacao img {
+            height: 65px;
+            margin: -10px 0;
+          }
+          .border-assinatura {
+            border-bottom: 1px solid black;
+            width: 250px;
+            margin: 0 auto 5px auto;
+          }
+          
+          .observacoes {
+            font-size: 9pt;
+            color: #444;
+            text-align: justify;
+            line-height: 1.3;
+            margin-bottom: 20px;
+          }
+          .observacoes a {
+            color: #444;
+            text-decoration: underline;
+          }
+          
+          .assinatura-recebimento {
+            font-size: 11pt;
+            margin-bottom: 20px;
+          }
+          
+          .spacer {
+            flex-grow: 1;
+          }
+          
+          .rodape-institucional {
+            font-size: 8pt;
+            text-align: center;
+            color: #666;
+            margin-top: auto;
+          }
+          .border-top-footer {
+            border-top: 1px solid #999;
+            margin-bottom: 5px;
+          }
+          .rodape-institucional p {
+            margin: 0;
+            line-height: 1.2;
+          }
+          
+          @media print {
+            body { 
+              font-size: 12pt;
+              margin: 0;
+              -webkit-print-color-adjust: exact;
+            }
+            .observacoes { color: #555; font-size: 9pt; }
+            .rodape-institucional { color: #555; }
+            .column { padding: 0 10mm; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page-container">
+          ${viaTemplate(true)}
+          ${viaTemplate(false)}
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 500);
+          }
+        </script>
+      </body>
+      </html>
     `;
 
-    const element = document.createElement('div');
-    element.innerHTML = htmlContent;
-    // We add it to document briefly for html2pdf to process styles better sometimes, but typically not needed.
-
-    // Config for A4 Landscape
-    const opt = {
-      margin: [5, 5, 5, 5],
-      filename: `Memorando_${staffName.replace(/\s+/g, '_')}_${schoolName.replace(/\s+/g, '_')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-    };
-
-    html2pdf().from(element).set(opt).save();
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } else {
+      alert("Por favor, permita pop-ups neste site para gerar o memorando.");
+    }
   };
 
   if (!isOpen) return null;
