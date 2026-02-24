@@ -167,6 +167,10 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
     if (!sg) return;
 
     const roleName = staff?.role || '';
+    let displayRoleName = roleName;
+    if (roleName.toLowerCase() === 'mediador' || roleName.toLowerCase() === 'cuidador') {
+      displayRoleName = `Profissional de Apoio Escolar - ${roleName.charAt(0).toUpperCase() + roleName.slice(1).toLowerCase()}`;
+    }
     const contractType = staff?.contractType || '';
     const staffName = staff?.name || '';
 
@@ -201,7 +205,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
         </div>
         
         <div class="corpo-texto">
-          Informamos a V. Sa. que o(a) servidor(a) ${contractType.charAt(0).toUpperCase() + contractType.slice(1).toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, cargo <strong>${roleName}</strong>, que a partir desta data será lotado(a) nessa Unidade de Ensino, com carga horária de <strong>${processedHoursText}</strong>, na(s) turma(s) ${classesText}, no(s) turno(s) ${shiftsText}.
+          Informamos a V. Sa. que o(a) servidor(a) ${contractType.charAt(0).toUpperCase() + contractType.slice(1).toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, cargo <strong>${displayRoleName}</strong>, que a partir desta data será lotado(a) nessa Unidade de Ensino, com carga horária de <strong>${processedHoursText}</strong>, na(s) turma(s) ${classesText}, no(s) turno(s) ${shiftsText}.
         </div>
         
         <div class="assinatura-coordenacao">
