@@ -185,7 +185,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
     const viaTemplate = (isLeftColumn: boolean) => `
       <div class="column ${isLeftColumn ? 'left-col' : 'right-col'}">
         <div class="header">
-          <img src="/img/logo_pref.jpg" alt="Brasão Castanhal" onerror="this.style.display='none'" />
+          <img src="/img/brasao_oficial.jpg" alt="Brasão Castanhal" onerror="this.onerror=null; this.src='/img/logo_pref.jpg'" />
           <h2>PREFEITURA MUNICIPAL DE CASTANHAL<br/>SECRETARIA MUNICIPAL DE EDUCAÇÃO</h2>
           <div class="border-bottom-header"></div>
         </div>
@@ -206,7 +206,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
         
         <div class="assinatura-coordenacao">
           <p>Atenciosamente,</p>
-          <img src="/img/assign_cees.jpg" alt="Assinatura Coordenação" onerror="this.onerror=null; this.style.display='none'" />
+          <img src="/img/assinatura_coordenacao.png" alt="Assinatura Coordenação" onerror="this.onerror=null; this.src='/img/assign_cees.jpg'" />
           <div class="border-assinatura"></div>
           <strong>Fernanda de Oliveira Noronha</strong><br/>
           Coordenadora da Educação Especial<br/>
@@ -323,7 +323,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
           .assinatura-coordenacao {
             text-align: center;
             margin: 20px 0;
-            font-size: 10pt;
+            font-size: 11pt;
             line-height: 1.2;
           }
           .assinatura-coordenacao img {
