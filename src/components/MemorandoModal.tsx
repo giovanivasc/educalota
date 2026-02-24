@@ -206,7 +206,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
         
         <div class="assinatura-coordenacao">
           <p>Atenciosamente,</p>
-          <img src="/img/assinatura_coordenacao.png" alt="Assinatura Coordenação" onerror="this.onerror=null; this.src='/img/assign_cees.jpg'" />
+          <img src="/img/logo_coord.jpg" alt="Assinatura Coordenação" onerror="this.onerror=null; this.src='/img/assinatura_coordenacao.png'" />
           <div class="border-assinatura"></div>
           <strong>Fernanda de Oliveira Noronha</strong><br/>
           Coordenadora da Educação Especial<br/>
