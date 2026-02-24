@@ -29,7 +29,13 @@ const Allotment: React.FC = () => {
   const [classObs, setClassObs] = useState(''); // New state for class observations
   const [savingObs, setSavingObs] = useState(false);
   const [showReportMenu, setShowReportMenu] = useState(false);
-  const [allotmentDate, setAllotmentDate] = useState('2026-02-19'); // Default fixed date per user request
+  const [allotmentDate, setAllotmentDate] = useState(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
   const [vacancyRole, setVacancyRole] = useState('Mediador'); // New state for vacancy role registration
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [pendingAllotments, setPendingAllotments] = useState<any[]>([]);
@@ -761,7 +767,6 @@ const Allotment: React.FC = () => {
                 setSelectedSchool(''); // Clear selection on type to allow search
                 setShowSchoolDropdown(true);
               }}
-              title="Buscar Escola"
               onFocus={() => {
                 setSchoolSearchTerm(''); // Clear term to see all or keep? better clear if value matches name
                 setShowSchoolDropdown(true);
