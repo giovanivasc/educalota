@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { normalizeText } from '../lib/stringUtils';
 // import { BulkImporter } from '../components/BulkImporter'; // Removed
 import { UnavailableStaffModal } from '../components/UnavailableStaffModal';
+import { MemorandoModal } from '../components/MemorandoModal';
 
 const StaffPage: React.FC = () => {
   const [view, setView] = useState<'list' | 'create'>('list');
@@ -41,7 +42,10 @@ const StaffPage: React.FC = () => {
 
   // Edit Allotment Workload State
   const [editingAllotmentId, setEditingAllotmentId] = useState<string | null>(null);
-  const [newWorkload, setNewWorkload] = useState(0);
+  const [newWorkload, setNewWorkload] = useState<number>(0);
+
+  const [showMemorandoModal, setShowMemorandoModal] = useState(false);
+  const [memorandoStaff, setMemorandoStaff] = useState<Staff | null>(null);
 
   // Unavailable Modal State
   const [showUnavailableModal, setShowUnavailableModal] = useState(false);
@@ -729,6 +733,17 @@ const StaffPage: React.FC = () => {
                             <span className="material-symbols-outlined text-base">assignment</span>
                             Ver Lotação
                           </button>
+                          <button
+                            onClick={() => {
+                              setMemorandoStaff(staff);
+                              setShowMemorandoModal(true);
+                              setDropdownOpenId(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/10 rounded-b-lg"
+                          >
+                            <span className="material-symbols-outlined text-base">description</span>
+                            Memorando
+                          </button>
                         </div>
                       )}
                     </div>
@@ -744,6 +759,12 @@ const StaffPage: React.FC = () => {
         isOpen={showUnavailableModal}
         onClose={() => setShowUnavailableModal(false)}
         staffList={staffList}
+      />
+
+      <MemorandoModal
+        isOpen={showMemorandoModal}
+        onClose={() => setShowMemorandoModal(false)}
+        staff={memorandoStaff}
       />
 
       {/* Modal View Allotment */}
