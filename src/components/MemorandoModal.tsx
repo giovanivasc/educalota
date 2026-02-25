@@ -71,12 +71,17 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
             schoolId: allot.school_id,
             shifts: new Set<string>(),
             sections: new Set<string>(),
+            classesByShift: {} as Record<string, Set<string>>,
             hoursTotal: 0
           };
         }
 
         schoolGroups[schoolName].shifts.add(shift);
         schoolGroups[schoolName].sections.add(section.trim());
+        if (!schoolGroups[schoolName].classesByShift[shift]) {
+          schoolGroups[schoolName].classesByShift[shift] = new Set<string>();
+        }
+        schoolGroups[schoolName].classesByShift[shift].add(section.trim());
 
         // Parse hours from staff_role
         const roleStr = allot.staff_role || '';
@@ -175,8 +180,37 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
     const staffName = staff?.name || '';
 
     const processedHoursText = processHoursText(sg, allotments, roleName);
-    const classesText = Array.from(sg.sections).join(', ');
-    const shiftsText = Array.from(sg.shifts).join(', ');
+
+    // Process text ordered by shift
+    const shiftOrder = ['Manhã', 'Tarde', 'Noite', 'Integral'];
+    const formattedClassesTextParts: string[] = [];
+
+    if (sg.classesByShift) {
+      shiftOrder.forEach(shift => {
+        if (sg.classesByShift[shift]) {
+          const classes = Array.from(sg.classesByShift[shift] as Set<string>).join(', ');
+          formattedClassesTextParts.push(`na(s) turma(s) ${classes}, no(s) turno(s) ${shift}`);
+        }
+      });
+      // Fallback for unexpected shift names not in shiftOrder
+      Object.keys(sg.classesByShift).forEach(shift => {
+        if (!shiftOrder.includes(shift)) {
+          const classes = Array.from(sg.classesByShift[shift] as Set<string>).join(', ');
+          formattedClassesTextParts.push(`na(s) turma(s) ${classes}, no(s) turno(s) ${shift}`);
+        }
+      });
+    }
+
+    let joinedClassesAndShiftsText = '';
+    if (formattedClassesTextParts.length === 1) {
+      joinedClassesAndShiftsText = formattedClassesTextParts[0];
+    } else if (formattedClassesTextParts.length > 1) {
+      const last = formattedClassesTextParts.pop();
+      joinedClassesAndShiftsText = formattedClassesTextParts.join(', ') + ' e ' + last;
+    } else {
+      // Very extreme fallback
+      joinedClassesAndShiftsText = `na(s) turma(s) ${Array.from(sg.sections).join(', ')}, no(s) turno(s) ${Array.from(sg.shifts).join(', ')}`;
+    }
 
     const issueDateParts = issueDate.split('-');
     const formattedIssueDate = issueDateParts.length === 3
@@ -205,7 +239,7 @@ export const MemorandoModal: React.FC<MemorandoModalProps> = ({ isOpen, onClose,
         </div>
         
         <div class="corpo-texto">
-          Informamos a V. Sa. que o(a) servidor(a) ${contractType.toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, cargo <strong>${displayRoleName}</strong>, a partir desta data será lotado(a) nessa Unidade de Ensino, com carga horária de <strong>${processedHoursText}</strong>, na(s) turma(s) ${classesText}, no(s) turno(s) ${shiftsText}.
+          Informamos a V. Sa. que o(a) servidor(a) ${contractType.toLowerCase()} <strong>${staffName.toUpperCase()}</strong>, cargo <strong>${displayRoleName}</strong>, a partir desta data será lotado(a) nessa Unidade de Ensino, com carga horária de <strong>${processedHoursText}</strong>, ${joinedClassesAndShiftsText}.
         </div>
         
         <div class="atenciosamente">
