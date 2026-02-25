@@ -1063,12 +1063,12 @@ export const generatePendingPDF = async (pendingItems: any[], periodText: string
             const obs = item.classDetails?.obs || '-';
             const date = item.date || '-';
 
-            tableRowsHtml += `< tr style = "background-color: ${bgColor};" >
-        <td>${schoolName} </td>
-        < td > ${className} </td>
-        < td > ${role} </td>
-        < td > ${obs} </td>
-        < td > ${date} </td>
+            tableRowsHtml += `<tr style="background-color: ${bgColor};">
+        <td>${schoolName}</td>
+        <td>${className}</td>
+        <td>${role}</td>
+        <td>${obs}</td>
+        <td>${date}</td>
         </tr>`;
         });
 
