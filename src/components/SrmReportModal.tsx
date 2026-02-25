@@ -42,6 +42,29 @@ export const SrmReportModal: React.FC<SrmReportModalProps> = ({ isOpen, onClose 
         ) || [];
 
         if (srmClasses.length > 0) {
+          const getShiftWeight = (shift: string) => {
+            if (!shift) return 5;
+            const s = shift.toLowerCase();
+            if (s.includes('manhã')) return 1;
+            if (s.includes('tarde')) return 2;
+            if (s.includes('noite')) return 3;
+            if (s.includes('integral')) return 4;
+            return 5;
+          };
+
+          srmClasses.sort((a: any, b: any) => {
+            const shiftWeightA = getShiftWeight(a.shift);
+            const shiftWeightB = getShiftWeight(b.shift);
+
+            if (shiftWeightA !== shiftWeightB) {
+              return shiftWeightA - shiftWeightB;
+            }
+
+            const classNameA = `${a.series || ''} ${a.section || ''}`.trim();
+            const classNameB = `${b.series || ''} ${b.section || ''}`.trim();
+            return classNameA.localeCompare(classNameB, 'pt-BR');
+          });
+
           srmClasses.forEach((cls: any, index: number) => {
             formattedData.push({
               schoolId: school.id,
