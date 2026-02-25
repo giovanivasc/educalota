@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Button } from './ui/Button';
+import { generateSrmDoc } from '../lib/reports';
 
 interface SrmReportModalProps {
   isOpen: boolean;
@@ -102,6 +103,7 @@ export const SrmReportModal: React.FC<SrmReportModalProps> = ({ isOpen, onClose 
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center print:hidden">
           <h3 className="text-xl font-bold">Relatório: Escolas com Salas de Recursos Multifuncionais</h3>
           <div className="flex gap-2">
+            <Button variant="outline" icon="description" onClick={() => generateSrmDoc(data)} disabled={loading}>Salvar DOCX</Button>
             <Button variant="outline" icon="print" onClick={handlePrint} disabled={loading}>Imprimir Relatório</Button>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 ml-4">
               <span className="material-symbols-outlined">close</span>

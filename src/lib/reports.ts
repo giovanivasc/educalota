@@ -1254,3 +1254,99 @@ export const generateRealizedPDF = async (realizedItems: any[], periodText: stri
         alert('Erro ao gerar PDF.');
     }
 };
+
+export const generateSrmDoc = async (data: any[]) => {
+    try {
+        let imgPrefBuf, imgSemedBuf, imgCoordBuf;
+        try {
+            [imgPrefBuf, imgSemedBuf, imgCoordBuf] = await Promise.all([
+                getArrayBufferFromUrl('/img/logo_pref.jpg'),
+                getArrayBufferFromUrl('/img/logo_semed.jpg'),
+                getArrayBufferFromUrl('/img/logo_coord.jpg')
+            ]);
+        } catch (e) {
+        }
+
+        const noBorder = { style: BorderStyle.NONE, size: 0, color: "auto" };
+        const tableBorders = {
+            top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+        };
+
+        const headerTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+                top: noBorder, bottom: noBorder, left: noBorder, right: noBorder,
+                insideVertical: noBorder, insideHorizontal: noBorder
+            },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, children: [(imgPrefBuf && imgPrefBuf.byteLength > 0) ? new Paragraph({ children: [new ImageRun({ data: imgPrefBuf, transformation: { width: 80, height: 60 }, type: "jpg" })] }) : new Paragraph("")] }),
+                        new TableCell({ width: { size: 55, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "PREFEITURA MUNICIPAL DE CASTANHAL", bold: true, size: 24 })] }), new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SECRETARIA MUNICIPAL DE EDUCAÇÃO", bold: true, size: 24 })] }), new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "COORDENADORIA DE EDUCAÇÃO ESPECIAL", bold: true, size: 24 })] })] }),
+                        new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [...((imgSemedBuf && imgSemedBuf.byteLength > 0) ? [new ImageRun({ data: imgSemedBuf, transformation: { width: 100, height: 40 }, type: "jpg" })] : []), new TextRun("   "), ...((imgCoordBuf && imgCoordBuf.byteLength > 0) ? [new ImageRun({ data: imgCoordBuf, transformation: { width: 50, height: 50 }, type: "jpg" })] : [])] })] })
+                    ]
+                })
+            ]
+        });
+
+        const separator = new Paragraph({ border: { bottom: { color: "000000", space: 1, style: BorderStyle.SINGLE, size: 6 } }, spacing: { after: 200 } });
+        const title = new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200, after: 400 }, children: [new TextRun({ text: `RELATÓRIO - ESCOLAS AEE / SRM`, bold: true, size: 24 })] });
+
+        const tableHeaderRow = new TableRow({
+            tableHeader: true,
+            children: [
+                "Escola", "Região", "Turma Cadastrada", "Turno"
+            ].map(text => new TableCell({
+                shading: { fill: "2980B9", color: "FFFFFF" },
+                verticalAlign: VerticalAlign.CENTER,
+                children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text, bold: true, color: "FFFFFF", size: 16 })] })]
+            }))
+        });
+
+        const tableRows: TableRow[] = [];
+
+        data.forEach(row => {
+            const isFirst = row.isFirstInSchool;
+            const mergeTypeMeta = isFirst ? VerticalMergeType.RESTART : VerticalMergeType.CONTINUE;
+
+            tableRows.push(new TableRow({
+                children: [
+                    new TableCell({ verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: row.schoolName, bold: true, size: 16 })] })] : [new Paragraph("")] }),
+                    new TableCell({ verticalMerge: mergeTypeMeta, verticalAlign: VerticalAlign.CENTER, children: isFirst ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: row.region, size: 16 })] })] : [new Paragraph("")] }),
+                    new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: row.className, size: 16 })] })] }),
+                    new TableCell({ verticalAlign: VerticalAlign.CENTER, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: row.shift, size: 16 })] })] }),
+                ]
+            }));
+        });
+
+        const mainTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: tableBorders,
+            rows: [tableHeaderRow, ...tableRows]
+        });
+
+        const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+        const d = new Date();
+        const dateText = `Castanhal, ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}.`;
+        const datePara = new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 400 }, children: [new TextRun({ text: dateText, size: 18 })] });
+
+        const doc = new Document({
+            sections: [{
+                properties: { page: { size: { orientation: PageOrientation.PORTRAIT }, margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
+                children: [headerTable, separator, title, mainTable, datePara]
+            }]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `relatorio_srm_${d.getTime()}.docx`);
+
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao gerar Documento DOCX.');
+    }
+};
