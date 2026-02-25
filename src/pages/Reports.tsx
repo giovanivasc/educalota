@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { generateExcel, generateDoc, generatePDF, generateGeneralDoc, generateGeneralPDF, generateMultiSchoolPDFZip } from '../lib/reports';
+import { SrmReportModal } from '../components/SrmReportModal';
 
 const Reports: React.FC = () => {
   const [schools, setSchools] = useState<{ id: string, name: string, director_name?: string, vice_director_name?: string, region?: string }[]>([]);
@@ -21,6 +22,7 @@ const Reports: React.FC = () => {
 
 
   const [loading, setLoading] = useState(false);
+  const [showSrmModal, setShowSrmModal] = useState(false);
   const [showMultiSchoolModal, setShowMultiSchoolModal] = useState(false);
   const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>([]);
   const [schoolRegionFilter, setSchoolRegionFilter] = useState<'all' | 'campo' | 'urbana'>('all');
@@ -234,7 +236,7 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Report Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Card 1: Excel */}
         <div className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-6 shadow-sm hover:shadow-xl hover:border-primary/30 transition-all">
           <div className="space-y-4">
@@ -324,6 +326,30 @@ const Reports: React.FC = () => {
             Exportar Lotações (ZIP)
           </Button>
         </div>
+
+        {/* Card 3: Relatório de SRM */}
+        <div className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark p-6 shadow-sm hover:shadow-xl hover:border-primary/30 transition-all">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex size-14 items-center justify-center rounded-full bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 transition-transform group-hover:scale-110">
+                <span className="material-symbols-outlined text-3xl">domain</span>
+              </div>
+              <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-[10px] font-black text-slate-500 uppercase">Lista</span>
+            </div>
+            <div>
+              <h3 className="text-xl font-black mb-2">Relatório</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">Painel com lista de Escolas e Turmas que possuem Salas de Recursos Multifuncionais.</p>
+            </div>
+          </div>
+          <Button
+            className="mt-8 w-full h-12 border-2"
+            icon="visibility"
+            onClick={() => setShowSrmModal(true)}
+            disabled={loading}
+          >
+            Abrir Relatório
+          </Button>
+        </div>
       </div>
 
       {/* Hidden Recent Table for now or keep generic mock? Keeping generic mock removed since user focused on actions. */}
@@ -411,6 +437,9 @@ const Reports: React.FC = () => {
           </div>
         </div>
       )}
+
+      <SrmReportModal isOpen={showSrmModal} onClose={() => setShowSrmModal(false)} />
+
 
     </div >
   );
