@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Button } from './ui/Button';
+import { generateStaffBySchoolDoc } from '../lib/reports';
 
 interface StaffBySchoolReportModalProps {
     isOpen: boolean;
@@ -187,6 +188,7 @@ export const StaffBySchoolReportModal: React.FC<StaffBySchoolReportModalProps> =
                 <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center print:hidden">
                     <h3 className="text-xl font-bold">Relatório: Lotação de Servidores por Escola</h3>
                     <div className="flex gap-2">
+                        <Button variant="outline" icon="description" onClick={() => generateStaffBySchoolDoc(data)} disabled={loading || data.length === 0}>Salvar DOCX</Button>
                         <Button variant="outline" icon="download" onClick={handleExportCSV} disabled={loading || data.length === 0}>Baixar CSV</Button>
                         <Button variant="outline" icon="print" onClick={handlePrint} disabled={loading || data.length === 0}>Imprimir</Button>
                         <button onClick={onClose} className="text-slate-400 hover:text-slate-600 ml-4 transition-colors">
