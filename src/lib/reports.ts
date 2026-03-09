@@ -1564,11 +1564,13 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
             return 0;
         });
 
-        const excelData = rows.map(r => {
+        const excelData = rows.map((r: any) => {
             let dateVal: Date | string = r.date;
             const pd = parseDateBR(r.date);
             if (pd) {
-                dateVal = pd;
+                // Adiciona o offset de fuso horário local para compensar e garantir que o Excel entenda o dia correto
+                const userTimezoneOffset = pd.getTimezoneOffset() * 60000;
+                dateVal = new Date(pd.getTime() + userTimezoneOffset);
             }
             return {
                 "Nome do Servidor": r.staffName,
