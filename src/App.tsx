@@ -15,6 +15,7 @@ import Access from './pages/Access';
 import Login from './pages/Login';
 import Students from './pages/Students';
 import Reports from './pages/Reports';
+import { PublicConsulta } from './pages/PublicConsulta';
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -49,6 +50,9 @@ const AppRoutes = () => {
     <Routes>
       {/* Rota inicial redireciona para o login */}
       <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Rota Externa com PIN */}
+      <Route path="/consulta-equipe" element={<PublicConsulta />} />
 
       {/* Rota de Login sem o Layout */}
       <Route path="/login" element={<Login />} />
