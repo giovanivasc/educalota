@@ -1457,21 +1457,47 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
         const { data: classesList } = await supabase.from('classes').select('id, shift, series, section').range(0, 4999);
         const { data: schoolsList } = await supabase.from('schools').select('id, name').range(0, 4999);
 
-        // Ensure to fetch all active allotments WITH JOINED relationships to bypass pagination limits on standalone tables
-        const { data: allotments } = await supabase
-            .from('allotments')
-            .select(`
-                *,
-                classes ( shift, series, section ),
-                staff ( name, contract_type, role, hours_total ),
-                schools ( name )
-            `)
-            .range(0, 9999);
+        // Extrai todas as lotações ativas contornando o limite de 1000 linhas da API Rest (paginação automática)
+        let allAllotments: any[] = [];
+        let hasMore = true;
+        let from = 0;
+        const limit = 1000;
 
-        if (!allotments || allotments.length === 0) {
-            alert('Nenhuma lotação encontrada.');
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('allotments')
+                .select(`
+                    *,
+                    classes ( shift, series, section ),
+                    staff ( name, contract_type, role, hours_total ),
+                    schools ( name )
+                `)
+                .eq('status', 'Ativo')
+                .range(from, from + limit - 1);
+
+            if (error) {
+                console.error("Erro ao buscar lotações para relatório:", error);
+                break;
+            }
+
+            if (data && data.length > 0) {
+                allAllotments = [...allAllotments, ...data];
+                if (data.length < limit) {
+                    hasMore = false;
+                } else {
+                    from += limit;
+                }
+            } else {
+                hasMore = false;
+            }
+        }
+
+        if (!allAllotments || allAllotments.length === 0) {
+            alert('Nenhuma lotação ativa encontrada no banco.');
             return;
         }
+
+        const allotments = allAllotments;
 
         const classMap = new Map(classesList?.map(c => [c.id, c]));
         const schoolMap = new Map(schoolsList?.map(s => [s.id, s.name]));

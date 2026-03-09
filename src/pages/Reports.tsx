@@ -5,8 +5,11 @@ import { generateExcel, generateDoc, generatePDF, generateGeneralDoc, generateGe
 import { SrmReportModal } from '../components/SrmReportModal';
 import { StaffBySchoolReportModal } from '../components/StaffBySchoolReportModal';
 import { RhReportModal } from '../components/RhReportModal';
+import { AllotmentAuditModal } from '../components/AllotmentAuditModal';
+import { useNavigate } from 'react-router-dom';
 
 const Reports: React.FC = () => {
+  const navigate = useNavigate();
   const [schools, setSchools] = useState<{ id: string, name: string, director_name?: string, vice_director_name?: string, region?: string }[]>([]);
 
   // Filters
@@ -28,6 +31,7 @@ const Reports: React.FC = () => {
   const [showStaffBySchoolModal, setShowStaffBySchoolModal] = useState(false);
   const [showMultiSchoolModal, setShowMultiSchoolModal] = useState(false);
   const [showRhModal, setShowRhModal] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
   const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>([]);
   const [schoolRegionFilter, setSchoolRegionFilter] = useState<'all' | 'campo' | 'urbana'>('all');
   const [zipProgress, setZipProgress] = useState({ done: 0, total: 0 });
@@ -402,6 +406,29 @@ const Reports: React.FC = () => {
             Abrir Relatório
           </Button>
         </div>
+
+        {/* Card 6: Auditoria de Lotações */}
+        <div className="group flex flex-col justify-between rounded-2xl border border-red-200 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10 p-6 shadow-sm hover:shadow-xl hover:border-red-400 transition-all">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex size-14 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 transition-transform group-hover:scale-110">
+                <span className="material-symbols-outlined text-3xl">health_and_safety</span>
+              </div>
+              <span className="rounded-full bg-red-100 dark:bg-red-900/50 px-3 py-1 text-[10px] font-black text-red-600 dark:text-red-400 uppercase">Validador</span>
+            </div>
+            <div>
+              <h3 className="text-xl font-black mb-2 text-slate-800 dark:text-white">Auditoria de Lotações</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">Verificação de integridade relacional e carga horária (Acesso Admin).</p>
+            </div>
+          </div>
+          <Button
+            className="mt-8 w-full h-12 bg-red-600 hover:bg-red-700 text-white"
+            icon="troubleshoot"
+            onClick={() => setShowAuditModal(true)}
+          >
+            Iniciar Auditoria
+          </Button>
+        </div>
       </div>
 
       {/* Hidden Recent Table for now or keep generic mock? Keeping generic mock removed since user focused on actions. */}
@@ -491,9 +518,29 @@ const Reports: React.FC = () => {
       )}
 
       <SrmReportModal isOpen={showSrmModal} onClose={() => setShowSrmModal(false)} />
-      <StaffBySchoolReportModal isOpen={showStaffBySchoolModal} onClose={() => setShowStaffBySchoolModal(false)} />
-      <RhReportModal isOpen={showRhModal} onClose={() => setShowRhModal(false)} />
+      {showStaffBySchoolModal && (
+        <StaffBySchoolReportModal
+          isOpen={showStaffBySchoolModal}
+          onClose={() => setShowStaffBySchoolModal(false)}
+        />
+      )}
 
+      {showRhModal && (
+        <RhReportModal
+          isOpen={showRhModal}
+          onClose={() => setShowRhModal(false)}
+        />
+      )}
+
+      <AllotmentAuditModal
+        isOpen={showAuditModal}
+        onClose={() => setShowAuditModal(false)}
+        onFix={(staffId) => {
+          navigate('/staff');
+          // Em uma implementação mais avançada poderíamos passar ?edit=staffId 
+          // e capturar no `useEffect` da página de servidores.
+        }}
+      />
     </div >
   );
 };
