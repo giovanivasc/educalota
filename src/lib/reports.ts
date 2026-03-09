@@ -1450,3 +1450,148 @@ export const generateStaffBySchoolDoc = async (data: any[]) => {
         alert('Erro ao gerar Documento DOCX.');
     }
 };
+
+export const generateRhExcel = async (filters: { startDate?: string, endDate?: string, role?: string, contract_type?: string }) => {
+    try {
+        const { data: staffList } = await supabase.from('staff').select('id, name, contract_type, role, hours_total').range(0, 4999);
+        const { data: classesList } = await supabase.from('classes').select('id, shift, series, section').range(0, 4999);
+        const { data: schoolsList } = await supabase.from('schools').select('id, name').range(0, 4999);
+
+        // Ensure to fetch all active allotments
+        const { data: allotments } = await supabase.from('allotments').select('*').range(0, 4999);
+
+        if (!allotments || allotments.length === 0) {
+            alert('Nenhuma lotação encontrada.');
+            return;
+        }
+
+        const classMap = new Map(classesList?.map(c => [c.id, c]));
+        const schoolMap = new Map(schoolsList?.map(s => [s.id, s.name]));
+        const staffMap = new Map(staffList?.map(s => [s.id, s]));
+
+        let filtered = allotments;
+
+        // Date Filter
+        if (filters.startDate || filters.endDate) {
+            filtered = filtered.filter(a => {
+                const aDate = parseDateBR(a.date);
+                if (!aDate) return false;
+
+                if (filters.startDate) {
+                    const start = new Date(filters.startDate);
+                    start.setHours(0, 0, 0, 0);
+                    if (aDate < start) return false;
+                }
+                if (filters.endDate) {
+                    const end = new Date(filters.endDate);
+                    end.setHours(23, 59, 59, 999);
+                    if (aDate > end) return false;
+                }
+                return true;
+            });
+        }
+
+        // Map and Filter Row Data
+        let rows = filtered.map(a => {
+            const staff = staffMap.get(a.staff_id) || {};
+            const staffName = a.staff_name || staff.name || '-';
+            const vinculo = staff.contract_type || '-';
+
+            const roleStr = a.staff_role || staff.role || '';
+            const separatorIndex = roleStr.indexOf(' - ');
+            let role = roleStr;
+            let cargaHoraria = '-';
+
+            if (separatorIndex !== -1) {
+                role = roleStr.substring(0, separatorIndex).trim();
+                cargaHoraria = roleStr.substring(separatorIndex + 3).trim();
+            } else if (staff.hours_total) {
+                cargaHoraria = `${staff.hours_total}h`;
+            }
+
+            const schoolName = schoolMap.get(a.school_id) || a.school_name || '-';
+            const cls = classMap.get(a.class_id);
+            const turno = cls ? cls.shift : '-';
+            const className = cls ? `${cls.series} ${cls.section ? '- ' + cls.section : ''}` : '-';
+
+            return {
+                staffName,
+                vinculo,
+                role,
+                schoolName,
+                className,
+                shift: turno,
+                hours: cargaHoraria,
+                date: a.date || '-'
+            };
+        });
+
+        if (filters.role) {
+            rows = rows.filter(r => r.role === filters.role || r.role.includes(filters.role!) || r.role.toLowerCase() === filters.role?.toLowerCase());
+        }
+        if (filters.contract_type) {
+            rows = rows.filter(r => r.vinculo === filters.contract_type);
+        }
+
+        if (rows.length === 0) {
+            alert('Nenhuma lotação encontrada com os filtros aplicados.');
+            return;
+        }
+
+        rows.sort((a, b) => {
+            const nameCmp = a.staffName.localeCompare(b.staffName);
+            if (nameCmp !== 0) return nameCmp;
+
+            const dateA = parseDateBR(a.date);
+            const dateB = parseDateBR(b.date);
+
+            if (dateA && dateB) {
+                return dateA.getTime() - dateB.getTime();
+            } else if (dateA) {
+                return -1;
+            } else if (dateB) {
+                return 1;
+            }
+            return 0;
+        });
+
+        const excelData = rows.map(r => {
+            let dateVal: Date | string = r.date;
+            const pd = parseDateBR(r.date);
+            if (pd) {
+                dateVal = pd;
+            }
+            return {
+                "Nome do Servidor": r.staffName,
+                "Vínculo": r.vinculo,
+                "Cargo/Função": r.role,
+                "Nome da escola de lotação": r.schoolName,
+                "Série e turma": r.className,
+                "Turno": r.shift,
+                "Carga Horária": r.hours,
+                "Data de lotação": dateVal // Date obj for excel formatting
+            };
+        });
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(excelData, { cellDates: true, dateNF: "DD/MM/YYYY" });
+
+        worksheet['!cols'] = [
+            { wch: 40 }, // Nome
+            { wch: 15 }, // Vínculo
+            { wch: 30 }, // Cargo
+            { wch: 40 }, // Escola
+            { wch: 20 }, // Serie/Turma
+            { wch: 15 }, // Turno
+            { wch: 15 }, // CH
+            { wch: 15 }  // Data
+        ];
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório RH");
+        XLSX.writeFile(workbook, `relatorio_rh_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao gerar Excel RH.');
+    }
+};
