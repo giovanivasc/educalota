@@ -174,6 +174,12 @@ export const PublicConsulta: React.FC = () => {
         }
     };
 
+    const handleClearStudentSearch = () => {
+        setSearchQuery('');
+        setStudentsResult([]);
+        setHasSearchedStudent(false);
+    };
+
     // --- LÓGICA DA ABA 2: CONSULTAR TURMA ---
     const handleSearchClass = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -219,6 +225,15 @@ export const PublicConsulta: React.FC = () => {
         } finally {
             setLoadingClass(false);
         }
+    };
+
+    const handleClearClassSearch = () => {
+        setSelectedSchool('');
+        setSelectedShift('');
+        setSelectedClass('');
+        setClassStaffResult([]);
+        setClassStudentsResult([]);
+        setHasSearchedClass(false);
     };
 
     // --- RENDER ---
@@ -318,9 +333,14 @@ export const PublicConsulta: React.FC = () => {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
                                 </div>
-                                <Button type="submit" disabled={loadingStudent} className="h-14 px-8" isLoading={loadingStudent}>
-                                    Buscar
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button type="button" variant="outline" onClick={handleClearStudentSearch} disabled={loadingStudent || (!searchQuery && !hasSearchedStudent)} className="h-14 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700">
+                                        Limpar
+                                    </Button>
+                                    <Button type="submit" disabled={loadingStudent} className="h-14 px-8" isLoading={loadingStudent}>
+                                        Buscar
+                                    </Button>
+                                </div>
                             </form>
                         </div>
 
@@ -513,7 +533,10 @@ export const PublicConsulta: React.FC = () => {
                                         </select>
                                     </div>
                                 </div>
-                                <div className="flex justify-end pt-2">
+                                <div className="flex justify-end pt-2 gap-3">
+                                    <Button type="button" variant="outline" onClick={handleClearClassSearch} disabled={loadingClass || (!selectedSchool && !hasSearchedClass)} className="h-12 px-8 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700">
+                                        Limpar
+                                    </Button>
                                     <Button type="submit" disabled={loadingClass || !selectedClass} isLoading={loadingClass} className="h-12 px-8">
                                         Pesquisar Turma
                                     </Button>
@@ -522,107 +545,109 @@ export const PublicConsulta: React.FC = () => {
                         </div>
 
                         {/* Resultados da Turma */}
-                        {loadingClass ? (
-                            <div className="text-center py-12 text-slate-500 flex flex-col items-center gap-3">
-                                <span className="material-symbols-outlined animate-spin text-3xl">sync</span>
-                                Buscando dados da turma...
-                            </div>
-                        ) : hasSearchedClass && !loadingClass ? (
-                            <div className="space-y-6">
-                                {/* Bloco A: Equipe Lotada na Turma */}
-                                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="bg-primary/10 w-10 h-10 rounded-xl flex items-center justify-center text-primary">
-                                            <span className="material-symbols-outlined text-xl">badge</span>
-                                        </div>
-                                        <h3 className="text-lg font-black text-slate-800 dark:text-white">Equipe Lotada na Turma</h3>
-                                    </div>
-
-                                    {classStaffResult.length > 0 ? (
-                                        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {classStaffResult.map(prof => (
-                                                <li key={prof.id} className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
-                                                    <span className="material-symbols-outlined text-slate-400 text-2xl">account_circle</span>
-                                                    <div className="flex-1 overflow-hidden">
-                                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate" title={prof.staff_name}>
-                                                            {prof.staff_name}
-                                                        </p>
-                                                        <p className="text-[11px] font-medium text-slate-500 truncate mt-0.5" title={prof.staff_role}>
-                                                            {prof.staff_role.split(' - ')[0]}
-                                                        </p>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        <div className="text-sm text-slate-500 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl text-center border border-dashed border-slate-200 dark:border-slate-700">
-                                            Nenhum profissional de apoio registrado nesta turma.
-                                        </div>
-                                    )}
+                        {
+                            loadingClass ? (
+                                <div className="text-center py-12 text-slate-500 flex flex-col items-center gap-3">
+                                    <span className="material-symbols-outlined animate-spin text-3xl">sync</span>
+                                    Buscando dados da turma...
                                 </div>
-
-                                {/* Bloco B: Alunos da Educação Especial na Turma */}
-                                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 delay-100">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="bg-purple-50 dark:bg-purple-900/20 w-10 h-10 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400">
-                                            <span className="material-symbols-outlined text-xl">escalator_warning</span>
+                            ) : hasSearchedClass && !loadingClass ? (
+                                <div className="space-y-6">
+                                    {/* Bloco A: Equipe Lotada na Turma */}
+                                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="bg-primary/10 w-10 h-10 rounded-xl flex items-center justify-center text-primary">
+                                                <span className="material-symbols-outlined text-xl">badge</span>
+                                            </div>
+                                            <h3 className="text-lg font-black text-slate-800 dark:text-white">Equipe Lotada na Turma</h3>
                                         </div>
-                                        <h3 className="text-lg font-black text-slate-800 dark:text-white">Alunos da Ed. Especial na Turma</h3>
+
+                                        {classStaffResult.length > 0 ? (
+                                            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {classStaffResult.map(prof => (
+                                                    <li key={prof.id} className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                                        <span className="material-symbols-outlined text-slate-400 text-2xl">account_circle</span>
+                                                        <div className="flex-1 overflow-hidden">
+                                                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate" title={prof.staff_name}>
+                                                                {prof.staff_name}
+                                                            </p>
+                                                            <p className="text-[11px] font-medium text-slate-500 truncate mt-0.5" title={prof.staff_role}>
+                                                                {prof.staff_role.split(' - ')[0]}
+                                                            </p>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <div className="text-sm text-slate-500 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl text-center border border-dashed border-slate-200 dark:border-slate-700">
+                                                Nenhum profissional de apoio registrado nesta turma.
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {classStudentsResult.length > 0 ? (
-                                        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                                            <table className="w-full text-left">
-                                                <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500 border-b border-slate-200 dark:border-slate-700">
-                                                    <tr>
-                                                        <th className="px-6 py-4">Nome do Aluno</th>
-                                                        <th className="px-6 py-4">CID</th>
-                                                        <th className="px-6 py-4 text-right">Necessita de Suporte?</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                                    {classStudentsResult.map(std => {
-                                                        const needs = (std.needs_support && std.needs_support.length > 0) ? std.needs_support.join(', ') : 'Não necessita';
-                                                        return (
-                                                            <tr key={std.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                                                                <td className="px-6 py-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-400 text-xs shrink-0">
-                                                                            {std.name.charAt(0).toUpperCase()}
+                                    {/* Bloco B: Alunos da Educação Especial na Turma */}
+                                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 delay-100">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="bg-purple-50 dark:bg-purple-900/20 w-10 h-10 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400">
+                                                <span className="material-symbols-outlined text-xl">escalator_warning</span>
+                                            </div>
+                                            <h3 className="text-lg font-black text-slate-800 dark:text-white">Alunos da Ed. Especial na Turma</h3>
+                                        </div>
+
+                                        {classStudentsResult.length > 0 ? (
+                                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                                                <table className="w-full text-left">
+                                                    <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                                                        <tr>
+                                                            <th className="px-6 py-4">Nome do Aluno</th>
+                                                            <th className="px-6 py-4">CID</th>
+                                                            <th className="px-6 py-4 text-right">Necessita de Suporte?</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                                        {classStudentsResult.map(std => {
+                                                            const needs = (std.needs_support && std.needs_support.length > 0) ? std.needs_support.join(', ') : 'Não necessita';
+                                                            return (
+                                                                <tr key={std.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                                                                    <td className="px-6 py-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-400 text-xs shrink-0">
+                                                                                {std.name.charAt(0).toUpperCase()}
+                                                                            </div>
+                                                                            <p className="font-bold text-sm text-slate-800 dark:text-white">{std.name}</p>
                                                                         </div>
-                                                                        <p className="font-bold text-sm text-slate-800 dark:text-white">{std.name}</p>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-6 py-4">
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                                                                        {std.cid || 'N/A'}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="px-6 py-4 text-right">
-                                                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${needs.includes('Não')
+                                                                    </td>
+                                                                    <td className="px-6 py-4">
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                                                            {std.cid || 'N/A'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-6 py-4 text-right">
+                                                                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${needs.includes('Não')
                                                                             ? 'text-slate-500 bg-slate-100 dark:bg-slate-800'
                                                                             : 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/50'
-                                                                        }`}>
-                                                                        {needs}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    ) : (
-                                        <div className="text-sm text-slate-500 bg-slate-50 dark:bg-slate-900 p-8 rounded-xl text-center border border-dashed border-slate-200 dark:border-slate-700">
-                                            Nenhum estudante com necessidades especiais detectado ou vinculado nesta turma atual.
-                                        </div>
-                                    )}
+                                                                            }`}>
+                                                                            {needs}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="text-sm text-slate-500 bg-slate-50 dark:bg-slate-900 p-8 rounded-xl text-center border border-dashed border-slate-200 dark:border-slate-700">
+                                                Nenhum estudante com necessidades especiais detectado ou vinculado nesta turma atual.
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ) : null}
-                    </div>
+                            ) : null
+                        }
+                    </div >
                 )}
-            </main>
-        </div>
+            </main >
+        </div >
     );
 };
