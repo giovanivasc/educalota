@@ -1457,8 +1457,16 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
         const { data: classesList } = await supabase.from('classes').select('id, shift, series, section').range(0, 4999);
         const { data: schoolsList } = await supabase.from('schools').select('id, name').range(0, 4999);
 
-        // Ensure to fetch all active allotments
-        const { data: allotments } = await supabase.from('allotments').select('*').range(0, 4999);
+        // Ensure to fetch all active allotments WITH JOINED relationships to bypass pagination limits on standalone tables
+        const { data: allotments } = await supabase
+            .from('allotments')
+            .select(`
+                *,
+                classes ( shift, series, section ),
+                staff ( name, contract_type, role, hours_total ),
+                schools ( name )
+            `)
+            .range(0, 9999);
 
         if (!allotments || allotments.length === 0) {
             alert('Nenhuma lotação encontrada.');
@@ -1492,12 +1500,13 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
         }
 
         // Map and Filter Row Data
-        let rows = filtered.map(a => {
+        let rows = filtered.map((a: any) => {
+            const staffJoined = a.staff || {};
             const staff = staffMap.get(a.staff_id) || {};
-            const staffName = a.staff_name || staff.name || '-';
-            const vinculo = staff.contract_type || '-';
+            const staffName = a.staff_name || staffJoined.name || staff.name || '-';
+            const vinculo = staffJoined.contract_type || staff.contract_type || '-';
 
-            const roleStr = a.staff_role || staff.role || '';
+            const roleStr = a.staff_role || staffJoined.role || staff.role || '';
             const separatorIndex = roleStr.indexOf(' - ');
             let role = roleStr;
             let cargaHoraria = '-';
@@ -1505,12 +1514,12 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
             if (separatorIndex !== -1) {
                 role = roleStr.substring(0, separatorIndex).trim();
                 cargaHoraria = roleStr.substring(separatorIndex + 3).trim();
-            } else if (staff.hours_total) {
-                cargaHoraria = `${staff.hours_total}h`;
+            } else if (staffJoined.hours_total || staff.hours_total) {
+                cargaHoraria = `${staffJoined.hours_total || staff.hours_total}h`;
             }
 
-            const schoolName = schoolMap.get(a.school_id) || a.school_name || '-';
-            const cls = classMap.get(a.class_id);
+            const schoolName = a.schools?.name || schoolMap.get(a.school_id) || a.school_name || '-';
+            const cls = a.classes || classMap.get(a.class_id);
             const turno = cls ? cls.shift : '-';
             const className = cls ? `${cls.series} ${cls.section ? '- ' + cls.section : ''}` : '-';
 
