@@ -8,6 +8,21 @@ interface RhReportModalProps {
     onClose: () => void;
 }
 
+const STATIC_ROLES = [
+    'Mediador',
+    'Cuidador',
+    'Professor de Educação Especial',
+    'Professor Bilíngue',
+    'Professor de Braille'
+];
+
+const STATIC_VINCULOS = [
+    'Efetivo',
+    'Efetivo Cargo',
+    'Efetivo Função',
+    'Temporário'
+];
+
 export const RhReportModal: React.FC<RhReportModalProps> = ({ isOpen, onClose }) => {
     const [loading, setLoading] = useState(false);
     const [startDate, setStartDate] = useState('');
@@ -15,12 +30,8 @@ export const RhReportModal: React.FC<RhReportModalProps> = ({ isOpen, onClose })
     const [roleFilter, setRoleFilter] = useState('');
     const [vinculoFilter, setVinculoFilter] = useState('');
 
-    const [availableRoles, setAvailableRoles] = useState<string[]>([]);
-    const [availableVinculos, setAvailableVinculos] = useState<string[]>([]);
-
     useEffect(() => {
         if (isOpen) {
-            fetchFilters();
             // Reset filters when opening
             setStartDate('');
             setEndDate('');
@@ -28,33 +39,6 @@ export const RhReportModal: React.FC<RhReportModalProps> = ({ isOpen, onClose })
             setVinculoFilter('');
         }
     }, [isOpen]);
-
-    const fetchFilters = async () => {
-        try {
-            // Get unique roles and vinculos
-            const { data: staffData } = await supabase.from('staff').select('role, contract_type').range(0, 4999);
-            if (staffData) {
-                const roles = Array.from(new Set(staffData.map(s => s.role).filter(Boolean)));
-                const vinculos = Array.from(new Set(staffData.map(s => s.contract_type).filter(Boolean)));
-
-                // Also get roles from allocations to be safe
-                const { data: allocations } = await supabase.from('allotments').select('staff_role').range(0, 4999);
-                if (allocations) {
-                    allocations.forEach(a => {
-                        if (a.staff_role) {
-                            const r = a.staff_role.split(' - ')[0];
-                            if (r && !roles.includes(r)) roles.push(r);
-                        }
-                    });
-                }
-
-                setAvailableRoles(roles.sort());
-                setAvailableVinculos(vinculos.sort());
-            }
-        } catch (error) {
-            console.error('Error fetching filters:', error);
-        }
-    };
 
     const handleExport = async () => {
         setLoading(true);
@@ -114,7 +98,7 @@ export const RhReportModal: React.FC<RhReportModalProps> = ({ isOpen, onClose })
                             onChange={e => setRoleFilter(e.target.value)}
                         >
                             <option value="">Todos</option>
-                            {availableRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                            {STATIC_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                     </div>
 
@@ -127,7 +111,7 @@ export const RhReportModal: React.FC<RhReportModalProps> = ({ isOpen, onClose })
                             onChange={e => setVinculoFilter(e.target.value)}
                         >
                             <option value="">Todos</option>
-                            {availableVinculos.map(v => <option key={v} value={v}>{v}</option>)}
+                            {STATIC_VINCULOS.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                     </div>
 
