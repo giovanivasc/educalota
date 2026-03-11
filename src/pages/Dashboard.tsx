@@ -103,7 +103,8 @@ const Dashboard: React.FC = () => {
         .map(([name, value], index) => ({
           name: name.length > 15 ? name.substring(0, 15) + '...' : name,
           value,
-          color: ['#1142d4', '#3b82f6', '#60a5fa', '#93c5fd', '#cbd5e1'][index % 5]
+          color: ['#1142d4', '#3b82f6', '#60a5fa', '#93c5fd', '#cbd5e1'][index % 5],
+          bgClass: ['bg-[#1142d4]', 'bg-[#3b82f6]', 'bg-[#60a5fa]', 'bg-[#93c5fd]', 'bg-[#cbd5e1]'][index % 5]
         }));
       setGroupDistData(sortedGroups);
 
@@ -249,7 +250,7 @@ const Dashboard: React.FC = () => {
           <div className="mt-4 flex flex-wrap gap-3 justify-center">
             {groupDistData.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}></span>
+                <span className={`h-2.5 w-2.5 rounded-full ${item.bgClass}`}></span>
                 <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{item.name} ({item.value})</span>
               </div>
             ))}
