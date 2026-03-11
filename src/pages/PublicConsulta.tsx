@@ -64,6 +64,8 @@ export const PublicConsulta: React.FC = () => {
 
     // Filtros Aba 2
     const [selectedSchool, setSelectedSchool] = useState('');
+    const [searchSchoolTerm, setSearchSchoolTerm] = useState('');
+    const [isSchoolDropdownOpen, setIsSchoolDropdownOpen] = useState(false);
     const [selectedShift, setSelectedShift] = useState('');
     const [selectedClass, setSelectedClass] = useState('');
 
@@ -83,7 +85,7 @@ export const PublicConsulta: React.FC = () => {
     const fetchBaseData = async () => {
         try {
             const { data: schoolsData } = await supabase.from('schools').select('id, name');
-            if (schoolsData) setSchools(schoolsData);
+            if (schoolsData) setSchools(schoolsData.sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name))));
 
             const { data: classesData } = await supabase.from('classes').select('id, school_id, shift, series, section');
             if (classesData) setClasses(classesData);
@@ -112,6 +114,8 @@ export const PublicConsulta: React.FC = () => {
         setStudentsResult([]);
 
         try {
+            // Buscamos um volume maior e filtramos localmente para suportar acentos sem precisar de unaccent() no BD
+            // A busca via Supabase pode tentar buscar com ilike básico e normalizado, mas para garantir 100% de match ignorando acentos:
             const { data: studentsData, error: studentError } = await supabase
                 .from('students')
                 .select(`
@@ -129,9 +133,7 @@ export const PublicConsulta: React.FC = () => {
                         section,
                         schools ( name )
                     )
-                `)
-                .ilike('name', `%${searchQuery.trim()}%`)
-                .limit(20);
+                `); // Fetches all to filter locally. Can optimize with RPC later if too heavy.
 
             if (studentError) throw studentError;
 
@@ -140,7 +142,18 @@ export const PublicConsulta: React.FC = () => {
                 return;
             }
 
-            const classIds = Array.from(new Set(studentsData.map(s => s.class_id).filter(Boolean)));
+            // Normalização e filtro accent-insensitive
+            const term = normalizeText(searchQuery.trim());
+            const filteredStudents = studentsData
+                .filter(s => normalizeText(s.name).includes(term))
+                .slice(0, 20); // Limit to 20 results in UI
+
+            if (filteredStudents.length === 0) {
+                setStudentsResult([]);
+                return;
+            }
+
+            const classIds = Array.from(new Set(filteredStudents.map(s => s.class_id).filter(Boolean)));
             let allotmentsData: { class_id: string, staff_name: string, staff_role: string, id: string }[] = [];
 
             if (classIds.length > 0) {
@@ -156,7 +169,7 @@ export const PublicConsulta: React.FC = () => {
                 }
             }
 
-            const finalResults = studentsData.map((student: any) => {
+            const finalResults = filteredStudents.map((student: any) => {
                 const studentClassId = student.class_id;
                 const studentProfessionals = allotmentsData.filter(a => a.class_id === studentClassId);
                 return {
@@ -229,6 +242,7 @@ export const PublicConsulta: React.FC = () => {
 
     const handleClearClassSearch = () => {
         setSelectedSchool('');
+        setSearchSchoolTerm('');
         setSelectedShift('');
         setSelectedClass('');
         setClassStaffResult([]);
@@ -254,25 +268,29 @@ export const PublicConsulta: React.FC = () => {
                             <input
                                 type="password"
                                 placeholder="Código de Acesso"
-                                className="w-full text-center tracking-widest text-lg h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/50 outline-none transition-all uppercase"
+                                className="w-full text-center tracking-widest text-lg h-14 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/50 outline-none transition-all uppercase"
                                 value={pin}
                                 onChange={(e) => setPin(e.target.value)}
                                 autoFocus
                             />
                             {pinError && <p className="text-red-500 text-sm mt-2">{pinError}</p>}
                         </div>
-                        <Button type="submit" className="w-full h-12">Entrar</Button>
+                        <Button type="submit" className="w-full h-14">Entrar</Button>
                     </form>
                 </div>
             </div>
         );
     }
 
+    // Filtragem acent-insensitive das escolas
+    const filteredSchools = schools.filter(s => normalizeText(s.name).includes(normalizeText(searchSchoolTerm)));
+    const selectedSchoolObj = schools.find(s => s.id === selectedSchool);
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 overflow-y-auto">
             {/* Header */}
-            <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto px-4 h-16 flex justify-between items-center">
+            <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 shadow-sm">
+                <div className="max-w-4xl mx-auto px-4 h-16 flex justify-between items-center sm:px-6">
                     <div className="flex items-center gap-3">
                         <div className="bg-primary/10 p-2 rounded-lg text-primary flex items-center justify-center">
                             <span className="material-symbols-outlined text-xl">search</span>
@@ -290,10 +308,11 @@ export const PublicConsulta: React.FC = () => {
                             setClassStudentsResult([]);
                             setHasSearchedClass(false);
                             setSelectedSchool('');
+                            setSearchSchoolTerm('');
                             setSelectedShift('');
                             setSelectedClass('');
                         }}
-                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-sm font-medium flex items-center gap-1"
+                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors text-sm font-medium flex items-center gap-1 min-h-[44px] px-2"
                     >
                         <span className="material-symbols-outlined text-sm">logout</span> Sair
                     </button>
@@ -302,15 +321,15 @@ export const PublicConsulta: React.FC = () => {
 
             <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6 mt-4 pb-20">
                 {/* Abas de Navegação */}
-                <div className="flex p-1 bg-slate-200 dark:bg-slate-800 rounded-xl w-fit mx-auto shadow-inner">
+                <div className="flex p-1 bg-slate-200 dark:bg-slate-800 rounded-xl w-full sm:w-fit mx-auto shadow-inner">
                     <button
-                        className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'student' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-bold transition-all min-h-[44px] ${activeTab === 'student' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         onClick={() => setActiveTab('student')}
                     >
                         Consultar Aluno
                     </button>
                     <button
-                        className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'class' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-sm font-bold transition-all min-h-[44px] ${activeTab === 'class' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         onClick={() => setActiveTab('class')}
                     >
                         Consultar Turma
@@ -321,23 +340,23 @@ export const PublicConsulta: React.FC = () => {
                 {activeTab === 'student' && (
                     <div className="space-y-6 animate-in fade-in duration-300">
                         {/* Barra de Pesquisa */}
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                            <form onSubmit={handleSearchStudent} className="flex gap-3">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+                            <form onSubmit={handleSearchStudent} className="flex flex-col sm:flex-row gap-3">
                                 <div className="relative flex-1">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined">search</span>
                                     <input
                                         type="text"
-                                        placeholder="Digite o nome completo ou parcial do estudante..."
-                                        className="w-full h-14 pl-12 pr-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-base"
+                                        placeholder="Nome do estudante..."
+                                        className="w-full h-14 pl-12 pr-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-base min-h-[44px]"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button type="button" variant="outline" onClick={handleClearStudentSearch} disabled={loadingStudent || (!searchQuery && !hasSearchedStudent)} className="h-14 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700">
+                                    <Button type="button" variant="outline" onClick={handleClearStudentSearch} disabled={loadingStudent || (!searchQuery && !hasSearchedStudent)} className="flex-1 sm:flex-none h-14 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 min-h-[44px]">
                                         Limpar
                                     </Button>
-                                    <Button type="submit" disabled={loadingStudent} className="h-14 px-8" isLoading={loadingStudent}>
+                                    <Button type="submit" disabled={loadingStudent} className="flex-1 sm:flex-none h-14 px-8 min-h-[44px]" isLoading={loadingStudent}>
                                         Buscar
                                     </Button>
                                 </div>
@@ -361,8 +380,8 @@ export const PublicConsulta: React.FC = () => {
                                     return (
                                         <div key={student.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
                                             {/* Info Estudante */}
-                                            <div className="p-6">
-                                                <div className="flex flex-col md:flex-row items-start gap-4">
+                                            <div className="p-4 sm:p-6">
+                                                <div className="flex flex-col sm:flex-row items-start gap-4">
                                                     <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg shrink-0">
                                                         {student.name.charAt(0).toUpperCase()}
                                                     </div>
@@ -399,7 +418,7 @@ export const PublicConsulta: React.FC = () => {
                                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
                                                             <div>
                                                                 <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Escola Atual</span>
-                                                                <span className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                                                <span className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5 break-words">
                                                                     <span className="material-symbols-outlined text-[16px] text-slate-400">home_work</span>
                                                                     {escolaAtual}
                                                                 </span>
@@ -479,68 +498,103 @@ export const PublicConsulta: React.FC = () => {
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                             <form onSubmit={handleSearchClass} className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Unidade Escolar</label>
-                                        <select
-                                            className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none"
-                                            value={selectedSchool}
-                                            onChange={(e) => {
-                                                setSelectedSchool(e.target.value);
-                                                setSelectedClass(''); // Reseta turma ao trocar escola
-                                            }}
-                                        >
-                                            <option value="">Selecione a Escola</option>
-                                            {schools.sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name))).map(s => (
-                                                <option key={s.id} value={s.id}>{s.name}</option>
-                                            ))}
-                                        </select>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-2 relative">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Unidade Escolar</label>
+                                            <div className="relative">
+                                                <div
+                                                    className="w-full min-h-[48px] px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-primary/20"
+                                                    onClick={() => setIsSchoolDropdownOpen(!isSchoolDropdownOpen)}
+                                                >
+                                                    <span className={`truncate ${!selectedSchoolObj ? 'text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
+                                                        {selectedSchoolObj ? selectedSchoolObj.name : 'Selecione a Escola'}
+                                                    </span>
+                                                    <span className="material-symbols-outlined text-slate-400">arrow_drop_down</span>
+                                                </div>
+
+                                                {isSchoolDropdownOpen && (
+                                                    <div className="absolute z-20 top-full mt-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden flex flex-col max-h-64">
+                                                        <div className="p-2 border-b border-slate-100 dark:border-slate-700">
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-sm">search</span>
+                                                                <input
+                                                                    type="text"
+                                                                    autoFocus
+                                                                    placeholder="Buscar escola..."
+                                                                    value={searchSchoolTerm}
+                                                                    onChange={(e) => setSearchSchoolTerm(e.target.value)}
+                                                                    className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-primary/20"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="overflow-y-auto flex-1 p-1">
+                                                            {filteredSchools.length > 0 ? filteredSchools.map(s => (
+                                                                <div
+                                                                    key={s.id}
+                                                                    className={`px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-colors ${selectedSchool === s.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'}`}
+                                                                    onClick={() => {
+                                                                        setSelectedSchool(s.id);
+                                                                        setSelectedClass('');
+                                                                        setIsSchoolDropdownOpen(false);
+                                                                        setSearchSchoolTerm('');
+                                                                    }}
+                                                                >
+                                                                    {s.name}
+                                                                </div>
+                                                            )) : (
+                                                                <div className="p-3 text-sm text-slate-500 text-center">Nenhuma escola encontrada</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Turno</label>
+                                            <select
+                                                className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none min-h-[48px]"
+                                                value={selectedShift}
+                                                onChange={(e) => {
+                                                    setSelectedShift(e.target.value);
+                                                    setSelectedClass(''); // Reseta turma ao trocar turno
+                                                }}
+                                                disabled={!selectedSchool}
+                                            >
+                                                <option value="">Selecione o Turno</option>
+                                                <option value="Manhã">Manhã</option>
+                                                <option value="Tarde">Tarde</option>
+                                                <option value="Noite">Noite</option>
+                                                <option value="Integral">Integral</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Turma</label>
+                                            <select
+                                                className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none min-h-[48px]"
+                                                value={selectedClass}
+                                                onChange={(e) => setSelectedClass(e.target.value)}
+                                                disabled={!selectedSchool || !selectedShift}
+                                            >
+                                                <option value="">Selecione a Turma</option>
+                                                {classes
+                                                    .filter(c => c.school_id === selectedSchool && c.shift === selectedShift)
+                                                    .map(c => (
+                                                        <option key={c.id} value={c.id}>
+                                                            {c.series} {c.section ? `- ${c.section}` : ''}
+                                                        </option>
+                                                    ))
+                                                }
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Turno</label>
-                                        <select
-                                            className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none"
-                                            value={selectedShift}
-                                            onChange={(e) => {
-                                                setSelectedShift(e.target.value);
-                                                setSelectedClass(''); // Reseta turma ao trocar turno
-                                            }}
-                                            disabled={!selectedSchool}
-                                        >
-                                            <option value="">Selecione o Turno</option>
-                                            <option value="Manhã">Manhã</option>
-                                            <option value="Tarde">Tarde</option>
-                                            <option value="Noite">Noite</option>
-                                            <option value="Integral">Integral</option>
-                                        </select>
+                                    <div className="flex flex-col sm:flex-row justify-end pt-4 gap-3">
+                                        <Button type="button" variant="outline" onClick={handleClearClassSearch} disabled={loadingClass || (!selectedSchool && !hasSearchedClass)} className="w-full sm:w-auto min-h-[48px] px-8 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700">
+                                            Limpar
+                                        </Button>
+                                        <Button type="submit" disabled={loadingClass || !selectedClass} isLoading={loadingClass} className="w-full sm:w-auto min-h-[48px] px-8">
+                                            Pesquisar Turma
+                                        </Button>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Turma</label>
-                                        <select
-                                            className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none"
-                                            value={selectedClass}
-                                            onChange={(e) => setSelectedClass(e.target.value)}
-                                            disabled={!selectedSchool || !selectedShift}
-                                        >
-                                            <option value="">Selecione a Turma</option>
-                                            {classes
-                                                .filter(c => c.school_id === selectedSchool && c.shift === selectedShift)
-                                                .map(c => (
-                                                    <option key={c.id} value={c.id}>
-                                                        {c.series} {c.section ? `- ${c.section}` : ''}
-                                                    </option>
-                                                ))
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end pt-2 gap-3">
-                                    <Button type="button" variant="outline" onClick={handleClearClassSearch} disabled={loadingClass || (!selectedSchool && !hasSearchedClass)} className="h-12 px-8 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700">
-                                        Limpar
-                                    </Button>
-                                    <Button type="submit" disabled={loadingClass || !selectedClass} isLoading={loadingClass} className="h-12 px-8">
-                                        Pesquisar Turma
-                                    </Button>
-                                </div>
                             </form>
                         </div>
 
