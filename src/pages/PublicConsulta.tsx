@@ -231,7 +231,7 @@ export const PublicConsulta: React.FC = () => {
                 return (s.needs_support && s.needs_support.length > 0) || (s.special_group && s.special_group.trim() !== '');
             });
 
-            setClassStudentsResult(filteredStds);
+            setClassStudentsResult(filteredStds as unknown as StudentData[]);
         } catch (error) {
             console.error('Erro na busca da turma:', error);
             alert('Ocorreu um erro ao realizar a consulta de turma.');
@@ -498,103 +498,102 @@ export const PublicConsulta: React.FC = () => {
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                             <form onSubmit={handleSearchClass} className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="space-y-2 relative">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Unidade Escolar</label>
-                                            <div className="relative">
-                                                <div
-                                                    className="w-full min-h-[48px] px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-primary/20"
-                                                    onClick={() => setIsSchoolDropdownOpen(!isSchoolDropdownOpen)}
-                                                >
-                                                    <span className={`truncate ${!selectedSchoolObj ? 'text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
-                                                        {selectedSchoolObj ? selectedSchoolObj.name : 'Selecione a Escola'}
-                                                    </span>
-                                                    <span className="material-symbols-outlined text-slate-400">arrow_drop_down</span>
-                                                </div>
+                                    <div className="space-y-2 relative">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Unidade Escolar</label>
+                                        <div className="relative">
+                                            <div
+                                                className="w-full min-h-[48px] px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-primary/20"
+                                                onClick={() => setIsSchoolDropdownOpen(!isSchoolDropdownOpen)}
+                                            >
+                                                <span className={`truncate ${!selectedSchoolObj ? 'text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>
+                                                    {selectedSchoolObj ? selectedSchoolObj.name : 'Selecione a Escola'}
+                                                </span>
+                                                <span className="material-symbols-outlined text-slate-400">arrow_drop_down</span>
+                                            </div>
 
-                                                {isSchoolDropdownOpen && (
-                                                    <div className="absolute z-20 top-full mt-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden flex flex-col max-h-64">
-                                                        <div className="p-2 border-b border-slate-100 dark:border-slate-700">
-                                                            <div className="relative">
-                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-sm">search</span>
-                                                                <input
-                                                                    type="text"
-                                                                    autoFocus
-                                                                    placeholder="Buscar escola..."
-                                                                    value={searchSchoolTerm}
-                                                                    onChange={(e) => setSearchSchoolTerm(e.target.value)}
-                                                                    className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-primary/20"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="overflow-y-auto flex-1 p-1">
-                                                            {filteredSchools.length > 0 ? filteredSchools.map(s => (
-                                                                <div
-                                                                    key={s.id}
-                                                                    className={`px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-colors ${selectedSchool === s.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'}`}
-                                                                    onClick={() => {
-                                                                        setSelectedSchool(s.id);
-                                                                        setSelectedClass('');
-                                                                        setIsSchoolDropdownOpen(false);
-                                                                        setSearchSchoolTerm('');
-                                                                    }}
-                                                                >
-                                                                    {s.name}
-                                                                </div>
-                                                            )) : (
-                                                                <div className="p-3 text-sm text-slate-500 text-center">Nenhuma escola encontrada</div>
-                                                            )}
+                                            {isSchoolDropdownOpen && (
+                                                <div className="absolute z-20 top-full mt-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden flex flex-col max-h-64">
+                                                    <div className="p-2 border-b border-slate-100 dark:border-slate-700">
+                                                        <div className="relative">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-sm">search</span>
+                                                            <input
+                                                                type="text"
+                                                                autoFocus
+                                                                placeholder="Buscar escola..."
+                                                                value={searchSchoolTerm}
+                                                                onChange={(e) => setSearchSchoolTerm(e.target.value)}
+                                                                className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-primary/20"
+                                                            />
                                                         </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Turno</label>
-                                            <select
-                                                className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none min-h-[48px]"
-                                                value={selectedShift}
-                                                onChange={(e) => {
-                                                    setSelectedShift(e.target.value);
-                                                    setSelectedClass(''); // Reseta turma ao trocar turno
-                                                }}
-                                                disabled={!selectedSchool}
-                                            >
-                                                <option value="">Selecione o Turno</option>
-                                                <option value="Manhã">Manhã</option>
-                                                <option value="Tarde">Tarde</option>
-                                                <option value="Noite">Noite</option>
-                                                <option value="Integral">Integral</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Turma</label>
-                                            <select
-                                                className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none min-h-[48px]"
-                                                value={selectedClass}
-                                                onChange={(e) => setSelectedClass(e.target.value)}
-                                                disabled={!selectedSchool || !selectedShift}
-                                            >
-                                                <option value="">Selecione a Turma</option>
-                                                {classes
-                                                    .filter(c => c.school_id === selectedSchool && c.shift === selectedShift)
-                                                    .map(c => (
-                                                        <option key={c.id} value={c.id}>
-                                                            {c.series} {c.section ? `- ${c.section}` : ''}
-                                                        </option>
-                                                    ))
-                                                }
-                                            </select>
+                                                    <div className="overflow-y-auto flex-1 p-1">
+                                                        {filteredSchools.length > 0 ? filteredSchools.map(s => (
+                                                            <div
+                                                                key={s.id}
+                                                                className={`px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-colors ${selectedSchool === s.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'}`}
+                                                                onClick={() => {
+                                                                    setSelectedSchool(s.id);
+                                                                    setSelectedClass('');
+                                                                    setIsSchoolDropdownOpen(false);
+                                                                    setSearchSchoolTerm('');
+                                                                }}
+                                                            >
+                                                                {s.name}
+                                                            </div>
+                                                        )) : (
+                                                            <div className="p-3 text-sm text-slate-500 text-center">Nenhuma escola encontrada</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col sm:flex-row justify-end pt-4 gap-3">
-                                        <Button type="button" variant="outline" onClick={handleClearClassSearch} disabled={loadingClass || (!selectedSchool && !hasSearchedClass)} className="w-full sm:w-auto min-h-[48px] px-8 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700">
-                                            Limpar
-                                        </Button>
-                                        <Button type="submit" disabled={loadingClass || !selectedClass} isLoading={loadingClass} className="w-full sm:w-auto min-h-[48px] px-8">
-                                            Pesquisar Turma
-                                        </Button>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Turno</label>
+                                        <select
+                                            className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none min-h-[48px]"
+                                            value={selectedShift}
+                                            onChange={(e) => {
+                                                setSelectedShift(e.target.value);
+                                                setSelectedClass(''); // Reseta turma ao trocar turno
+                                            }}
+                                            disabled={!selectedSchool}
+                                        >
+                                            <option value="">Selecione o Turno</option>
+                                            <option value="Manhã">Manhã</option>
+                                            <option value="Tarde">Tarde</option>
+                                            <option value="Noite">Noite</option>
+                                            <option value="Integral">Integral</option>
+                                        </select>
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Turma</label>
+                                        <select
+                                            className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none min-h-[48px]"
+                                            value={selectedClass}
+                                            onChange={(e) => setSelectedClass(e.target.value)}
+                                            disabled={!selectedSchool || !selectedShift}
+                                        >
+                                            <option value="">Selecione a Turma</option>
+                                            {classes
+                                                .filter(c => c.school_id === selectedSchool && c.shift === selectedShift)
+                                                .map(c => (
+                                                    <option key={c.id} value={c.id}>
+                                                        {c.series} {c.section ? `- ${c.section}` : ''}
+                                                    </option>
+                                                ))
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col sm:flex-row justify-end pt-4 gap-3">
+                                    <Button type="button" variant="outline" onClick={handleClearClassSearch} disabled={loadingClass || (!selectedSchool && !hasSearchedClass)} className="w-full sm:w-auto min-h-[48px] px-8 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700">
+                                        Limpar
+                                    </Button>
+                                    <Button type="submit" disabled={loadingClass || !selectedClass} isLoading={loadingClass} className="w-full sm:w-auto min-h-[48px] px-8">
+                                        Pesquisar Turma
+                                    </Button>
+                                </div>
                             </form>
                         </div>
 
@@ -699,9 +698,9 @@ export const PublicConsulta: React.FC = () => {
                                 </div>
                             ) : null
                         }
-                    </div >
+                    </div>
                 )}
-            </main >
-        </div >
+            </main>
+        </div>
     );
 };
