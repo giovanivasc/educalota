@@ -552,6 +552,7 @@ export const PublicConsulta: React.FC = () => {
                                         <label className="text-xs font-bold text-slate-500 uppercase">Turno</label>
                                         <select
                                             className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none min-h-[48px]"
+                                            title="Turno"
                                             value={selectedShift}
                                             onChange={(e) => {
                                                 setSelectedShift(e.target.value);
@@ -570,6 +571,7 @@ export const PublicConsulta: React.FC = () => {
                                         <label className="text-xs font-bold text-slate-500 uppercase">Turma</label>
                                         <select
                                             className="w-full h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none text-sm focus:ring-2 focus:ring-primary/20 appearance-none min-h-[48px]"
+                                            title="Turma"
                                             value={selectedClass}
                                             onChange={(e) => setSelectedClass(e.target.value)}
                                             disabled={!selectedSchool || !selectedShift}
