@@ -1013,15 +1013,14 @@ export const generateMultiSchoolPDFZip = async (schoolIds: string[], selectedYea
                 container.style.left = '-9999px';
                 container.style.width = '1200px';
                 document.body.appendChild(container);
-
-                const elementToPrint = container.querySelector('#pdf-content');
+                const elementToPrint = container.querySelector('#pdf-content') as HTMLElement | null;
 
                 const opt = {
                     margin: 10,
                     filename: `pre_lotacao_${school.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
+                    image: { type: 'jpeg' as const, quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' as const }
                 };
 
                 const pdfBlob = await html2pdf().set(opt).from(elementToPrint || container).output('blob');
@@ -1527,8 +1526,8 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
 
         // Map and Filter Row Data
         let rows = filtered.map((a: any) => {
-            const staffJoined = a.staff || {};
-            const staff = staffMap.get(a.staff_id) || {};
+            const staffJoined: any = a.staff || {};
+            const staff: any = staffMap.get(a.staff_id) || {};
             const staffName = a.staff_name || staffJoined.name || staff.name || '-';
             const vinculo = staffJoined.contract_type || staff.contract_type || '-';
 
