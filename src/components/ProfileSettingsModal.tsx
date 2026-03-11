@@ -168,6 +168,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                                 onChange={handleFileChange}
                                 className="hidden"
                                 accept="image/*"
+                                title="Alterar foto de perfil"
+                                placeholder="Selecione uma imagem"
                             />
                             <p className="text-sm text-slate-500">Clique para alterar a foto</p>
                         </div>
@@ -219,6 +221,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                                     value={user.email}
                                     disabled
                                     className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 outline-none text-slate-500"
+                                    title="E-mail"
+                                    placeholder="Seu e-mail"
                                 />
                                 <p className="text-xs text-slate-400">O e-mail não pode ser alterado.</p>
                             </div>
