@@ -114,28 +114,43 @@ export const PublicConsulta: React.FC = () => {
         setStudentsResult([]);
 
         try {
-            // Buscamos um volume maior e filtramos localmente para suportar acentos sem precisar de unaccent() no BD
-            // A busca via Supabase pode tentar buscar com ilike básico e normalizado, mas para garantir 100% de match ignorando acentos:
-            const { data: studentsData, error: studentError } = await supabase
-                .from('students')
-                .select(`
-                    id,
-                    name,
-                    cid,
-                    special_group,
-                    needs_support,
-                    additional_info,
-                    class_id,
-                    classes (
-                        id,
-                        shift,
-                        series,
-                        section,
-                        schools ( name )
-                    )
-                `); // Fetches all to filter locally. Can optimize with RPC later if too heavy.
+            // Buscamos todos os registros paginando para contornar o limite de 1000 da API
+            let studentsData: any[] = [];
+            let page = 0;
+            const pageSize = 1000;
+            let hasMore = true;
 
-            if (studentError) throw studentError;
+            while (hasMore) {
+                const { data, error: studentError } = await supabase
+                    .from('students')
+                    .select(`
+                        id,
+                        name,
+                        cid,
+                        special_group,
+                        needs_support,
+                        additional_info,
+                        class_id,
+                        classes (
+                            id,
+                            shift,
+                            series,
+                            section,
+                            schools ( name )
+                        )
+                    `)
+                    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+                if (studentError) throw studentError;
+
+                if (data && data.length > 0) {
+                    studentsData = [...studentsData, ...data];
+                    if (data.length < pageSize) hasMore = false;
+                    else page++;
+                } else {
+                    hasMore = false;
+                }
+            }
 
             if (!studentsData || studentsData.length === 0) {
                 setStudentsResult([]);
