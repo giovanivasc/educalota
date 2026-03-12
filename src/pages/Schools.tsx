@@ -38,7 +38,9 @@ const Schools: React.FC = () => {
         active: true,
         // imageUrl removed, not used anymore
         directorName: s.director_name,
-        viceDirectorName: s.vice_director_name
+        viceDirectorName: s.vice_director_name,
+        codigo_escola: s.codigo_escola,
+        telefone_diretor: s.telefone_diretor
       }));
 
       setSchools(mappedData);
@@ -135,7 +137,9 @@ const Schools: React.FC = () => {
     region: '',
     description: '',
     director: '',
-    viceDirector: ''
+    viceDirector: '',
+    codigoEscola: '',
+    telefoneDiretor: ''
   });
   // const [schoolImageFile, setSchoolImageFile] = useState<File | null>(null); // Removed
   const [saveSchoolLoading, setSaveSchoolLoading] = useState(false);
@@ -390,6 +394,8 @@ const Schools: React.FC = () => {
         description: newSchool.description,
         director_name: newSchool.director,
         vice_director_name: newSchool.viceDirector,
+        codigo_escola: newSchool.codigoEscola,
+        telefone_diretor: newSchool.telefoneDiretor
         // image_url: null 
       };
 
@@ -407,7 +413,7 @@ const Schools: React.FC = () => {
         alert('Escola cadastrada com sucesso!');
       }
 
-      setNewSchool({ name: '', region: '', description: '', director: '', viceDirector: '' });
+      setNewSchool({ name: '', region: '', description: '', director: '', viceDirector: '', codigoEscola: '', telefoneDiretor: '' });
       setIsEditingSchool(false);
       setEditingSchoolId(null);
       await fetchSchools();
@@ -475,7 +481,9 @@ const Schools: React.FC = () => {
       region: school.region,
       description: school.description,
       director: school.directorName || '',
-      viceDirector: school.viceDirectorName || ''
+      viceDirector: school.viceDirectorName || '',
+      codigoEscola: school.codigo_escola || '',
+      telefoneDiretor: school.telefone_diretor || ''
     });
     setEditingSchoolId(school.id);
     setIsEditingSchool(true);
@@ -573,6 +581,30 @@ const Schools: React.FC = () => {
                     <option>Campo</option>
                   </select>
                   <span className="absolute right-3 top-3 text-slate-400 material-symbols-outlined pointer-events-none">expand_more</span>
+                </div>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Código da Escola (INEP/MEC)</span>
+                <input
+                  value={newSchool.codigoEscola}
+                  onChange={(e) => setNewSchool({ ...newSchool, codigoEscola: e.target.value })}
+                  className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  placeholder="Ex: 15151515"
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Telefone do Diretor</span>
+                <div className="relative">
+                  <input
+                    value={newSchool.telefoneDiretor}
+                    onChange={(e) => setNewSchool({ ...newSchool, telefoneDiretor: e.target.value })}
+                    className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    placeholder="Ex: (91) 99999-9999"
+                  />
+                  <span className="absolute right-3 top-3 text-slate-400 material-symbols-outlined">call</span>
                 </div>
               </label>
             </div>
@@ -1056,7 +1088,7 @@ const Schools: React.FC = () => {
         <Button
           onClick={() => {
             setIsEditingSchool(false);
-            setNewSchool({ name: '', region: '', description: '', director: '', viceDirector: '' });
+            setNewSchool({ name: '', region: '', description: '', director: '', viceDirector: '', codigoEscola: '', telefoneDiretor: '' });
             // setSchoolImageFile(null);
             setView('create');
           }}
