@@ -157,7 +157,7 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
             setUploading(true);
             try {
                 const fileExt = file.name.split('.').pop();
-                const fileName = `${requestData.protocol_number}_${Math.random()}.${fileExt}`;
+                const fileName = `${requestData.protocol_number}_${Date.now()}.${fileExt}`;
                 const filePath = `autorizacoes/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
@@ -205,7 +205,7 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
                 authorization_file_url: fileUrl
             } as EvaluationRequest);
 
-            alert("Solicitação enviada para o CEES com sucesso!");
+            alert("Sua solicitação e a folha de autorização foram enviadas com sucesso para a Coordenadoria de Educação Especial (CEES)!");
         } catch (err) {
             console.error(err);
             alert("Erro ao enviar solicitação.");
