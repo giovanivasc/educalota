@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Students from './pages/Students';
 import Reports from './pages/Reports';
 import { PublicConsulta } from './pages/PublicConsulta';
+import PublicEvaluationRequest from './pages/PublicEvaluationRequest';
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -53,6 +54,9 @@ const AppRoutes = () => {
 
       {/* Rota Externa com PIN */}
       <Route path="/consulta-equipe" element={<PublicConsulta />} />
+
+      {/* Rota Externa de Solicitação */}
+      <Route path="/solicitacao-avaliacao" element={<PublicEvaluationRequest />} />
 
       {/* Rota de Login sem o Layout */}
       <Route path="/login" element={<Login />} />

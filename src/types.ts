@@ -28,6 +28,8 @@ export interface School {
   active: boolean;
   directorName?: string;
   viceDirectorName?: string;
+  codigo_escola?: string;
+  telefone_diretor?: string;
 }
 
 export interface Class {
@@ -65,6 +67,8 @@ export interface Student {
   needsSupport: string[];
   additionalInfo?: string;
   schoolId?: string;
+  possui_laudo?: boolean;
+  cid_hipotese?: string;
 }
 
 export interface AllotmentRecord {
@@ -74,4 +78,44 @@ export interface AllotmentRecord {
   schoolName: string;
   date: string;
   status: 'Concluído' | 'Pendente';
+}
+
+export type RequestType = 'AVALIACAO' | 'REAVALIACAO' | 'INTERVENCAO';
+export type RequestStatus = 'DRAFT' | 'PENDING_CEES' | 'RETURNED' | 'SCHEDULED' | 'COMPLETED';
+
+export interface EvaluationRequest {
+  id: string;
+  protocol_number: string;
+  request_type: RequestType;
+  school_id: string;
+  student_id?: string;
+
+  student_name: string;
+  student_birth_date: string;
+  student_is_new: boolean;
+  student_previous_school?: string;
+  student_level?: string;
+  student_year_stage?: string;
+  student_class?: string;
+  student_shift?: string;
+  students_in_class?: number;
+  regular_teacher_name?: string;
+  has_specialized_professional: boolean;
+  specialized_professional_type?: string;
+  specialized_professional_name?: string;
+  has_other_special_ed_students: boolean;
+  other_special_ed_students_count?: number;
+  other_special_ed_students_disabilities?: string;
+  responsible_name: string;
+  responsible_phone: string;
+
+  pedagogical_observations?: string;
+  relational_observations?: string;
+  methodological_observations?: string;
+
+  authorization_file_url?: string;
+  status: RequestStatus;
+
+  created_at: string;
+  updated_at: string;
 }
