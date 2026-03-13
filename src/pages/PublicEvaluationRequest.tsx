@@ -37,10 +37,14 @@ export default function PublicEvaluationRequest() {
     const [responsiblePhone, setResponsiblePhone] = useState('');
     const [studentIsNew, setStudentIsNew] = useState('');
     const [studentPreviousSchool, setStudentPreviousSchool] = useState('');
+
+    // Class Related Fields
     const [studentLevel, setStudentLevel] = useState('');
     const [studentYearStage, setStudentYearStage] = useState('');
     const [studentClass, setStudentClass] = useState('');
     const [studentShift, setStudentShift] = useState('');
+    const [classId, setClassId] = useState('');
+
     const [studentsInClass, setStudentsInClass] = useState<number | ''>('');
     const [regularTeacherName, setRegularTeacherName] = useState('');
     const [hasSpecializedProfessional, setHasSpecializedProfessional] = useState('');
@@ -49,6 +53,13 @@ export default function PublicEvaluationRequest() {
     const [hasOtherSpecialEdStudents, setHasOtherSpecialEdStudents] = useState('');
     const [otherSpecialEdStudentsCount, setOtherSpecialEdStudentsCount] = useState<number | ''>('');
     const [otherSpecialEdStudentsDisabilities, setOtherSpecialEdStudentsDisabilities] = useState('');
+
+    // Auto-fill status flags for UI indicators
+    const [autoFilled, setAutoFilled] = useState({
+        studentsInClass: false,
+        specializedProfessional: false,
+        otherSpecialEd: false
+    });
 
     const [loadingSubmit, setLoadingSubmit] = useState(false);
     const [generatedProtocol, setGeneratedProtocol] = useState('');
@@ -68,6 +79,126 @@ export default function PublicEvaluationRequest() {
             setStudentAge('');
         }
     }, [studentBirthDate]);
+
+    // Handle Class Selection Trigger
+    useEffect(() => {
+        if (studentLevel && studentYearStage && studentClass && studentShift) {
+            const foundClass = schoolClasses.find(c =>
+                c.modality === studentLevel &&
+                c.series === studentYearStage &&
+                c.section === studentClass &&
+                c.shift === studentShift
+            );
+            if (foundClass) {
+                setClassId(foundClass.id);
+            } else {
+                setClassId('');
+            }
+        } else {
+            setClassId('');
+        }
+    }, [studentLevel, studentYearStage, studentClass, studentShift, schoolClasses]);
+
+    // Auto-fill Logic when Class ID is found
+    useEffect(() => {
+        if (classId) {
+            fetchClassDetails(classId);
+        } else {
+            // Reset auto-filled fields if class is lost
+            setStudentsInClass('');
+            setHasSpecializedProfessional('');
+            setSpecializedProfessionalType('');
+            setSpecializedProfessionalName('');
+            setHasOtherSpecialEdStudents('');
+            setOtherSpecialEdStudentsCount('');
+            setOtherSpecialEdStudentsDisabilities('');
+            setAutoFilled({ studentsInClass: false, specializedProfessional: false, otherSpecialEd: false });
+        }
+    }, [classId]);
+
+    const fetchClassDetails = async (id: string) => {
+        try {
+            // A) Total de Alunos
+            const { count: studentCount } = await supabase
+                .from('students')
+                .select('*', { count: 'exact', head: true })
+                .eq('class_id', id);
+
+            setStudentsInClass(studentCount || 0);
+
+            // B) Profissionais de Apoio
+            // Support roles to look for
+            const supportRoles = ['Cuidador', 'Mediador', 'Prof. Bilíngue', 'Prof. de Braille', 'Tradutor/Intérprete de Libras', 'Apoio'];
+
+            const { data: allotData } = await supabase
+                .from('allotments')
+                .select('staff:staff_id(name, role)')
+                .eq('class_id', id)
+                .eq('status', 'Concluído');
+
+            const supportStaff = allotData?.find(a => {
+                const staff: any = a.staff;
+                return staff && supportRoles.some(role => staff.role?.includes(role));
+            });
+
+            if (supportStaff) {
+                const staff: any = supportStaff.staff;
+                setHasSpecializedProfessional('SIM');
+                setSpecializedProfessionalType(staff.role);
+                setSpecializedProfessionalName(staff.name);
+                setAutoFilled(prev => ({ ...prev, specializedProfessional: true }));
+            } else {
+                setHasSpecializedProfessional('NÃO');
+                setSpecializedProfessionalType('');
+                setSpecializedProfessionalName('');
+            }
+
+            // C) Alunos da Educação Especial
+            const { data: specEdStudents } = await supabase
+                .from('students')
+                .select('id, possui_laudo, cid_hipotese')
+                .eq('class_id', id)
+                .or('possui_laudo.eq.true,cid_hipotese.neq.""');
+
+            if (specEdStudents && specEdStudents.length > 0) {
+                setHasOtherSpecialEdStudents('SIM');
+                setOtherSpecialEdStudentsCount(specEdStudents.length);
+                const cids = Array.from(new Set(specEdStudents.map(s => s.cid_hipotese).filter(Boolean)));
+                setOtherSpecialEdStudentsDisabilities(cids.join(', '));
+                setAutoFilled(prev => ({ ...prev, otherSpecialEd: true, studentsInClass: true }));
+            } else {
+                setHasOtherSpecialEdStudents('NÃO');
+                setOtherSpecialEdStudentsCount('');
+                setOtherSpecialEdStudentsDisabilities('');
+                setAutoFilled(prev => ({ ...prev, studentsInClass: true }));
+            }
+
+        } catch (err) {
+            console.error("Error auto-filling class data:", err);
+        }
+    };
+
+    // Derived unique options
+    const modalities = Array.from(new Set(schoolClasses.map(c => c.modality))).filter(Boolean).sort();
+
+    // Filtered options based on selections
+    const availableSeries = Array.from(new Set(
+        schoolClasses
+            .filter(c => c.modality === studentLevel)
+            .map(c => c.series)
+    )).filter(Boolean).sort();
+
+    const availableSections = Array.from(new Set(
+        schoolClasses
+            .filter(c => c.modality === studentLevel && c.series === studentYearStage)
+            .map(c => c.section)
+    )).filter(Boolean).sort();
+
+    const availableShifts = Array.from(new Set(
+        schoolClasses
+            .filter(c => c.modality === studentLevel && c.series === studentYearStage && c.section === studentClass)
+            .map(c => c.shift)
+    )).filter(Boolean).sort();
 
     // Mode Selection
     const handleSelectMode = (selectedMode: RequestMode) => {
@@ -103,7 +234,7 @@ export default function PublicEvaluationRequest() {
             // Verificar AEE na escola através da tabela classes ou staff/lotações
             const { data: classesData } = await supabase
                 .from('classes')
-                .select('modality')
+                .select('*')
                 .eq('school_id', school.id);
 
             const temSrm = classesData?.some(c => c.modality === 'AEE' || c.modality === 'Educação Especial') || false;
@@ -114,19 +245,20 @@ export default function PublicEvaluationRequest() {
                 .from('staff')
                 .select('name, role')
                 .eq('school_id', school.id)
-                .in('role', ['Professor AEE', 'Prof. Sala Recurso']); // Assuming straightforward binding or fallback
+                .in('role', ['Professor AEE', 'Prof. Sala Recurso']);
 
-            // Or from allotments mapping
+            const aeeNames: string[] = [];
+            staffData?.forEach(s => {
+                if (s.role.includes('AEE')) aeeNames.push(s.name);
+            });
+
+            // From allotments mapping
             const { data: allotData } = await supabase
                 .from('allotments')
                 .select('staff:staff_id(name, role)')
                 .eq('school_id', school.id)
                 .eq('status', 'Concluído');
 
-            const aeeNames: string[] = [];
-            staffData?.forEach(s => {
-                if (s.role.includes('AEE')) aeeNames.push(s.name);
-            });
             allotData?.forEach(a => {
                 const staff: any = a.staff;
                 if (staff && staff.role && staff.role.includes('AEE') && !aeeNames.includes(staff.name)) {
@@ -161,7 +293,7 @@ export default function PublicEvaluationRequest() {
             // Fetch classes to populate dropdowns
             const { data: classesData } = await supabase
                 .from('classes')
-                .select('series, section, shift')
+                .select('id, series, section, shift, modality')
                 .eq('school_id', schoolData.id);
 
             setSchoolClasses(classesData || []);
@@ -252,6 +384,13 @@ export default function PublicEvaluationRequest() {
             setLoadingSubmit(false);
         }
     };
+
+    const AutoFillIndicator = () => (
+        <span className="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase tracking-tighter animate-pulse">
+            <span className="material-symbols-outlined text-[14px]">bolt</span>
+            Carregado do sistema
+        </span>
+    );
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-primary/20 flex flex-col items-center py-10 px-4">
@@ -561,58 +700,77 @@ export default function PublicEvaluationRequest() {
                                     </div>
 
                                     <label className="flex flex-col gap-2">
-                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Etapa de Ensino *</span>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Etapa de Ensino *</span>
+                                            {studentLevel && modalities.length > 0 && <span className="text-[10px] text-emerald-500 font-bold">Filtro Ativo</span>}
+                                        </div>
                                         <select
                                             required
                                             value={studentLevel}
-                                            onChange={(e) => setStudentLevel(e.target.value)}
+                                            onChange={(e) => {
+                                                setStudentLevel(e.target.value);
+                                                setStudentYearStage('');
+                                                setStudentClass('');
+                                                setStudentShift('');
+                                            }}
                                             className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
                                         >
                                             <option value="">Selecione a etapa...</option>
-                                            <option value="Educação Infantil">Educação Infantil</option>
-                                            <option value="EF Anos Iniciais">EF Anos Iniciais</option>
-                                            <option value="EF Anos Finais">EF Anos Finais</option>
-                                            <option value="EJA">EJA</option>
+                                            {modalities.length > 0 ? (
+                                                modalities.map(m => <option key={m} value={m}>{m}</option>)
+                                            ) : (
+                                                <>
+                                                    <option value="Educação Infantil">Educação Infantil</option>
+                                                    <option value="EF Anos Iniciais">EF Anos Iniciais</option>
+                                                    <option value="EF Anos Finais">EF Anos Finais</option>
+                                                    <option value="EJA">EJA</option>
+                                                </>
+                                            )}
                                         </select>
                                     </label>
 
                                     <div className="grid grid-cols-3 gap-4 md:col-span-2">
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-bold flex items-center justify-between text-slate-700 dark:text-slate-300">Ano/Série </span>
-                                            <input
-                                                list="series-list"
-                                                value={studentYearStage}
-                                                onChange={e => setStudentYearStage(e.target.value)}
-                                                className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: 5º Ano"
-                                            />
-                                            <datalist id="series-list">
-                                                {Array.from(new Set(schoolClasses.map(c => c.series))).map(s => <option key={s} value={s} />)}
-                                            </datalist>
-                                        </label>
-                                        <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Turma</span>
-                                            <input
-                                                list="classes-list"
-                                                value={studentClass}
-                                                onChange={e => setStudentClass(e.target.value)}
-                                                className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: 501 / A"
-                                            />
-                                            <datalist id="classes-list">
-                                                {Array.from(new Set(schoolClasses.map(c => c.section))).map(s => <option key={s} value={s} />)}
-                                            </datalist>
-                                        </label>
-                                        <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Turno</span>
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Ano/Série *</span>
                                             <select
-                                                value={studentShift}
-                                                onChange={e => setStudentShift(e.target.value)}
+                                                required
+                                                value={studentYearStage}
+                                                onChange={(e) => {
+                                                    setStudentYearStage(e.target.value);
+                                                    setStudentClass('');
+                                                    setStudentShift('');
+                                                }}
                                                 className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
                                             >
                                                 <option value="">Selecione...</option>
-                                                <option value="Manhã">Manhã</option>
-                                                <option value="Tarde">Tarde</option>
-                                                <option value="Noite">Noite</option>
-                                                <option value="Integral">Integral</option>
+                                                {availableSeries.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                        </label>
+                                        <label className="flex flex-col gap-2">
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Turma *</span>
+                                            <select
+                                                required
+                                                value={studentClass}
+                                                onChange={(e) => {
+                                                    setStudentClass(e.target.value);
+                                                    setStudentShift('');
+                                                }}
+                                                className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                {availableSections.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                        </label>
+                                        <label className="flex flex-col gap-2">
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Turno *</span>
+                                            <select
+                                                required
+                                                value={studentShift}
+                                                onChange={(e) => setStudentShift(e.target.value)}
+                                                className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                {availableShifts.map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
                                         </label>
                                     </div>
@@ -629,12 +787,18 @@ export default function PublicEvaluationRequest() {
                                     </label>
 
                                     <label className="flex flex-col gap-2">
-                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Qtd. de Alunos na Turma *</span>
+                                        <div className="flex justify-between items-center h-5">
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Qtd. de Alunos na Turma *</span>
+                                            {autoFilled.studentsInClass && <AutoFillIndicator />}
+                                        </div>
                                         <input
                                             type="number"
                                             min={1}
                                             value={studentsInClass}
-                                            onChange={(e) => setStudentsInClass(e.target.value ? Number(e.target.value) : '')}
+                                            onChange={(e) => {
+                                                setStudentsInClass(e.target.value ? Number(e.target.value) : '');
+                                                setAutoFilled(prev => ({ ...prev, studentsInClass: false }));
+                                            }}
                                             className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
                                             required
                                         />
@@ -642,14 +806,23 @@ export default function PublicEvaluationRequest() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2 bg-slate-100/50 dark:bg-slate-800/50 p-4 border border-slate-200 dark:border-slate-700 rounded-xl mt-2">
                                         <label className="flex flex-col gap-2 md:col-span-2">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">A turma tem profissional especializado de apoio? *</span>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">A turma tem profissional especializado de apoio? *</span>
+                                                {autoFilled.specializedProfessional && <AutoFillIndicator />}
+                                            </div>
                                             <div className="flex gap-4 items-center">
                                                 <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="radio" value="SIM" name="hasProfSelect" required checked={hasSpecializedProfessional === 'SIM'} onChange={(e) => setHasSpecializedProfessional(e.target.value)} />
+                                                    <input type="radio" value="SIM" name="hasProfSelect" required checked={hasSpecializedProfessional === 'SIM'} onChange={(e) => {
+                                                        setHasSpecializedProfessional(e.target.value);
+                                                        setAutoFilled(prev => ({ ...prev, specializedProfessional: false }));
+                                                    }} />
                                                     <span className="dark:text-slate-300">Sim</span>
                                                 </label>
                                                 <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="radio" value="NÃO" name="hasProfSelect" required checked={hasSpecializedProfessional === 'NÃO'} onChange={(e) => setHasSpecializedProfessional(e.target.value)} />
+                                                    <input type="radio" value="NÃO" name="hasProfSelect" required checked={hasSpecializedProfessional === 'NÃO'} onChange={(e) => {
+                                                        setHasSpecializedProfessional(e.target.value);
+                                                        setAutoFilled(prev => ({ ...prev, specializedProfessional: false }));
+                                                    }} />
                                                     <span className="dark:text-slate-300">Não</span>
                                                 </label>
                                             </div>
@@ -671,6 +844,7 @@ export default function PublicEvaluationRequest() {
                                                         <option value="Prof. Bilíngue">Prof. Bilíngue</option>
                                                         <option value="Prof. de Braille">Prof. de Braille</option>
                                                         <option value="Tradutor/Intérprete de Libras">Tradutor/Intérprete de Libras</option>
+                                                        <option value="Apoio">Apoio</option>
                                                     </select>
                                                 </label>
                                                 <label className="flex flex-col gap-2 animate-in fade-in">
@@ -689,14 +863,23 @@ export default function PublicEvaluationRequest() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2 bg-slate-100/50 dark:bg-slate-800/50 p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
                                         <label className="flex flex-col gap-2 md:col-span-2">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Há outros alunos da Ed. Especial na sala comum?</span>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Há outros alunos da Ed. Especial na sala comum?</span>
+                                                {autoFilled.otherSpecialEd && <AutoFillIndicator />}
+                                            </div>
                                             <div className="flex gap-4 items-center">
                                                 <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="radio" value="SIM" name="hasOtherSpEd" checked={hasOtherSpecialEdStudents === 'SIM'} onChange={(e) => setHasOtherSpecialEdStudents(e.target.value)} />
+                                                    <input type="radio" value="SIM" name="hasOtherSpEd" checked={hasOtherSpecialEdStudents === 'SIM'} onChange={(e) => {
+                                                        setHasOtherSpecialEdStudents(e.target.value);
+                                                        setAutoFilled(prev => ({ ...prev, otherSpecialEd: false }));
+                                                    }} />
                                                     <span className="dark:text-slate-300">Sim</span>
                                                 </label>
                                                 <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="radio" value="NÃO" name="hasOtherSpEd" checked={hasOtherSpecialEdStudents === 'NÃO'} onChange={(e) => setHasOtherSpecialEdStudents(e.target.value)} />
+                                                    <input type="radio" value="NÃO" name="hasOtherSpEd" checked={hasOtherSpecialEdStudents === 'NÃO'} onChange={(e) => {
+                                                        setHasOtherSpecialEdStudents(e.target.value);
+                                                        setAutoFilled(prev => ({ ...prev, otherSpecialEd: false }));
+                                                    }} />
                                                     <span className="dark:text-slate-300">Não</span>
                                                 </label>
                                             </div>
@@ -705,7 +888,7 @@ export default function PublicEvaluationRequest() {
                                         {hasOtherSpecialEdStudents === 'SIM' && (
                                             <>
                                                 <label className="flex flex-col gap-2 animate-in fade-in">
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Aproximadamente Quantos?</span>
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Qtd. Alunos Especial</span>
                                                     <input
                                                         type="number"
                                                         min={1}
@@ -715,7 +898,7 @@ export default function PublicEvaluationRequest() {
                                                     />
                                                 </label>
                                                 <label className="flex flex-col gap-2 animate-in fade-in">
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Quais Deficiências?</span>
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Deficiências / CIDs</span>
                                                     <input
                                                         type="text"
                                                         value={otherSpecialEdStudentsDisabilities}
