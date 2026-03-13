@@ -56,7 +56,6 @@ export default function PublicEvaluationRequest() {
 
     // Auto-fill status flags for UI indicators
     const [autoFilled, setAutoFilled] = useState({
-        studentsInClass: false,
         specializedProfessional: false,
         otherSpecialEd: false
     });
@@ -80,54 +79,28 @@ export default function PublicEvaluationRequest() {
         }
     }, [studentBirthDate]);
 
-    // Handle Class Selection Trigger
-    useEffect(() => {
-        if (studentLevel && studentYearStage && studentClass && studentShift) {
-            const foundClass = schoolClasses.find(c =>
-                c.modality === studentLevel &&
-                c.series === studentYearStage &&
-                c.section === studentClass &&
-                c.shift === studentShift
-            );
-            if (foundClass) {
-                setClassId(foundClass.id);
-            } else {
-                setClassId('');
-            }
-        } else {
-            setClassId('');
-        }
-    }, [studentLevel, studentYearStage, studentClass, studentShift, schoolClasses]);
-
-    // Auto-fill Logic when Class ID is found
+    // Auto-fill Logic when Class ID is selected
     useEffect(() => {
         if (classId) {
             fetchClassDetails(classId);
         } else {
             // Reset auto-filled fields if class is lost
-            setStudentsInClass('');
+            // Note: Keep studentsInClass as is since it's manual
             setHasSpecializedProfessional('');
             setSpecializedProfessionalType('');
             setSpecializedProfessionalName('');
             setHasOtherSpecialEdStudents('');
             setOtherSpecialEdStudentsCount('');
             setOtherSpecialEdStudentsDisabilities('');
-            setAutoFilled({ studentsInClass: false, specializedProfessional: false, otherSpecialEd: false });
+            setAutoFilled({ specializedProfessional: false, otherSpecialEd: false });
         }
     }, [classId]);
 
     const fetchClassDetails = async (id: string) => {
         try {
-            // A) Total de Alunos
-            const { count: studentCount } = await supabase
-                .from('students')
-                .select('*', { count: 'exact', head: true })
-                .eq('class_id', id);
+            // Ajuste 2: Qtd. de Alunos na Turma agora é MANUAL. Removendo preenchimento automático.
 
-            setStudentsInClass(studentCount || 0);
-
-            // B) Profissionais de Apoio
-            // Support roles to look for
+            // Ajuste 3: Detalhamento do Profissional de Apoio
             const supportRoles = ['Cuidador', 'Mediador', 'Prof. Bilíngue', 'Prof. de Braille', 'Tradutor/Intérprete de Libras', 'Apoio'];
 
             const { data: allotData } = await supabase
@@ -136,41 +109,51 @@ export default function PublicEvaluationRequest() {
                 .eq('class_id', id)
                 .eq('status', 'Concluído');
 
-            const supportStaff = allotData?.find(a => {
+            const supports = allotData?.filter(a => {
                 const staff: any = a.staff;
                 return staff && supportRoles.some(role => staff.role?.includes(role));
-            });
+            }) || [];
 
-            if (supportStaff) {
-                const staff: any = supportStaff.staff;
+            if (supports.length > 0) {
+                const roles = Array.from(new Set(supports.map(a => (a.staff as any).role))).join(', ');
+                const names = supports.map(a => (a.staff as any).name).join(', ');
+
                 setHasSpecializedProfessional('SIM');
-                setSpecializedProfessionalType(staff.role);
-                setSpecializedProfessionalName(staff.name);
+                setSpecializedProfessionalType(roles);
+                setSpecializedProfessionalName(names);
                 setAutoFilled(prev => ({ ...prev, specializedProfessional: true }));
             } else {
                 setHasSpecializedProfessional('NÃO');
                 setSpecializedProfessionalType('');
                 setSpecializedProfessionalName('');
+                setAutoFilled(prev => ({ ...prev, specializedProfessional: false }));
             }
 
-            // C) Alunos da Educação Especial
-            const { data: specEdStudents } = await supabase
+            // Ajuste 4: Detalhamento dos Outros Alunos da Ed. Especial
+            // Excluindo o aluno que está sendo avaliado (se selecionado via studentId)
+            let query = supabase
                 .from('students')
                 .select('id, possui_laudo, cid_hipotese')
                 .eq('class_id', id)
                 .or('possui_laudo.eq.true,cid_hipotese.neq.""');
+
+            if (studentId) {
+                query = query.neq('id', studentId);
+            }
+
+            const { data: specEdStudents } = await query;
 
             if (specEdStudents && specEdStudents.length > 0) {
                 setHasOtherSpecialEdStudents('SIM');
                 setOtherSpecialEdStudentsCount(specEdStudents.length);
                 const cids = Array.from(new Set(specEdStudents.map(s => s.cid_hipotese).filter(Boolean)));
                 setOtherSpecialEdStudentsDisabilities(cids.join(', '));
-                setAutoFilled(prev => ({ ...prev, otherSpecialEd: true, studentsInClass: true }));
+                setAutoFilled(prev => ({ ...prev, otherSpecialEd: true }));
             } else {
                 setHasOtherSpecialEdStudents('NÃO');
                 setOtherSpecialEdStudentsCount('');
                 setOtherSpecialEdStudentsDisabilities('');
-                setAutoFilled(prev => ({ ...prev, studentsInClass: true }));
+                setAutoFilled(prev => ({ ...prev, otherSpecialEd: false }));
             }
 
         } catch (err) {
@@ -178,27 +161,8 @@ export default function PublicEvaluationRequest() {
         }
     };
 
-    // Derived unique options
+    // Derived unique options for levels
     const modalities = Array.from(new Set(schoolClasses.map(c => c.modality))).filter(Boolean).sort();
-
-    // Filtered options based on selections
-    const availableSeries = Array.from(new Set(
-        schoolClasses
-            .filter(c => c.modality === studentLevel)
-            .map(c => c.series)
-    )).filter(Boolean).sort();
-
-    const availableSections = Array.from(new Set(
-        schoolClasses
-            .filter(c => c.modality === studentLevel && c.series === studentYearStage)
-            .map(c => c.section)
-    )).filter(Boolean).sort();
-
-    const availableShifts = Array.from(new Set(
-        schoolClasses
-            .filter(c => c.modality === studentLevel && c.series === studentYearStage && c.section === studentClass)
-            .map(c => c.shift)
-    )).filter(Boolean).sort();
 
     // Mode Selection
     const handleSelectMode = (selectedMode: RequestMode) => {
@@ -307,7 +271,7 @@ export default function PublicEvaluationRequest() {
         }
     };
 
-    // Step 3: Populate from select
+    // Step 3: Populate from student select
     const handleStudentSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = e.target.value;
         setStudentId(id);
@@ -329,7 +293,7 @@ export default function PublicEvaluationRequest() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!studentName || !studentBirthDate || !possuiLaudo || !responsibleName || !responsiblePhone || !studentIsNew || !studentLevel || !studentsInClass || !regularTeacherName || !hasSpecializedProfessional) {
+        if (!studentName || !studentBirthDate || !possuiLaudo || !responsibleName || !responsiblePhone || !studentIsNew || !studentLevel || !studentsInClass || !regularTeacherName || !hasSpecializedProfessional || !classId) {
             return alert("Preencha todos os campos obrigatórios marcados com *.");
         }
 
@@ -709,6 +673,7 @@ export default function PublicEvaluationRequest() {
                                             value={studentLevel}
                                             onChange={(e) => {
                                                 setStudentLevel(e.target.value);
+                                                setClassId('');
                                                 setStudentYearStage('');
                                                 setStudentClass('');
                                                 setStudentShift('');
@@ -729,51 +694,38 @@ export default function PublicEvaluationRequest() {
                                         </select>
                                     </label>
 
-                                    <div className="grid grid-cols-3 gap-4 md:col-span-2">
-                                        <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Ano/Série *</span>
-                                            <select
-                                                required
-                                                value={studentYearStage}
-                                                onChange={(e) => {
-                                                    setStudentYearStage(e.target.value);
+                                    {/* Ajuste 1: Seletor de Turma Unificado */}
+                                    <label className="flex flex-col gap-2 md:col-span-2">
+                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Turma *</span>
+                                        <select
+                                            required
+                                            value={classId}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setClassId(val);
+                                                const found = schoolClasses.find(c => c.id === val);
+                                                if (found) {
+                                                    setStudentYearStage(found.series);
+                                                    setStudentClass(found.section);
+                                                    setStudentShift(found.shift);
+                                                } else {
+                                                    setStudentYearStage('');
                                                     setStudentClass('');
                                                     setStudentShift('');
-                                                }}
-                                                className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
-                                            >
-                                                <option value="">Selecione...</option>
-                                                {availableSeries.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        </label>
-                                        <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Turma *</span>
-                                            <select
-                                                required
-                                                value={studentClass}
-                                                onChange={(e) => {
-                                                    setStudentClass(e.target.value);
-                                                    setStudentShift('');
-                                                }}
-                                                className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
-                                            >
-                                                <option value="">Selecione...</option>
-                                                {availableSections.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        </label>
-                                        <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Turno *</span>
-                                            <select
-                                                required
-                                                value={studentShift}
-                                                onChange={(e) => setStudentShift(e.target.value)}
-                                                className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
-                                            >
-                                                <option value="">Selecione...</option>
-                                                {availableShifts.map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        </label>
-                                    </div>
+                                                }
+                                            }}
+                                            className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
+                                        >
+                                            <option value="">Selecione a turma...</option>
+                                            {schoolClasses
+                                                .filter(c => !studentLevel || c.modality === studentLevel)
+                                                .map(c => (
+                                                    <option key={c.id} value={c.id}>
+                                                        {c.series} - Turma {c.section} - {c.shift}
+                                                    </option>
+                                                ))}
+                                        </select>
+                                    </label>
 
                                     <label className="flex flex-col gap-2">
                                         <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Professor Regente da Turma *</span>
@@ -786,24 +738,21 @@ export default function PublicEvaluationRequest() {
                                         />
                                     </label>
 
+                                    {/* Ajuste 2: Qtd. de Alunos na Turma (Manual) */}
                                     <label className="flex flex-col gap-2">
-                                        <div className="flex justify-between items-center h-5">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Qtd. de Alunos na Turma *</span>
-                                            {autoFilled.studentsInClass && <AutoFillIndicator />}
-                                        </div>
+                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Qtd. de Alunos na Turma *</span>
                                         <input
                                             type="number"
                                             min={1}
                                             value={studentsInClass}
-                                            onChange={(e) => {
-                                                setStudentsInClass(e.target.value ? Number(e.target.value) : '');
-                                                setAutoFilled(prev => ({ ...prev, studentsInClass: false }));
-                                            }}
+                                            onChange={(e) => setStudentsInClass(e.target.value ? Number(e.target.value) : '')}
                                             className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary/20"
                                             required
+                                            placeholder="Digite o total de alunos"
                                         />
                                     </label>
 
+                                    {/* Ajuste 3: Detalhamento do Profissional de Apoio */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2 bg-slate-100/50 dark:bg-slate-800/50 p-4 border border-slate-200 dark:border-slate-700 rounded-xl mt-2">
                                         <label className="flex flex-col gap-2 md:col-span-2">
                                             <div className="flex justify-between items-center">
@@ -831,36 +780,32 @@ export default function PublicEvaluationRequest() {
                                         {hasSpecializedProfessional === 'SIM' && (
                                             <>
                                                 <label className="flex flex-col gap-2 animate-in fade-in">
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Função *</span>
-                                                    <select
-                                                        required
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Função/Cargos *</span>
+                                                    <input
+                                                        type="text"
                                                         value={specializedProfessionalType}
+                                                        required
                                                         onChange={(e) => setSpecializedProfessionalType(e.target.value)}
                                                         className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20"
-                                                    >
-                                                        <option value="">Selecione...</option>
-                                                        <option value="Mediador">Mediador</option>
-                                                        <option value="Cuidador">Cuidador</option>
-                                                        <option value="Prof. Bilíngue">Prof. Bilíngue</option>
-                                                        <option value="Prof. de Braille">Prof. de Braille</option>
-                                                        <option value="Tradutor/Intérprete de Libras">Tradutor/Intérprete de Libras</option>
-                                                        <option value="Apoio">Apoio</option>
-                                                    </select>
+                                                        placeholder="Ex: Cuidador, Mediador"
+                                                    />
                                                 </label>
                                                 <label className="flex flex-col gap-2 animate-in fade-in">
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Nome do Profissional *</span>
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Nome(s) do(s) Profissional(is) *</span>
                                                     <input
                                                         type="text"
                                                         value={specializedProfessionalName}
                                                         required
                                                         onChange={(e) => setSpecializedProfessionalName(e.target.value)}
                                                         className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20"
+                                                        placeholder="Ex: João, Maria"
                                                     />
                                                 </label>
                                             </>
                                         )}
                                     </div>
 
+                                    {/* Ajuste 4: Detalhamento dos Outros Alunos da Ed. Especial */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2 bg-slate-100/50 dark:bg-slate-800/50 p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
                                         <label className="flex flex-col gap-2 md:col-span-2">
                                             <div className="flex justify-between items-center">
@@ -898,12 +843,13 @@ export default function PublicEvaluationRequest() {
                                                     />
                                                 </label>
                                                 <label className="flex flex-col gap-2 animate-in fade-in">
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Deficiências / CIDs</span>
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">CIDs / Hipóteses</span>
                                                     <input
                                                         type="text"
                                                         value={otherSpecialEdStudentsDisabilities}
                                                         onChange={(e) => setOtherSpecialEdStudentsDisabilities(e.target.value)}
                                                         className="h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20"
+                                                        placeholder="Ex: F84.0, F90.0"
                                                     />
                                                 </label>
                                             </>
