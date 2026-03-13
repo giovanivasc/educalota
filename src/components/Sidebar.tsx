@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { ClipboardCheck } from 'lucide-react';
 import { User } from '../types';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
 import dashboardIcon from '../assets/icons/dashboard-icon.png';
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
             '/students': 'students',
             '/allotment': 'allotment',
             '/reports': 'reports', // Assume reports access
+            '/gestao-cees': 'admin', // Acesso para CEES/admin
             '/access': 'admin',
             '/system': 'admin'
         };
@@ -68,6 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
         { path: '/schools', label: 'Escolas', icon: schoolsIcon, isImage: true },
         { path: '/staff', label: 'Profissionais', icon: staffIcon, isImage: true },
         { path: '/students', label: 'Estudantes', icon: studentsIcon, isImage: true },
+        { path: '/gestao-cees', label: 'Avaliações CEES', icon: ClipboardCheck, isImage: false, isLucide: true },
         { path: '/allotment', label: 'Lotação', icon: allotmentIcon, isImage: true },
         { path: '/reports', label: 'Relatórios', icon: reportsIcon, isImage: true },
     ].filter(item => hasPermission(item.path));
@@ -101,9 +104,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
                         >
                             {/* @ts-ignore */}
                             {(item as any).isImage ? (
-                                <img src={item.icon} alt={item.label} className="w-6 h-6 object-contain" />
+                                <img src={item.icon as string} alt={item.label} className="w-6 h-6 object-contain" />
+                            ) : (item as any).isLucide ? (
+                                React.createElement(item.icon, { className: "w-6 h-6" })
                             ) : (
-                                <span className="material-symbols-outlined">{item.icon}</span>
+                                <span className="material-symbols-outlined">{item.icon as string}</span>
                             )}
                             {isOpen && <span className="text-sm font-medium">{item.label}</span>}
                         </NavLink>
@@ -127,9 +132,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
                         >
                             {/* @ts-ignore */}
                             {(item as any).isImage ? (
-                                <img src={item.icon} alt={item.label} className="w-6 h-6 object-contain" />
+                                <img src={item.icon as string} alt={item.label} className="w-6 h-6 object-contain" />
+                            ) : (item as any).isLucide ? (
+                                React.createElement(item.icon as any, { className: "w-6 h-6" })
                             ) : (
-                                <span className="material-symbols-outlined">{item.icon}</span>
+                                <span className="material-symbols-outlined">{item.icon as string}</span>
                             )}
                             {isOpen && <span className="text-sm font-medium">{item.label}</span>}
                         </NavLink>

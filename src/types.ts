@@ -115,6 +115,8 @@ export interface EvaluationRequest {
 
   authorization_file_url?: string;
   status: RequestStatus;
+  return_reason?: string;
+  evaluation_date?: string;
 
   created_at: string;
   updated_at: string;

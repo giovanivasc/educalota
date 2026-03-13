@@ -17,6 +17,7 @@ import Students from './pages/Students';
 import Reports from './pages/Reports';
 import { PublicConsulta } from './pages/PublicConsulta';
 import PublicEvaluationRequest from './pages/PublicEvaluationRequest';
+import CeesManagement from './pages/CeesManagement';
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -72,6 +73,7 @@ const AppRoutes = () => {
               <Route path="allotment" element={<Allotment />} />
               <Route path="students" element={<Students />} />
               <Route path="reports" element={<Reports />} />
+              <Route path="gestao-cees" element={<CeesManagement />} />
               <Route path="access" element={<Access />} />
               <Route path="system" element={<div className="p-8 text-center text-slate-500">Configurações do Sistema (Em desenvolvimento)</div>} />
               {/* Catch-all dentro do app redireciona para dashboard */}
