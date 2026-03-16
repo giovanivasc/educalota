@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { normalizeText } from '../lib/stringUtils';
+import { sortClasses } from '../lib/sorting';
 
 // Interfazes originais
 interface ClassData {
@@ -88,7 +89,7 @@ export const PublicConsulta: React.FC = () => {
             if (schoolsData) setSchools(schoolsData.sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name))));
 
             const { data: classesData } = await supabase.from('classes').select('id, school_id, shift, series, section');
-            if (classesData) setClasses(classesData);
+            if (classesData) setClasses(classesData.sort(sortClasses));
         } catch (e) {
             console.error('Erro ao buscar filtros base:', e);
         }
