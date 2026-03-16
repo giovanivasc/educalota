@@ -17,7 +17,7 @@ const Access: React.FC = () => {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('VISITANTE');
+  const [role, setRole] = useState('ASSESSOR');
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -57,7 +57,7 @@ const Access: React.FC = () => {
     setSelectedUser(user);
     setEmail(user.email);
     setPassword(''); // Não mostramos a senha existente
-    setRole(user.role || 'VISITANTE');
+    setRole(user.role || 'ASSESSOR');
     setPermissions(user.permissions || []);
   };
 
@@ -65,7 +65,7 @@ const Access: React.FC = () => {
     setSelectedUser(null);
     setEmail('');
     setPassword('');
-    setRole('VISITANTE');
+    setRole('ASSESSOR');
     setPermissions([]);
   };
 
@@ -229,7 +229,7 @@ const Access: React.FC = () => {
                   <option value="ADMIN">ADMIN (Acesso Total)</option>
                   <option value="SECRETARIO">SECRETÁRIO (Lotação/RH)</option>
                   <option value="DIRETOR">DIRETOR (Acompanhamento)</option>
-                  <option value="VISITANTE">VISITANTE (Visualização)</option>
+                  <option value="ASSESSOR">ASSESSOR (Visualização)</option>
                 </select>
               </div>
             </div>

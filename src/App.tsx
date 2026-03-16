@@ -44,7 +44,7 @@ const AppRoutes = () => {
     id: 'guest',
     name: 'Convidado',
     email: 'guest@educalota.com',
-    role: UserRole.VISITANTE,
+    role: UserRole.ASSESSOR,
     avatar: ''
   };
 
