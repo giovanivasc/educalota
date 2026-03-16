@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { sortClasses } from '../lib/sorting';
 import { normalizeText } from '../lib/stringUtils';
+import { useAuth } from '../contexts/AuthContext';
 import { generateExcel, generateDoc, generatePDF, generatePendingPDF, generateRealizedPDF } from '../lib/reports';
 
 const Allotment: React.FC = () => {
@@ -12,6 +13,12 @@ const Allotment: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [existingAllotments, setExistingAllotments] = useState<any[]>([]); // New state for existing allotments
+
+  const { user } = useAuth();
+  const currentUserInfo = user ? {
+    name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+    email: user.email || ''
+  } : { name: 'Sistema', email: '' };
 
   const [selectedSchool, setSelectedSchool] = useState('');
   const [classes, setClasses] = useState<any[]>([]);
@@ -420,6 +427,20 @@ const Allotment: React.FC = () => {
       const { error } = await supabase.from('allotments').delete().eq('id', allotmentId);
       if (error) throw error;
 
+      // Historico de remoção
+      await supabase.from('allotment_history').insert({
+        allotment_id: allotmentId,
+        staff_id: allotment.staff_id,
+        staff_name: allotment.staff_name,
+        school_name: allotment.school_name,
+        class_name: '', // Pode pegar detalhes se precisar, mas simplificado aqui
+        action_type: 'Remoção',
+        previous_value: `Carga/Cargo: ${allotment.staff_role}`,
+        new_value: 'Removida',
+        user_name: currentUserInfo.name,
+        user_email: currentUserInfo.email
+      });
+
       // Restore Staff Availability (Increment)
       // Parse hours from staff_role if stored there (Fallback to 0 if not present)
       // Format expected: "Role - 100h"
@@ -673,8 +694,34 @@ const Allotment: React.FC = () => {
       // Let's stick to inserting Staff Allotments.
 
       if (inserts.length > 0) {
-        const { error } = await supabase.from('allotments').insert(inserts);
+        const { data: insertedAllotments, error } = await supabase.from('allotments').insert(inserts).select();
         if (error) throw error;
+        
+        // Histórico de criação
+        if (insertedAllotments && insertedAllotments.length > 0) {
+            const historyInserts = insertedAllotments.map(allot => {
+                let classNameStr = '';
+                if (allot.class_id) {
+                    const clsRef = classes.find(c => c.id === allot.class_id);
+                    classNameStr = clsRef ? `${clsRef.series} ${clsRef.section ? '- ' + clsRef.section : ''} - ${clsRef.shift}` : '';
+                }
+
+                return {
+                    allotment_id: allot.id,
+                    staff_id: allot.staff_id,
+                    staff_name: allot.staff_name,
+                    school_name: allot.school_name,
+                    class_name: classNameStr,
+                    action_type: 'Nova Lotação',
+                    previous_value: '',
+                    new_value: `Carga/Cargo: ${allot.staff_role} - Data: ${allot.date}`,
+                    user_name: currentUserInfo.name,
+                    user_email: currentUserInfo.email
+                };
+            });
+            await supabase.from('allotment_history').insert(historyInserts);
+        }
+
         alert('Lotação realizada com sucesso!');
         setSelectedStaff([]);
         setStaffWorkloads({});
@@ -1719,6 +1766,19 @@ const Allotment: React.FC = () => {
                                         alert('Erro ao atualizar saldo do servidor.');
                                       }
 
+                                      // Historico
+                                      await supabase.from('allotment_history').insert({
+                                        allotment_id: allotment.id,
+                                        staff_id: allotment.staff_id,
+                                        staff_name: allotment.staff_name,
+                                        school_name: allotment.school_name,
+                                        action_type: 'Alteração de Carga Horária',
+                                        previous_value: `${oldHours}h`,
+                                        new_value: `${newHours}h`,
+                                        user_name: currentUserInfo.name,
+                                        user_email: currentUserInfo.email
+                                      });
+
                                       setExistingAllotments(prev => prev.map(a => a.id === allotment.id ? { ...a, staff_role: newRoleString } : a));
                                       setStaffList(prev => prev.map(s => s.id === staffId ? { ...s, hoursAvailable: newAvailable } : s));
                                       
@@ -1741,8 +1801,21 @@ const Allotment: React.FC = () => {
                                     // Regex validation roughly DD/MM/YYYY
                                     if (newDate && /^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) {
                                       supabase.from('allotments').update({ date: newDate }).eq('id', allotment.id)
-                                        .then(({ error }) => {
+                                        .then(async ({ error }) => {
                                           if (!error) {
+                                            // Historico
+                                            await supabase.from('allotment_history').insert({
+                                              allotment_id: allotment.id,
+                                              staff_id: allotment.staff_id,
+                                              staff_name: allotment.staff_name,
+                                              school_name: allotment.school_name,
+                                              action_type: 'Alteração de Data',
+                                              previous_value: allotment.date,
+                                              new_value: newDate,
+                                              user_name: currentUserInfo.name,
+                                              user_email: currentUserInfo.email
+                                            });
+
                                             setExistingAllotments(prev => prev.map(a => a.id === allotment.id ? { ...a, date: newDate } : a));
                                           } else {
                                             alert('Erro ao atualizar data.');

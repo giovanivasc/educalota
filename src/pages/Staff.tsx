@@ -44,6 +44,11 @@ const StaffPage: React.FC = () => {
   const [editingAllotmentId, setEditingAllotmentId] = useState<string | null>(null);
   const [newWorkload, setNewWorkload] = useState<number>(0);
 
+  // View History State
+  const [viewHistoryId, setViewHistoryId] = useState<string | null>(null);
+  const [staffHistory, setStaffHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   const [showMemorandoModal, setShowMemorandoModal] = useState(false);
   const [memorandoStaff, setMemorandoStaff] = useState<Staff | null>(null);
 
@@ -385,6 +390,28 @@ const StaffPage: React.FC = () => {
       alert('Erro ao buscar lotações.');
     } finally {
       setLoadingAllotments(false);
+    }
+  };
+
+  const handleViewHistory = async (staffId: string) => {
+    setDropdownOpenId(null);
+    setViewHistoryId(staffId);
+    setLoadingHistory(true);
+    setStaffHistory([]);
+    try {
+      const { data, error } = await supabase
+        .from('allotment_history')
+        .select('*')
+        .eq('staff_id', staffId)
+        .order('action_date', { ascending: false });
+
+      if (error) throw error;
+      setStaffHistory(data || []);
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao buscar histórico. Verifique se a atualização do banco de dados (schema) foi aplicada.');
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -731,7 +758,14 @@ const StaffPage: React.FC = () => {
                             className="flex w-full items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10"
                           >
                             <span className="material-symbols-outlined text-base">assignment</span>
-                            Ver Lotação
+                            Lotação Atual
+                          </button>
+                          <button
+                            onClick={() => handleViewHistory(staff.id)}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/10"
+                          >
+                            <span className="material-symbols-outlined text-base">history</span>
+                            Histórico de Lotação
                           </button>
                           <button
                             onClick={() => {
@@ -870,6 +904,91 @@ const StaffPage: React.FC = () => {
 
             <div className="mt-6 flex justify-end">
               <Button onClick={() => setViewAllotmentId(null)} variant="secondary">
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal View History */}
+      {viewHistoryId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-4xl rounded-2xl bg-white dark:bg-surface-dark p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-600">history</span>
+                Histórico de Movimentação e Lotação
+              </h2>
+              <button
+                onClick={() => setViewHistoryId(null)}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {loadingHistory ? (
+              <div className="py-12 text-center text-slate-500">Carregando histórico...</div>
+            ) : staffHistory.length === 0 ? (
+              <div className="py-12 text-center">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                  <span className="material-symbols-outlined text-3xl">inbox</span>
+                </div>
+                <p className="text-slate-500 font-medium">Nenhum registro de movimentação encontrado.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 overflow-y-auto custom-scrollbar flex-1">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500 sticky top-0">
+                    <tr>
+                      <th className="px-5 py-3">Data e Hora</th>
+                      <th className="px-5 py-3">Ação</th>
+                      <th className="px-5 py-3">Escola / Turma</th>
+                      <th className="px-5 py-3">Detalhe</th>
+                      <th className="px-5 py-3">Usuário</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {staffHistory.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                        <td className="px-5 py-3 text-xs text-slate-500">
+                           {new Date(item.action_date).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="px-5 py-3 font-medium text-sm">
+                          <span className={`inline-flex rounded-md px-2 py-1 text-xs font-bold ${
+                            item.action_type === 'Nova Lotação' ? 'bg-emerald-50 text-emerald-700' :
+                            item.action_type === 'Remoção' ? 'bg-red-50 text-red-700' :
+                            'bg-blue-50 text-blue-700'
+                          }`}>
+                            {item.action_type}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-slate-600">
+                          {item.school_name} 
+                          <span className="block text-xs text-slate-400">{item.class_name || ''}</span>
+                        </td>
+                        <td className="px-5 py-3 text-xs text-slate-500">
+                          {item.action_type === 'Alteração de Data' || item.action_type === 'Alteração de Carga Horária' ? (
+                            <>De <b>{item.previous_value}</b> para <b>{item.new_value}</b></>
+                          ) : item.action_type === 'Remoção' ? (
+                            <>{item.previous_value}</>
+                          ) : (
+                            <>{item.new_value}</>
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-xs text-slate-500 truncate max-w-[120px]" title={item.user_email || item.user_name}>
+                          {item.user_name || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <Button onClick={() => setViewHistoryId(null)} variant="secondary">
                 Fechar
               </Button>
             </div>
