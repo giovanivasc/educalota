@@ -32,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
             '/students': 'students',
             '/allotment': 'allotment',
             '/reports': 'reports', // Assume reports access
-            '/gestao-cees': 'admin', // Acesso para CEES/admin
+            '/gestao-cees': 'cees', // Acesso para CEES
             '/access': 'admin',
             '/system': 'admin'
         };
