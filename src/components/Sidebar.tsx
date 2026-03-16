@@ -60,8 +60,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
 
         const id = getPermissionId(path);
 
-        if (path === '/reports') return true;
-
         return id ? user.permissions.includes(id) : true;
     };
 
