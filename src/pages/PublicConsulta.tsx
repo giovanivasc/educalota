@@ -240,13 +240,7 @@ export const PublicConsulta: React.FC = () => {
 
             if (stuError) throw stuError;
 
-            // Garantir que a lista filtra apenas alunos da educação especial 
-            // Eles já estão na tabela 'students' (que é a base da educação especial), mas podemos filtrar ainda mais:
-            const filteredStds = (studentsData || []).filter(s => {
-                return (s.needs_support && s.needs_support.length > 0) || (s.special_group && s.special_group.trim() !== '');
-            });
-
-            setClassStudentsResult(filteredStds as unknown as StudentData[]);
+            setClassStudentsResult((studentsData || []) as unknown as StudentData[]);
         } catch (error) {
             console.error('Erro na busca da turma:', error);
             alert('Ocorreu um erro ao realizar a consulta de turma.');
@@ -655,13 +649,13 @@ export const PublicConsulta: React.FC = () => {
                                         )}
                                     </div>
 
-                                    {/* Bloco B: Alunos da Educação Especial na Turma */}
+                                    {/* Bloco B: Alunos Vinculados à Turma */}
                                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 delay-100">
                                         <div className="flex items-center gap-3 mb-6">
                                             <div className="bg-purple-50 dark:bg-purple-900/20 w-10 h-10 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400">
-                                                <span className="material-symbols-outlined text-xl">escalator_warning</span>
+                                                <span className="material-symbols-outlined text-xl">groups</span>
                                             </div>
-                                            <h3 className="text-lg font-black text-slate-800 dark:text-white">Alunos da Ed. Especial na Turma</h3>
+                                            <h3 className="text-lg font-black text-slate-800 dark:text-white">Alunos Vinculados à Turma</h3>
                                         </div>
 
                                         {classStudentsResult.length > 0 ? (
@@ -708,7 +702,7 @@ export const PublicConsulta: React.FC = () => {
                                             </div>
                                         ) : (
                                             <div className="text-sm text-slate-500 bg-slate-50 dark:bg-slate-900 p-8 rounded-xl text-center border border-dashed border-slate-200 dark:border-slate-700">
-                                                Nenhum estudante com necessidades especiais detectado ou vinculado nesta turma atual.
+                                                Nenhum estudante vinculado a esta turma.
                                             </div>
                                         )}
                                     </div>
