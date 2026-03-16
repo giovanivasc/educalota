@@ -1669,7 +1669,66 @@ const Allotment: React.FC = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
-                              {hoursVal}
+                              <div className="flex items-center gap-2 group">
+                                <span>{hoursVal}</span>
+                                {!isVacancy && (
+                                  <button
+                                    className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-primary transition-opacity"
+                                    title="Alterar Carga Horária"
+                                    onClick={async () => {
+                                      const oldHoursStr = hoursVal.replace(/\D/g, '');
+                                      const oldHours = parseInt(oldHoursStr) || 0;
+                                      const newOption = prompt(`Carga horária atual: ${hoursVal}\nNova carga horária (ex: 100, 150 ou 200):`, oldHoursStr);
+                                      if (!newOption) return;
+                                      
+                                      const newHours = parseInt(newOption);
+                                      if (isNaN(newHours) || newHours <= 0) {
+                                        alert('Carga horária inválida.');
+                                        return;
+                                      }
+
+                                      if (oldHours === newHours) return;
+
+                                      const staffId = allotment.staff_id;
+                                      if (!staffId) return;
+
+                                      const { data: staffData } = await supabase.from('staff').select('hours_available').eq('id', staffId).single();
+                                      if (!staffData) return;
+
+                                      const hoursDiff = newHours - oldHours;
+                                      if (staffData.hours_available < hoursDiff) {
+                                        alert(`Saldo insuficiente. O servidor possui apenas ${staffData.hours_available}h disponíveis.`);
+                                        return;
+                                      }
+
+                                      let newRoleString = allotment.staff_role.replace(`${oldHours}h`, `${newHours}h`);
+                                      if (!newRoleString.includes(`${newHours}h`)) {
+                                          const roleParts = allotment.staff_role.split(' - ');
+                                          newRoleString = `${roleParts[0]} - ${newHours}h`;
+                                      }
+                                      
+                                      const { error: errAllotment } = await supabase.from('allotments').update({ staff_role: newRoleString }).eq('id', allotment.id);
+                                      if (errAllotment) {
+                                        alert('Erro ao atualizar a lotação.');
+                                        return;
+                                      }
+
+                                      const newAvailable = staffData.hours_available - hoursDiff;
+                                      const { error: errStaff } = await supabase.from('staff').update({ hours_available: newAvailable }).eq('id', staffId);
+                                      if (errStaff) {
+                                        alert('Erro ao atualizar saldo do servidor.');
+                                      }
+
+                                      setExistingAllotments(prev => prev.map(a => a.id === allotment.id ? { ...a, staff_role: newRoleString } : a));
+                                      setStaffList(prev => prev.map(s => s.id === staffId ? { ...s, hoursAvailable: newAvailable } : s));
+                                      
+                                      alert('Carga horária da lotação atualizada com sucesso!');
+                                    }}
+                                  >
+                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                  </button>
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-4 text-sm text-slate-500">
                               <div className="flex items-center gap-2 group">
