@@ -433,7 +433,7 @@ const Allotment: React.FC = () => {
         staff_id: allotment.staff_id,
         staff_name: allotment.staff_name,
         school_name: allotment.school_name,
-        class_name: '', // Pode pegar detalhes se precisar, mas simplificado aqui
+        class_name: allotment.class_id ? await (async () => { const { data } = await supabase.from('classes').select('series, section, shift').eq('id', allotment.class_id).single(); return data ? `${data.series} ${data.section ? '- ' + data.section : ''} - ${data.shift}` : ''; })() : '',
         action_type: 'Remoção',
         previous_value: `Carga/Cargo: ${allotment.staff_role}`,
         new_value: 'Removida',

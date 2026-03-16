@@ -1496,6 +1496,21 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
             return;
         }
 
+        const { data: historyData } = await supabase
+            .from('allotment_history')
+            .select('*')
+            .eq('action_type', 'Remoção')
+            .order('action_date', { ascending: false });
+            
+        const recentTransfers = new Map<string, any>();
+        if (historyData) {
+            historyData.forEach(item => {
+                if (!recentTransfers.has(item.staff_id)) {
+                    recentTransfers.set(item.staff_id, item);
+                }
+            });
+        }
+
         const allotments = allAllotments;
 
         const classMap = new Map(classesList?.map(c => [c.id, c]));
@@ -1549,6 +1564,7 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
             const className = cls ? `${cls.series} ${cls.section ? '- ' + cls.section : ''}` : '-';
 
             return {
+                staff_id: a.staff_id,
                 staffName,
                 vinculo,
                 role,
@@ -1597,6 +1613,16 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
                 const userTimezoneOffset = pd.getTimezoneOffset() * 60000;
                 dateVal = new Date(pd.getTime() + userTimezoneOffset);
             }
+            let obs = '';
+            const transfer = recentTransfers.get(r.staff_id);
+            if (transfer) {
+                const actionDate = new Date(transfer.action_date).toLocaleDateString('pt-BR');
+                const parts = [];
+                if (transfer.school_name) parts.push(`Local: ${transfer.school_name}`);
+                if (transfer.class_name) parts.push(`Turma: ${transfer.class_name}`);
+                obs = `Transferido de: ${parts.join(' | ')} (Data: ${actionDate})`;
+            }
+
             return {
                 "Nome do Servidor": r.staffName,
                 "Vínculo": r.vinculo,
@@ -1605,7 +1631,8 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
                 "Série e turma": r.className,
                 "Turno": r.shift,
                 "Carga Horária": r.hours,
-                "Data de lotação": dateVal // Date obj for excel formatting
+                "Data de lotação": dateVal, // Date obj for excel formatting
+                "Observações": obs
             };
         });
 
@@ -1620,7 +1647,8 @@ export const generateRhExcel = async (filters: { startDate?: string, endDate?: s
             { wch: 20 }, // Serie/Turma
             { wch: 15 }, // Turno
             { wch: 15 }, // CH
-            { wch: 15 }  // Data
+            { wch: 15 }, // Data
+            { wch: 50 }, // Observacoes
         ];
 
         XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório RH");
