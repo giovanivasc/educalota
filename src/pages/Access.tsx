@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import * as XLSX from 'xlsx';
 
+// Tipagem para os usuários carregados do banco
+interface UserData {
+  id: string;
+  email: string;
+  role: string;
+  permissions: string[];
+}
+
 const Access: React.FC = () => {
+  const [usersList, setUsersList] = useState<UserData[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('VISITANTE');
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   const permList = [
     { id: 'dashboard', title: 'Dashboard', desc: 'Visualização de indicadores', icon: 'dashboard', color: 'bg-blue-100 text-blue-600' },
@@ -15,8 +28,45 @@ const Access: React.FC = () => {
     { id: 'staff', title: 'Cadastro Profissionais', desc: 'Gerir dados de servidores', icon: 'badge', color: 'bg-teal-100 text-teal-600' },
     { id: 'students', title: 'Cadastro Alunos', desc: 'Matrículas e turmas', icon: 'backpack', color: 'bg-orange-100 text-orange-600' },
     { id: 'allotment', title: 'Gestão de Lotação', desc: 'Atribuir servidores', icon: 'location_on', color: 'bg-purple-100 text-purple-600' },
+    { id: 'reports', title: 'Relatórios', desc: 'Acesso aos relatórios', icon: 'bar_chart', color: 'bg-green-100 text-green-600' },
     { id: 'admin', title: 'Acesso Total', desc: 'Privilégios administrativos', icon: 'shield', color: 'bg-red-100 text-red-600' },
   ];
+
+  // Carregar os usuários ao abrir a página
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      // Chama a função segura que criamos no Supabase
+      const { data, error } = await supabase.rpc('get_all_users');
+      
+      if (error) throw error;
+      setUsersList(data || []);
+    } catch (error: any) {
+      console.error('Erro ao buscar usuários:', error.message);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleSelectUser = (user: UserData) => {
+    setSelectedUser(user);
+    setEmail(user.email);
+    setPassword(''); // Não mostramos a senha existente
+    setRole(user.role || 'VISITANTE');
+    setPermissions(user.permissions || []);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedUser(null);
+    setEmail('');
+    setPassword('');
+    setRole('VISITANTE');
+    setPermissions([]);
+  };
 
   const togglePermission = (id: string) => {
     setPermissions(prev =>
@@ -24,33 +74,47 @@ const Access: React.FC = () => {
     );
   };
 
-  const handleCreateUser = async () => {
-    if (!email || !password) {
-      alert('Por favor, preencha email e senha.');
+  const handleSaveUser = async () => {
+    if (!email) {
+      alert('Por favor, preencha o email.');
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            permissions: permissions
-          }
+      if (selectedUser) {
+        // ATUALIZAR USUÁRIO EXISTENTE via RPC
+        const { error } = await supabase.rpc('update_user_access', {
+          target_user_id: selectedUser.id,
+          new_role: role,
+          new_permissions: permissions
+        });
+
+        if (error) throw error;
+        alert('Permissões do usuário atualizadas com sucesso!');
+        fetchUsers(); // Recarrega a lista
+      } else {
+        // CRIAR NOVO USUÁRIO
+        if (!password) {
+          alert('Por favor, preencha a senha para novos usuários.');
+          setLoading(false);
+          return;
         }
-      });
 
-      if (error) throw error;
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { role: role, permissions: permissions }
+          }
+        });
 
-      alert('Usuário criado com sucesso! Verifique o email para confirmação.');
-      setEmail('');
-      setPassword('');
-      setPermissions([]);
-
+        if (error) throw error;
+        alert('Usuário criado com sucesso! Verifique o email para confirmação.');
+        fetchUsers(); // Recarrega a lista
+      }
     } catch (error: any) {
-      alert('Erro ao criar usuário: ' + error.message);
+      alert('Erro ao salvar usuário: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -82,81 +146,133 @@ const Access: React.FC = () => {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Administração de Acesso</h1>
-          <p className="mt-1 text-slate-500 dark:text-slate-400">Gerencie permissões de usuários e baixe modelos para importação.</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" icon="history">
-            Log de Auditoria
-          </Button>
+          <p className="mt-1 text-slate-500 dark:text-slate-400">Gerencie usuários, permissões e baixe modelos para importação.</p>
         </div>
       </div>
 
-      <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">admin_panel_settings</span>
-            Gerenciamento de Permissões
-          </h2>
-        </div>
-        <div className="p-6">
-          <div className="mb-8 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-bold">Email do Usuário</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="novo.usuario@educacao.gov.br"
-                className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-bold">Senha de Acesso</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full h-12 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 font-medium outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {permList.map((perm) => (
-              <div key={perm.id} className={`rounded-xl border p-4 transition-all group ${permissions.includes(perm.id) ? 'border-primary bg-primary/5' : 'border-slate-100 dark:border-slate-800 hover:border-primary/30'}`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`rounded-lg p-2 ${perm.color} dark:bg-opacity-10 transition-transform group-hover:scale-110`}>
-                      <span className="material-symbols-outlined">{perm.icon}</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold">{perm.title}</h3>
-                      <p className="text-xs text-slate-500">{perm.desc}</p>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      className="peer sr-only"
-                      title={`Conceder permissão de ${perm.title}`}
-                      checked={permissions.includes(perm.id)}
-                      onChange={() => togglePermission(perm.id)}
-                    />
-                    <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-full dark:bg-slate-800"></div>
-                  </label>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 flex justify-end">
-            <Button icon="person_add" onClick={handleCreateUser} isLoading={loading}>
-              Criar Usuário
+      <div className="grid gap-6 lg:grid-cols-4">
+        {/* COLUNA ESQUERDA: LISTA DE USUÁRIOS */}
+        <div className="lg:col-span-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-surface-dark h-[600px] flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold">Usuários</h3>
+            <Button size="sm" variant="outline" onClick={handleClearSelection} icon="add">
+              Novo
             </Button>
           </div>
+          
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+            {loadingUsers ? (
+              <p className="text-sm text-slate-500 text-center py-4">Carregando usuários...</p>
+            ) : (
+              usersList.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => handleSelectUser(u)}
+                  className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedUser?.id === u.id ? 'bg-primary/10 border-primary text-primary' : 'bg-slate-50 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:border-slate-800'}`}
+                >
+                  <p className="font-medium text-sm truncate">{u.email}</p>
+                  <span className="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full mt-1 inline-block">
+                    {u.role}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
         </div>
-      </section>
+
+        {/* COLUNA DIREITA: FORMULÁRIO DE EDIÇÃO/CRIAÇÃO */}
+        <section className="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-surface-dark">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">
+                {selectedUser ? 'manage_accounts' : 'person_add'}
+              </span>
+              {selectedUser ? 'Editar Permissões do Usuário' : 'Criar Novo Usuário'}
+            </h2>
+          </div>
+          
+          <div className="p-6">
+            <div className="mb-8 grid gap-4 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-bold">Email do Usuário</label>
+                <input
+                  type="email"
+                  value={email}
+                  disabled={!!selectedUser}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="usuario@educacao.gov.br"
+                  className="w-full h-12 px-4 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-900 disabled:opacity-50"
+                />
+              </div>
+
+              {!selectedUser && (
+                <div>
+                  <label className="mb-2 block text-sm font-bold">Senha Inicial</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full h-12 px-4 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-900"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-sm font-bold">Perfil (Role)</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full h-12 px-4 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-900 font-medium"
+                >
+                  <option value="ADMIN">ADMIN (Acesso Total)</option>
+                  <option value="SECRETARIO">SECRETÁRIO (Lotação/RH)</option>
+                  <option value="DIRETOR">DIRETOR (Acompanhamento)</option>
+                  <option value="VISITANTE">VISITANTE (Visualização)</option>
+                </select>
+              </div>
+            </div>
+
+            <h3 className="mb-4 font-bold text-slate-700 dark:text-slate-300">Permissões de Telas</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {permList.map((perm) => (
+                <div key={perm.id} className={`rounded-xl border p-4 transition-all group ${permissions.includes(perm.id) ? 'border-primary bg-primary/5' : 'border-slate-100 hover:border-primary/30 dark:border-slate-800'}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`rounded-lg p-2 ${perm.color} dark:bg-opacity-10`}>
+                        <span className="material-symbols-outlined">{perm.icon}</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm">{perm.title}</h3>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        className="peer sr-only"
+                        checked={permissions.includes(perm.id)}
+                        onChange={() => togglePermission(perm.id)}
+                      />
+                      <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-full dark:bg-slate-800"></div>
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 flex justify-end gap-3">
+              {selectedUser && (
+                <Button variant="outline" onClick={handleClearSelection}>
+                  Cancelar Edição
+                </Button>
+              )}
+              <Button icon={selectedUser ? 'save' : 'person_add'} onClick={handleSaveUser} isLoading={loading}>
+                {selectedUser ? 'Salvar Alterações' : 'Criar Usuário'}
+              </Button>
+            </div>
+          </div>
+        </section>
+      </div>
 
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4">
