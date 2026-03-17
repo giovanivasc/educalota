@@ -15,6 +15,7 @@ export default function CeesManagement() {
     const [returnReason, setReturnReason] = useState('');
     const [evaluationDate, setEvaluationDate] = useState('');
     const [assessorId, setAssessorId] = useState('');
+    const [assessor2Id, setAssessor2Id] = useState('');
     const [assessors, setAssessors] = useState<any[]>([]);
     const [actionLoading, setActionLoading] = useState(false);
 
@@ -107,6 +108,7 @@ export default function CeesManagement() {
                     status: 'SCHEDULED',
                     evaluation_date: evaluationDate,
                     assessor_id: assessorId,
+                    assessor_2_id: assessor2Id || null,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', selectedRequest.id);
@@ -130,6 +132,7 @@ export default function CeesManagement() {
         setReturnReason('');
         setEvaluationDate('');
         setAssessorId('');
+        setAssessor2Id('');
     };
 
     return (
@@ -311,7 +314,7 @@ export default function CeesManagement() {
                                         </div>
                                     ) : actionType === 'SCHEDULE' ? (
                                         <div className="space-y-4 bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 animate-in slide-in-from-top-2">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <label className="flex flex-col gap-2">
                                                     <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Data e Hora Sugerida *</span>
                                                     <input
@@ -322,13 +325,26 @@ export default function CeesManagement() {
                                                     />
                                                 </label>
                                                 <label className="flex flex-col gap-2">
-                                                    <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Assessor Responsável *</span>
+                                                    <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Assessor 1 (Titular) *</span>
                                                     <select
                                                         value={assessorId}
                                                         onChange={e => setAssessorId(e.target.value)}
                                                         className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
                                                     >
-                                                        <option value="">Selecione o(a) assessor(a)...</option>
+                                                        <option value="">Selecione o(a) titular...</option>
+                                                        {assessors.map(a => (
+                                                            <option key={a.id} value={a.id}>{a.name} ({a.role})</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+                                                <label className="flex flex-col gap-2">
+                                                    <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Assessor 2 (Acompanhante)</span>
+                                                    <select
+                                                        value={assessor2Id}
+                                                        onChange={e => setAssessor2Id(e.target.value)}
+                                                        className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
+                                                    >
+                                                        <option value="">Nenhum (Opcional)</option>
                                                         {assessors.map(a => (
                                                             <option key={a.id} value={a.id}>{a.name} ({a.role})</option>
                                                         ))}
