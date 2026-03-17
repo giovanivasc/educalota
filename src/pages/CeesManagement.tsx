@@ -331,7 +331,7 @@ export default function CeesManagement() {
                                                     >
                                                         <option value="">Selecione o(a) titular...</option>
                                                         {assessorsList.map(a => (
-                                                            <option key={a.id} value={a.id}>{a.email?.split('@')[0]} ({a.role})</option>
+                                                            <option key={a.id} value={a.id}>{a.name || a.email?.split('@')[0]} ({a.role})</option>
                                                         ))}
                                                     </select>
                                                 </label>
@@ -344,7 +344,7 @@ export default function CeesManagement() {
                                                     >
                                                         <option value="">Nenhum (Opcional)</option>
                                                         {assessorsList.map(a => (
-                                                            <option key={a.id} value={a.id}>{a.email?.split('@')[0]} ({a.role})</option>
+                                                            <option key={a.id} value={a.id}>{a.name || a.email?.split('@')[0]} ({a.role})</option>
                                                         ))}
                                                     </select>
                                                 </label>
