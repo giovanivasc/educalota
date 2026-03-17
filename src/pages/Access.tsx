@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 interface UserData {
   id: string;
   email: string;
+  name?: string;
   role: string;
   permissions: string[];
 }
@@ -16,6 +17,7 @@ const Access: React.FC = () => {
   const [usersList, setUsersList] = useState<UserData[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('ASSESSOR');
@@ -58,6 +60,7 @@ const Access: React.FC = () => {
 
   const handleSelectUser = (user: UserData) => {
     setSelectedUser(user);
+    setName(user.name || '');
     setEmail(user.email);
     setPassword(''); // Não mostramos a senha existente
     setRole(user.role || 'ASSESSOR');
@@ -66,6 +69,7 @@ const Access: React.FC = () => {
 
   const handleClearSelection = () => {
     setSelectedUser(null);
+    setName('');
     setEmail('');
     setPassword('');
     setRole('ASSESSOR');
@@ -118,7 +122,7 @@ const Access: React.FC = () => {
           body: JSON.stringify({
             email,
             password,
-            data: { role, permissions }
+            data: { role, permissions, name }
           })
         });
 
@@ -210,7 +214,18 @@ const Access: React.FC = () => {
           
           <div className="p-6">
             <div className="mb-8 grid gap-4 md:grid-cols-3">
-              <div className="md:col-span-2">
+              <div>
+                <label className="mb-2 block text-sm font-bold">Nome do Servidor</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Nome completo"
+                  className="w-full h-12 px-4 rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-900"
+                />
+              </div>
+
+              <div>
                 <label className="mb-2 block text-sm font-bold">Email do Usuário</label>
                 <input
                   type="email"
