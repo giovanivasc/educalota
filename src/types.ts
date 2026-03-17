@@ -118,6 +118,7 @@ export interface EvaluationRequest {
   return_reason?: string;
   evaluation_date?: string;
   assessor_id?: string;
+  assessor_2_id?: string;
   final_report_text?: string;
   final_report_file_url?: string;
 
