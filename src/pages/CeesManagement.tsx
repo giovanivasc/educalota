@@ -16,7 +16,7 @@ export default function CeesManagement() {
     const [evaluationDate, setEvaluationDate] = useState('');
     const [assessorId, setAssessorId] = useState('');
     const [assessor2Id, setAssessor2Id] = useState('');
-    const [assessors, setAssessors] = useState<any[]>([]);
+    const [assessorsList, setAssessorsList] = useState<any[]>([]);
     const [actionLoading, setActionLoading] = useState(false);
 
     const fetchRequests = async () => {
@@ -48,11 +48,12 @@ export default function CeesManagement() {
             // Filter who can be assessor
             const ceesUsers = (data || []).filter(u => 
                 u.role?.toUpperCase() === 'ASSESSOR' || 
+                u.permissions?.includes('assessor') ||
                 u.permissions?.includes('cees') || 
                 u.role?.toUpperCase() === 'ADMIN' ||
                 u.role?.toUpperCase() === 'COORDENADOR'
             );
-            setAssessors(ceesUsers);
+            setAssessorsList(ceesUsers);
         } catch (err) {
             console.error('Erro ao buscar assessores:', err);
         }
@@ -332,7 +333,7 @@ export default function CeesManagement() {
                                                         className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
                                                     >
                                                         <option value="">Selecione o(a) titular...</option>
-                                                        {assessors.map(a => (
+                                                        {assessorsList.map(a => (
                                                             <option key={a.id} value={a.id}>{a.name} ({a.role})</option>
                                                         ))}
                                                     </select>
@@ -345,7 +346,7 @@ export default function CeesManagement() {
                                                         className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
                                                     >
                                                         <option value="">Nenhum (Opcional)</option>
-                                                        {assessors.map(a => (
+                                                        {assessorsList.map(a => (
                                                             <option key={a.id} value={a.id}>{a.name} ({a.role})</option>
                                                         ))}
                                                     </select>

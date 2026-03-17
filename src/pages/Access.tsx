@@ -31,6 +31,7 @@ const Access: React.FC = () => {
     { id: 'allotment', title: 'Gestão de Lotação', desc: 'Atribuir servidores', icon: 'location_on', color: 'bg-purple-100 text-purple-600' },
     { id: 'reports', title: 'Relatórios', desc: 'Acesso aos relatórios', icon: 'bar_chart', color: 'bg-green-100 text-green-600' },
     { id: 'admin', title: 'Acesso Total', desc: 'Privilégios administrativos', icon: 'shield', color: 'bg-red-100 text-red-600' },
+    { id: 'assessor', title: 'Assessor CEES', desc: 'Acesso ao painel de avaliações e emissão de pareceres', icon: 'clinical_notes', color: 'bg-emerald-100 text-emerald-600' }
   ];
 
   // Carregar os usuários ao abrir a página
