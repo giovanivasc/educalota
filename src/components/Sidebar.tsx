@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, ChevronDown, ChevronRight, Inbox, UserCheck } from 'lucide-react';
 import { User } from '../types';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
 import dashboardIcon from '../assets/icons/dashboard-icon.png';
@@ -22,7 +22,8 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobileClose, user, onLogout }) => {
-    const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isAvaliacoesOpen, setIsAvaliacoesOpen] = useState(false);
 
     // Map path to permission id
 
@@ -69,11 +70,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
 
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: dashboardIcon, isImage: true },
-        { path: '/assessor', label: 'Meu Painel (Assessor)', icon: 'assignment_ind', isImage: false, isLucide: false },
         { path: '/schools', label: 'Escolas', icon: schoolsIcon, isImage: true },
         { path: '/staff', label: 'Profissionais', icon: staffIcon, isImage: true },
         { path: '/students', label: 'Estudantes', icon: studentsIcon, isImage: true },
-        { path: '/gestao-cees', label: 'Avaliações CEES', icon: ClipboardCheck, isImage: false, isLucide: true },
         { path: '/allotment', label: 'Lotação', icon: allotmentIcon, isImage: true },
         { path: '/reports', label: 'Relatórios', icon: reportsIcon, isImage: true },
     ].filter(item => hasPermission(item.path));
@@ -129,6 +128,51 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                             {isOpen && <span className="text-sm font-medium">{item.label}</span>}
                         </NavLink>
                     ))}
+
+                    {/* Avaliações CEES Menu Dropdown */}
+                    {(hasPermission('/gestao-cees') || hasPermission('/assessor')) && (
+                        <>
+                            <button
+                                onClick={() => setIsAvaliacoesOpen(!isAvaliacoesOpen)}
+                                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors text-blue-100 hover:bg-white/10 hover:text-white group w-full text-left"
+                            >
+                                <ClipboardCheck className="w-6 h-6 shrink-0" />
+                                {isOpen && (
+                                    <>
+                                        <span className="text-sm font-medium flex-1">Avaliações CEES</span>
+                                        {isAvaliacoesOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                    </>
+                                )}
+                            </button>
+                            
+                            {isAvaliacoesOpen && isOpen && (
+                                <div className="flex flex-col gap-1 pl-8 mb-2 animate-in slide-in-from-top-2">
+                                    {hasPermission('/gestao-cees') && (
+                                        <NavLink
+                                            to="/gestao-cees"
+                                            className={({ isActive }) =>
+                                                `flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`
+                                            }
+                                        >
+                                            <Inbox className="w-4 h-4" />
+                                            <span className="text-sm">Solicitações</span>
+                                        </NavLink>
+                                    )}
+                                    {hasPermission('/assessor') && (
+                                        <NavLink
+                                            to="/assessor"
+                                            className={({ isActive }) =>
+                                                `flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`
+                                            }
+                                        >
+                                            <UserCheck className="w-4 h-4" />
+                                            <span className="text-sm">Minhas Avaliações</span>
+                                        </NavLink>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
 
                     <div className="my-2 border-t border-white/10"></div>
                     {isOpen && (
