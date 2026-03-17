@@ -1471,7 +1471,7 @@ const Allotment: React.FC = () => {
             </div>
             <span className="text-xs font-bold text-slate-500 whitespace-nowrap ml-2">{filteredStaff.length} encontrados</span>
           </div>
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1 w-full max-w-[100vw] shadow-sm rounded-lg">
             <table className="w-full text-left">
               <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400">
                 <tr>
@@ -1551,7 +1551,7 @@ const Allotment: React.FC = () => {
             </h2>
             <span className="text-xs font-bold text-slate-500">{students.length} na turma</span>
           </div>
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1 w-full max-w-[100vw] shadow-sm rounded-lg">
             <table className="w-full text-left">
               <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-400">
                 <tr>

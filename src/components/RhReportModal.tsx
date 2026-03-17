@@ -66,7 +66,7 @@ export const RhReportModal: React.FC<RhReportModalProps> = ({ isOpen, onClose })
                         Gera uma planilha XLSX contendo todos os servidores com suas respectivas lotações, listados linha a linha.
                     </p>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Data de lotação (Início)</label>
                             <input

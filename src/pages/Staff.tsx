@@ -661,7 +661,7 @@ const StaffPage: React.FC = () => {
           </select>
         </div>
 
-        <div className="overflow-x-auto pb-48">
+        <div className="overflow-x-auto pb-48 w-full max-w-[100vw] shadow-sm rounded-lg">
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500">
               <tr>

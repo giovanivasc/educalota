@@ -177,7 +177,7 @@ export const AllotmentAuditModal: React.FC<AllotmentAuditModalProps> = ({ isOpen
                             </div>
 
                             {errors.length > 0 ? (
-                                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-[100vw] shadow-sm rounded-lg">
                                     <table className="w-full text-left">
                                         <thead className="bg-slate-50 dark:bg-slate-800 text-xs uppercase font-bold text-slate-500 border-b border-slate-200 dark:border-slate-700">
                                             <tr>

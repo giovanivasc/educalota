@@ -269,7 +269,7 @@ const Dashboard: React.FC = () => {
             Ver todas
           </button>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full max-w-[100vw] shadow-sm rounded-lg">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase text-slate-500 font-semibold">
               <tr>

@@ -787,7 +787,7 @@ const Schools: React.FC = () => {
               Turmas Cadastradas
             </h2>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full max-w-[100vw] shadow-sm rounded-lg">
             <table className="w-full text-left">
               <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
                 <tr>
@@ -902,7 +902,7 @@ const Schools: React.FC = () => {
                         <span>Matriculados na Turma</span>
                         <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">{classStudents.length}</span>
                       </div>
-                      <div className="overflow-y-auto max-h-[400px]">
+                      <div className="overflow-y-auto max-h-[400px] w-full max-w-[100vw] shadow-sm rounded-lg">
                         {classStudents.length === 0 ? <p className="p-4 text-sm text-slate-400 text-center">Nenhum aluno.</p> : (
                           <table className="w-full text-left text-sm">
                             <tbody>
@@ -948,7 +948,7 @@ const Schools: React.FC = () => {
                           <span className="material-symbols-outlined absolute left-2.5 top-2 text-slate-400 text-[18px]">search</span>
                         </div>
                       </div>
-                      <div className="overflow-y-auto max-h-[400px]">
+                      <div className="overflow-y-auto max-h-[400px] w-full max-w-[100vw] shadow-sm rounded-lg">
                         {studentSearchTerm.length < 2 ? (
                           <p className="p-8 text-center text-sm text-slate-400">Digite para buscar...</p>
                         ) : availableStudents.length === 0 ? (
@@ -1136,7 +1136,7 @@ const Schools: React.FC = () => {
 
         {/* List View */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full max-w-[100vw] shadow-sm rounded-lg">
             <table className="w-full text-left">
               <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500">
                 <tr>

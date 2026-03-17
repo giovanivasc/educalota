@@ -15,11 +15,13 @@ import allotmentIcon from '../assets/icons/allotment-icon.png';
 
 interface SidebarProps {
     isOpen: boolean;
+    isMobileOpen?: boolean;
+    onMobileClose?: () => void;
     user: User;
     onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobileClose, user, onLogout }) => {
     const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
 
     // Map path to permission id
@@ -79,15 +81,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
     ].filter(item => hasPermission(item.path));
 
     return (
-        <aside className={`flex flex-col bg-primary text-white transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`}>
-            <div className="flex h-16 items-center px-6 border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="size-8 rounded bg-white/10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-white">school</span>
+        <>
+            {/* Mobile Backdrop */}
+            {isMobileOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                    onClick={onMobileClose}
+                />
+            )}
+            <aside className={`fixed inset-y-0 left-0 z-50 md:relative flex flex-col bg-primary text-white transition-transform duration-300 md:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} ${isOpen ? 'w-64' : 'w-20'} hidden md:flex`}>
+                <div className="flex h-16 items-center justify-between px-6 border-b border-white/10 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="size-8 rounded bg-white/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-white">school</span>
+                        </div>
+                        {(isOpen || isMobileOpen) && <h1 className="text-xl font-bold tracking-tight">EducaLota</h1>}
                     </div>
-                    {isOpen && <h1 className="text-xl font-bold tracking-tight">EducaLota</h1>}
+                    {isMobileOpen && (
+                        <button onClick={onMobileClose} className="md:hidden p-1 rounded-lg text-white hover:bg-white/10">
+                            <span className="material-symbols-outlined">close</span>
+                        </button>
+                    )}
                 </div>
-            </div>
 
             <div className="flex-1 overflow-y-auto py-4 no-scrollbar">
                 <nav className="flex flex-col gap-1 px-3">
@@ -177,5 +192,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, user, onLogout }) => {
                 }}
             />
         </aside>
+        </>
     );
 };

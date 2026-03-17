@@ -551,7 +551,7 @@ const Students: React.FC = () => {
         </div>
       </div>
       <div className="flex relative">
-        <div className="overflow-x-auto flex-1">
+        <div className="overflow-x-auto flex-1 w-full max-w-[100vw] shadow-sm rounded-lg">
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
               <tr>

@@ -555,7 +555,7 @@ export default function PublicEvaluationRequest() {
                                         />
                                     </label>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <label className="flex flex-col gap-2">
                                             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Data Nasc. *</span>
                                             <input
@@ -577,7 +577,7 @@ export default function PublicEvaluationRequest() {
                                         </label>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <label className="flex flex-col gap-2">
                                             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Possui Laudo? *</span>
                                             <select
@@ -635,7 +635,7 @@ export default function PublicEvaluationRequest() {
                                 {/* Info Turma */}
                                 <h3 className="font-bold text-slate-800 dark:text-white mb-4">Escolaridade & Turma</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <label className="flex flex-col gap-2">
                                             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Aluno Novo Aqui? *</span>
                                             <select

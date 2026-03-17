@@ -4,15 +4,23 @@ import React from 'react';
 interface HeaderProps {
     sidebarOpen: boolean;
     setSidebarOpen: (open: boolean) => void;
+    isMobileMenuOpen: boolean;
+    setIsMobileMenuOpen: (open: boolean) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
+export const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen, isMobileMenuOpen, setIsMobileMenuOpen }) => {
     return (
-        <header className="flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark px-8 shrink-0 z-10">
-            <div className="flex items-center gap-4">
+        <header className="flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark px-4 sm:px-8 shrink-0 z-10 w-full">
+            <div className="flex items-center gap-2 sm:gap-4">
+                <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="md:hidden p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                    <span className="material-symbols-outlined">menu</span>
+                </button>
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="hidden md:block p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                     <span className="material-symbols-outlined">menu</span>
                 </button>

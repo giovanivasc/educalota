@@ -12,6 +12,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, user }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { signOut } = useAuth();
 
@@ -21,17 +22,21 @@ const Layout: React.FC<LayoutProps> = ({ children, user }) => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark">
+    <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
       <Sidebar
         isOpen={isSidebarOpen}
+        isMobileOpen={isMobileMenuOpen}
+        onMobileClose={() => setIsMobileMenuOpen(false)}
         user={user}
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className="flex-1 flex flex-col h-full overflow-x-hidden relative">
         <Header
           sidebarOpen={isSidebarOpen}
           setSidebarOpen={setSidebarOpen}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 scroll-smooth no-scrollbar">

@@ -536,7 +536,7 @@ export const PublicConsulta: React.FC = () => {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="overflow-y-auto flex-1 p-1">
+                                                    <div className="overflow-y-auto flex-1 p-1 w-full max-w-[100vw] shadow-sm rounded-lg">
                                                         {filteredSchools.length > 0 ? filteredSchools.map(s => (
                                                             <div
                                                                 key={s.id}
@@ -660,7 +660,7 @@ export const PublicConsulta: React.FC = () => {
                                         </div>
 
                                         {classStudentsResult.length > 0 ? (
-                                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-[100vw] shadow-sm rounded-lg">
                                                 <table className="w-full text-left">
                                                     <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500 border-b border-slate-200 dark:border-slate-700">
                                                         <tr>
