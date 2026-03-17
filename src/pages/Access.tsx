@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
 
 // Tipagem para os usuários carregados do banco
@@ -104,7 +105,20 @@ const Access: React.FC = () => {
           return;
         }
 
-        const { error } = await supabase.auth.signUp({
+        // Criar um client temporário SEM persistência de sessão para não deslogar o Admin
+        const tempSupabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY,
+          {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+              detectSessionInUrl: false,
+            },
+          }
+        );
+
+        const { error } = await tempSupabase.auth.signUp({
           email,
           password,
           options: {
