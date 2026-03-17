@@ -18,10 +18,10 @@ export default function AssessorDashboard() {
         if (!user) return;
         setLoading(true);
         try {
-            const { data: usersData } = await supabase.from('users').select('id, name');
+            const { data: usersData } = await supabase.rpc('get_all_users');
             const map: Record<string, string> = {};
-            usersData?.forEach(u => {
-                map[u.id] = u.name;
+            usersData?.forEach((u: any) => {
+                map[u.id] = u.email?.split('@')[0] || 'Assessor';
             });
             setUsersMap(map);
 
