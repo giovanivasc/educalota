@@ -105,28 +105,28 @@ const Access: React.FC = () => {
           return;
         }
 
-        // Criar um client temporário SEM persistência de sessão para não deslogar o Admin
-        const tempSupabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL,
-          import.meta.env.VITE_SUPABASE_ANON_KEY,
-          {
-            auth: {
-              persistSession: false,
-              autoRefreshToken: false,
-              detectSessionInUrl: false,
-            },
-          }
-        );
-
-        const { error } = await tempSupabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { role: role, permissions: permissions }
-          }
+        // Fazer a requisição via fetch bruto para a API GoTrue (Auth)
+        // Isso contorna a biblioteca do Supabase, evitando que ela dispare
+        // eventos de BroadcastChannel que deslogam o Admin pelas costas.
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            data: { role, permissions }
+          })
         });
 
-        if (error) throw error;
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.msg || data.message || 'Erro ao criar usuário na API!');
+        }
         alert('Usuário criado com sucesso! Verifique o email para confirmação.');
         fetchUsers(); // Recarrega a lista
       }
