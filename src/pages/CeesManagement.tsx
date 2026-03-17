@@ -14,6 +14,8 @@ export default function CeesManagement() {
     const [actionType, setActionType] = useState<'NONE' | 'RETURN' | 'SCHEDULE'>('NONE');
     const [returnReason, setReturnReason] = useState('');
     const [evaluationDate, setEvaluationDate] = useState('');
+    const [assessorId, setAssessorId] = useState('');
+    const [assessors, setAssessors] = useState<any[]>([]);
     const [actionLoading, setActionLoading] = useState(false);
 
     const fetchRequests = async () => {
@@ -35,8 +37,29 @@ export default function CeesManagement() {
         }
     };
 
+    const fetchAssessors = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, name, role, permissions')
+                .eq('active', true);
+            if (error) throw error;
+            // Filter who can be assessor
+            const ceesUsers = (data || []).filter(u => 
+                u.role?.toUpperCase() === 'ASSESSOR' || 
+                u.permissions?.includes('cees') || 
+                u.role?.toUpperCase() === 'ADMIN' ||
+                u.role?.toUpperCase() === 'COORDENADOR'
+            );
+            setAssessors(ceesUsers);
+        } catch (err) {
+            console.error('Erro ao buscar assessores:', err);
+        }
+    };
+
     useEffect(() => {
         fetchRequests();
+        fetchAssessors();
     }, []);
 
     const handleReturn = async () => {
@@ -72,6 +95,9 @@ export default function CeesManagement() {
         if (!evaluationDate) {
             return alert("Preencha a data e hora do agendamento.");
         }
+        if (!assessorId) {
+            return alert("Selecione o assessor responsável.");
+        }
 
         setActionLoading(true);
         try {
@@ -80,6 +106,7 @@ export default function CeesManagement() {
                 .update({
                     status: 'SCHEDULED',
                     evaluation_date: evaluationDate,
+                    assessor_id: assessorId,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', selectedRequest.id);
@@ -102,6 +129,7 @@ export default function CeesManagement() {
         setActionType('NONE');
         setReturnReason('');
         setEvaluationDate('');
+        setAssessorId('');
     };
 
     return (
@@ -283,15 +311,30 @@ export default function CeesManagement() {
                                         </div>
                                     ) : actionType === 'SCHEDULE' ? (
                                         <div className="space-y-4 bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 animate-in slide-in-from-top-2">
-                                            <label className="flex flex-col gap-2">
-                                                <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Data e Hora Sugerida *</span>
-                                                <input
-                                                    type="datetime-local"
-                                                    value={evaluationDate}
-                                                    onChange={e => setEvaluationDate(e.target.value)}
-                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
-                                                />
-                                            </label>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <label className="flex flex-col gap-2">
+                                                    <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Data e Hora Sugerida *</span>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={evaluationDate}
+                                                        onChange={e => setEvaluationDate(e.target.value)}
+                                                        className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
+                                                    />
+                                                </label>
+                                                <label className="flex flex-col gap-2">
+                                                    <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Assessor Responsável *</span>
+                                                    <select
+                                                        value={assessorId}
+                                                        onChange={e => setAssessorId(e.target.value)}
+                                                        className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
+                                                    >
+                                                        <option value="">Selecione o(a) assessor(a)...</option>
+                                                        {assessors.map(a => (
+                                                            <option key={a.id} value={a.id}>{a.name} ({a.role})</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+                                            </div>
                                             <div className="flex gap-2 justify-end">
                                                 <Button variant="ghost" className="text-purple-600 dark:text-purple-400" onClick={() => setActionType('NONE')}>Cancelar</Button>
                                                 <Button className="bg-purple-600 hover:bg-purple-700" icon="check_circle" onClick={handleSchedule} isLoading={actionLoading}>Confirmar Agendamento</Button>

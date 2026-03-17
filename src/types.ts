@@ -117,6 +117,9 @@ export interface EvaluationRequest {
   status: RequestStatus;
   return_reason?: string;
   evaluation_date?: string;
+  assessor_id?: string;
+  final_report_text?: string;
+  final_report_file_url?: string;
 
   created_at: string;
   updated_at: string;

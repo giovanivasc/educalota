@@ -35,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
             '/allotment': 'allotment',
             '/reports': 'reports', // Assume reports access
             '/gestao-cees': 'cees', // Acesso para CEES
+            '/assessor': 'cees', // Meu painel
             '/access': 'admin',
             '/system': 'admin'
         };
@@ -52,6 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
             user.permissions?.includes('admin');
 
         if (isAdmin) return true;
+        if (userRole === 'assessor' && (path === '/assessor' || path === '/dashboard')) return true;
 
         if (!user.permissions || user.permissions.length === 0) {
             // Se não houver permissões definidas, e não for admin, 
@@ -67,6 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
 
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: dashboardIcon, isImage: true },
+        { path: '/assessor', label: 'Meu Painel (Assessor)', icon: 'assignment_ind', isImage: false, isLucide: false },
         { path: '/schools', label: 'Escolas', icon: schoolsIcon, isImage: true },
         { path: '/staff', label: 'Profissionais', icon: staffIcon, isImage: true },
         { path: '/students', label: 'Estudantes', icon: studentsIcon, isImage: true },
