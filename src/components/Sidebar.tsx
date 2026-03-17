@@ -36,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
             '/allotment': 'allotment',
             '/reports': 'reports', // Assume reports access
             '/gestao-cees': 'cees', // Acesso para CEES
-            '/assessor': 'cees', // Meu painel
+            '/assessor': 'assessor', // Meu painel
             '/access': 'admin',
             '/system': 'admin'
         };
