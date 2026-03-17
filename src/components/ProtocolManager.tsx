@@ -281,9 +281,48 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
                     </div>
                 </div>
 
-                {!isEditable && (
-                    <div className="bg-blue-50 text-blue-700 p-4 rounded-xl font-medium">
+                {!isEditable && requestData.status !== 'COMPLETED' && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 p-4 rounded-xl font-medium">
                         Esta solicitação encontra-se com status <strong>{requestData.status}</strong> e não pode ser editada no momento.
+                    </div>
+                )}
+
+                {requestData.status === 'COMPLETED' && (
+                    <div className="space-y-6 animate-in slide-in-from-top-4">
+                        <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 p-6 rounded-2xl border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-center gap-4">
+                            <span className="material-symbols-outlined text-4xl text-emerald-600">verified</span>
+                            <div className="flex-1 text-center sm:text-left">
+                                <h3 className="text-lg sm:text-xl font-black">Processo de Avaliação Concluído</h3>
+                                <p className="text-sm mt-1 opacity-90">O relatório técnico final foi emitido pela equipe multidisciplinar.</p>
+                            </div>
+                        </div>
+
+                        {requestData.final_report_text && (
+                            <div className="bg-slate-50 dark:bg-slate-900/50 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary">clinical_notes</span>
+                                    Parecer Técnico Final
+                                </h4>
+                                <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+                                    {requestData.final_report_text}
+                                </div>
+                            </div>
+                        )}
+
+                        {requestData.final_report_file_url && (
+                            <div className="pt-2 flex justify-center sm:justify-start">
+                                <a
+                                    href={requestData.final_report_file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 w-full sm:w-auto"
+                                >
+                                    <span className="material-symbols-outlined">cloud_download</span>
+                                    Descarregar Parecer Técnico (PDF)
+                                </a>
+                            </div>
+                        )}
                     </div>
                 )}
 
