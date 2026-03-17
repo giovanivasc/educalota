@@ -27,11 +27,11 @@ const Access: React.FC = () => {
     { id: 'schools', title: 'Cadastro de Escolas', desc: 'Editar dados das unidades', icon: 'school', color: 'bg-indigo-100 text-indigo-600' },
     { id: 'staff', title: 'Cadastro Profissionais', desc: 'Gerir dados de servidores', icon: 'badge', color: 'bg-teal-100 text-teal-600' },
     { id: 'students', title: 'Cadastro Alunos', desc: 'Matrículas e turmas', icon: 'backpack', color: 'bg-orange-100 text-orange-600' },
-    { id: 'cees', title: 'Avaliações CEES', desc: 'Gerir avaliações do CEES', icon: 'fact_check', color: 'bg-pink-100 text-pink-600' },
+    { id: 'cees', title: 'CEES: Solicitações', desc: 'Gerir avaliações e triagem', icon: 'fact_check', color: 'bg-pink-100 text-pink-600' },
     { id: 'allotment', title: 'Gestão de Lotação', desc: 'Atribuir servidores', icon: 'location_on', color: 'bg-purple-100 text-purple-600' },
     { id: 'reports', title: 'Relatórios', desc: 'Acesso aos relatórios', icon: 'bar_chart', color: 'bg-green-100 text-green-600' },
     { id: 'admin', title: 'Acesso Total', desc: 'Privilégios administrativos', icon: 'shield', color: 'bg-red-100 text-red-600' },
-    { id: 'assessor', title: 'Assessor CEES', desc: 'Acesso ao painel de avaliações e emissão de pareceres', icon: 'clinical_notes', color: 'bg-emerald-100 text-emerald-600' }
+    { id: 'assessor', title: 'CEES: Minhas Avaliações', desc: 'Acesso ao painel do assessor e relatórios', icon: 'clinical_notes', color: 'bg-emerald-100 text-emerald-600' }
   ];
 
   // Carregar os usuários ao abrir a página
