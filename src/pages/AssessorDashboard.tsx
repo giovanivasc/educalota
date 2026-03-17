@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 export default function AssessorDashboard() {
     const { user } = useAuth();
     const [requests, setRequests] = useState<any[]>([]);
+    const [usersMap, setUsersMap] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
@@ -17,11 +18,18 @@ export default function AssessorDashboard() {
         if (!user) return;
         setLoading(true);
         try {
+            const { data: usersData } = await supabase.from('users').select('id, name');
+            const map: Record<string, string> = {};
+            usersData?.forEach(u => {
+                map[u.id] = u.name;
+            });
+            setUsersMap(map);
+
             const { data, error } = await supabase
                 .from('evaluation_requests')
                 .select('*, schools(name)')
                 .eq('status', 'SCHEDULED')
-                .eq('assessor_id', user.id)
+                .or(`assessor_id.eq.${user.id},assessor_2_id.eq.${user.id}`)
                 .order('evaluation_date', { ascending: true });
             
             if (error) throw error;
@@ -131,6 +139,10 @@ export default function AssessorDashboard() {
                                 } anos</p>
                                 
                                 <div className="space-y-2 mb-6">
+                                    <p className="text-sm flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                        <span className="material-symbols-outlined text-[16px]">group</span>
+                                        Equipa: {usersMap[req.assessor_id] || 'Assessor 1'} {req.assessor_2_id ? `e ${usersMap[req.assessor_2_id] || 'Assessor 2'}` : ''}
+                                    </p>
                                     <p className="text-sm flex items-center gap-2 text-slate-600 dark:text-slate-300">
                                         <span className="material-symbols-outlined text-[16px]">school</span>
                                         {req.schools?.name || 'Escola não informada'}
