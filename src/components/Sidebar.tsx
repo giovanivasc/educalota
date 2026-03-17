@@ -89,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                     onClick={onMobileClose}
                 />
             )}
-            <aside className={`fixed inset-y-0 left-0 z-50 md:relative flex flex-col bg-primary text-white transition-transform duration-300 md:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} ${isOpen ? 'w-64' : 'w-20'} hidden md:flex`}>
+            <aside className={`fixed inset-y-0 left-0 z-50 md:relative flex flex-col bg-primary text-white transition-transform duration-300 md:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} ${isOpen ? 'w-64' : 'w-20'}`}>
                 <div className="flex h-16 items-center justify-between px-6 border-b border-white/10 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="size-8 rounded bg-white/10 flex items-center justify-center">
