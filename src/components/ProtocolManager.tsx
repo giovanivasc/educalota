@@ -97,44 +97,8 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
     };
 
     const handlePrintConsent = () => {
-        // Basic print logic for authorization/consent form
         if (!requestData) return;
-
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
-
-        const content = `
-      <html>
-        <head>
-          <title>Termo de Consentimento - ${requestData.protocol_number}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; }
-            h1 { text-align: center; text-transform: uppercase; font-size: 18px; }
-            .content { margin-top: 30px; text-align: justify; }
-            .signature { margin-top: 80px; text-align: center; }
-            .line { border-top: 1px solid #000; display: inline-block; width: 300px; margin-bottom: 5px; }
-          </style>
-        </head>
-        <body>
-          <h1>Termo de Autorização para Avaliação/Acompanhamento</h1>
-          <div class="content">
-            <p>Eu, <strong>${requestData.responsible_name}</strong>, responsável legal pelo(a) estudante <strong>${requestData.student_name}</strong>, autorizo a equipe multiprofissional da Coordenadoria de Educação Especial (CEES) a realizar a (${requestData.request_type}) do(a) referido(a) estudante.</p>
-            <p>Estou ciente de que as informações prestadas são confidenciais e serão utilizadas exclusivamente para fins de planejamento educacional e acompanhamento escolar.</p>
-            <br/><br/>
-            <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
-          </div>
-          <div class="signature">
-            <div class="line"></div>
-            <p>${requestData.responsible_name}<br/>Responsável Legal</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-        printWindow.document.write(content);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
+        window.open(`/api/print-consent?id=${requestData.id}`, '_blank');
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,8 +109,6 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
 
     const handleSubmitCEES = async () => {
         if (!requestData) return;
-
-        // Check prerequisites
         if (!pedagogicalObs.trim() || !relationalObs.trim() || !methodologicalObs.trim()) {
             return alert("Preencha todas as observações antes de enviar.");
         }
@@ -193,6 +155,17 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
                     methodological_observations: methodologicalObs,
                     authorization_file_url: fileUrl,
                     status: 'PENDING_CEES',
+                    history: [
+                        ...(requestData.history || []),
+                        {
+                            date: new Date().toISOString(),
+                            action: 'ENVIO',
+                            result: 'Encaminhado',
+                            description: `Solicitação enviada pela escola para triagem.`,
+                            actor: 'Escola (Público)',
+                            assessors: 'N/A'
+                        }
+                    ],
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', requestData.id);
@@ -202,7 +175,18 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
             setRequestData({
                 ...requestData,
                 status: 'PENDING_CEES',
-                authorization_file_url: fileUrl
+                authorization_file_url: fileUrl,
+                history: [
+                    ...(requestData.history || []),
+                    {
+                        date: new Date().toISOString(),
+                        action: 'ENVIO',
+                        result: 'Encaminhado',
+                        description: `Solicitação enviada pela escola para triagem.`,
+                        actor: 'Escola (Público)',
+                        assessors: 'N/A'
+                    }
+                ]
             } as EvaluationRequest);
 
             alert("Sua solicitação e a folha de autorização foram enviadas com sucesso para a Coordenadoria de Educação Especial (CEES)!");
@@ -269,21 +253,72 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
                         <p className="text-slate-500 mt-1">{requestData.student_name} • {requestData.request_type}</p>
                     </div>
                     <div>
-                        <span className={`px-3 py-1 text-sm font-bold rounded-full ${requestData.status === 'DRAFT' ? 'bg-amber-100 text-amber-700' :
+                        <span className={`px-3 py-1 text-sm font-bold rounded-full ${
+                            requestData.status === 'DRAFT' ? 'bg-slate-100 text-slate-700' :
                             requestData.status === 'RETURNED' ? 'bg-red-100 text-red-700' :
-                                requestData.status === 'PENDING_CEES' ? 'bg-blue-100 text-blue-700' :
-                                    'bg-emerald-100 text-emerald-700'
+                            requestData.status === 'PENDING_CEES' ? 'bg-blue-100 text-blue-700' :
+                            requestData.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-700' :
+                            requestData.status === 'INCONCLUSIVE' ? 'bg-orange-100 text-orange-700' :
+                            requestData.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
+                            'bg-slate-100 text-slate-700'
                             }`}>
-                            {requestData.status === 'DRAFT' ? 'Rascunho Incompleto' :
-                                requestData.status === 'RETURNED' ? 'Devolvido (Corrigir)' :
-                                    requestData.status === 'PENDING_CEES' ? 'Aguardando CEES' : requestData.status}
+                            {requestData.status === 'DRAFT' ? 'Rascunho' :
+                             requestData.status === 'RETURNED' ? 'Devolvido (Pendente de Ajustes)' :
+                             requestData.status === 'PENDING_CEES' ? 'Aguardando Triagem CEES' :
+                             requestData.status === 'SCHEDULED' ? 'Avaliação Agendada' :
+                             requestData.status === 'INCONCLUSIVE' ? 'Avaliação Inconclusiva' :
+                             requestData.status === 'COMPLETED' ? 'Avaliação Finalizada' : requestData.status}
                         </span>
+                    </div>
+                </div>
+
+                {/* Histórico Público */}
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary">history_edu</span>
+                        Acompanhamento da Solicitação
+                    </h4>
+                    <div className="space-y-4">
+                        {requestData.history && requestData.history.length > 0 ? (
+                            <div className="space-y-4 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                                {requestData.history.slice().reverse().map((event: any, idx: number) => {
+                                    // Regra de privacidade: esconder descrição para Inconclusivo e Finalização (notas internas)
+                                    const showDescription = !['INCONCLUSIVO', 'FINALIZAÇÃO'].includes(event.action);
+                                    
+                                    return (
+                                        <div key={idx} className="pl-6 relative">
+                                            <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full bg-white dark:bg-slate-800 border-2 border-primary z-10 shadow-sm"></div>
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-[10px] font-black uppercase text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wider">
+                                                    {event.action}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                    {new Date(event.date).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-1">
+                                                {event.result}
+                                            </p>
+                                            {showDescription && event.description && (
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                                    {event.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-slate-400 text-xs italic">
+                                Nenhuma movimentação registrada no sistema.
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {!isEditable && requestData.status !== 'COMPLETED' && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 p-4 rounded-xl font-medium">
-                        Esta solicitação encontra-se com status <strong>{requestData.status}</strong> e não pode ser editada no momento.
+                        Esta solicitação encontra-se em processamento pela equipe CEES e não pode ser editada no momento.
                     </div>
                 )}
 

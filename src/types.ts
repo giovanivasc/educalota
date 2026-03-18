@@ -81,7 +81,7 @@ export interface AllotmentRecord {
 }
 
 export type RequestType = 'AVALIACAO' | 'REAVALIACAO' | 'INTERVENCAO';
-export type RequestStatus = 'DRAFT' | 'PENDING_CEES' | 'RETURNED' | 'SCHEDULED' | 'COMPLETED';
+export type RequestStatus = 'DRAFT' | 'PENDING_CEES' | 'RETURNED' | 'SCHEDULED' | 'INCONCLUSIVE' | 'CANCELLED' | 'COMPLETED';
 
 export interface EvaluationRequest {
   id: string;
@@ -121,6 +121,7 @@ export interface EvaluationRequest {
   assessor_2_id?: string;
   final_report_text?: string;
   final_report_file_url?: string;
+  history?: any[];
 
   created_at: string;
   updated_at: string;
