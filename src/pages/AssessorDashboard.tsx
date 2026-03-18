@@ -10,9 +10,20 @@ export default function AssessorDashboard() {
     const [loading, setLoading] = useState(true);
     
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+    const [cancellingRequest, setCancellingRequest] = useState<any | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
     const [reportText, setReportText] = useState('');
     const [reportFile, setReportFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
+
+    const cancelReasons = [
+        'Problemas logísticos',
+        'Solicitação da Unidade Escolar',
+        'Não comparecimento dos responsáveis',
+        'Aluno faltou',
+        'Turma dispensada'
+    ];
 
     const fetchRequests = async () => {
         if (!user) return;
@@ -95,6 +106,39 @@ export default function AssessorDashboard() {
         }
     };
 
+    const handleCancel = async () => {
+        if (!cancelReason) {
+            return alert("Por favor, selecione o motivo do cancelamento.");
+        }
+
+        setCancelling(true);
+        try {
+            const { error } = await supabase
+                .from('evaluation_requests')
+                .update({
+                    status: 'PENDING_CEES', // Volta para a triagem da CEES para reagendamento
+                    return_reason: `Cancelado em campo: ${cancelReason}`,
+                    evaluation_date: null,
+                    assessor_id: null,
+                    assessor_2_id: null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', cancellingRequest.id);
+
+            if (error) throw error;
+
+            alert('Atendimento cancelado com sucesso.');
+            setCancellingRequest(null);
+            setCancelReason('');
+            fetchRequests();
+        } catch (err: any) {
+            console.error(err);
+            alert('Erro ao cancelar atendimento: ' + err.message);
+        } finally {
+            setCancelling(false);
+        }
+    };
+
     const closeModal = () => {
         setSelectedRequest(null);
         setReportText('');
@@ -154,13 +198,23 @@ export default function AssessorDashboard() {
                                 </div>
                             </div>
                             
-                            <Button 
-                                className="w-full bg-primary hover:bg-primary-dark"
-                                onClick={() => setSelectedRequest(req)}
-                                icon="clinical_notes"
-                            >
-                                Iniciar Atendimento
-                            </Button>
+                            <div className="mt-auto grid grid-cols-2 gap-2">
+                                <Button 
+                                    className="bg-primary hover:bg-primary-dark"
+                                    onClick={() => setSelectedRequest(req)}
+                                    icon="clinical_notes"
+                                >
+                                    Iniciar Atendimento
+                                </Button>
+                                <Button 
+                                    variant="outline"
+                                    className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                    onClick={() => setCancellingRequest(req)}
+                                    icon="cancel"
+                                >
+                                    Cancelar
+                                </Button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -251,6 +305,60 @@ export default function AssessorDashboard() {
                             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleComplete} isLoading={submitting} icon="check_circle">
                                 Concluir Avaliação
                             </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL DE CANCELAMENTO */}
+            {cancellingRequest && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in-95 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-red-50 dark:bg-red-900/10 shrink-0">
+                            <h2 className="text-xl font-bold flex items-center gap-2 text-red-700 dark:text-red-400">
+                                <span className="material-symbols-outlined">event_busy</span>
+                                Cancelar Atendimento
+                            </h2>
+                            <button onClick={() => setCancellingRequest(null)} className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-full transition-colors">
+                                <span className="material-symbols-outlined text-red-500">close</span>
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 space-y-4">
+                            <p className="text-slate-600 dark:text-slate-300 italic text-sm">
+                                Tem certeza que deseja cancelar o agendamento de <span className="font-bold text-slate-900 dark:text-white">{cancellingRequest.student_name}</span>?
+                            </p>
+                            
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Selecione o Motivo *</label>
+                                <select 
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                >
+                                    <option value="">Selecione um motivo...</option>
+                                    {cancelReasons.map(r => (
+                                        <option key={r} value={r}>{r}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <Button 
+                                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white"
+                                    onClick={() => setCancellingRequest(null)}
+                                >
+                                    Manter Atendimento
+                                </Button>
+                                <Button 
+                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                    onClick={handleCancel}
+                                    isLoading={cancelling}
+                                    icon="check_circle"
+                                >
+                                    Confirmar Cancelamento
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
