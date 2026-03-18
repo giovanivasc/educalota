@@ -16,6 +16,9 @@ export default function AssessorDashboard() {
     const [reportFile, setReportFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [cancelling, setCancelling] = useState(false);
+    const [isInconclusiveSubmitting, setIsInconclusiveSubmitting] = useState(false);
+    const [reassessmentNeeded, setReassessmentNeeded] = useState(false);
+    const [reassessmentPeriod, setReassessmentPeriod] = useState('6 meses');
 
     const cancelReasons = [
         'Problemas logísticos',
@@ -89,6 +92,8 @@ export default function AssessorDashboard() {
                     status: 'COMPLETED',
                     final_report_text: reportText,
                     final_report_file_url: final_report_file_url,
+                    reassessment_needed: reassessmentNeeded,
+                    reassessment_period: reassessmentNeeded ? reassessmentPeriod : null,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', selectedRequest.id);
@@ -139,10 +144,44 @@ export default function AssessorDashboard() {
         }
     };
 
+    const handleInconclusive = async () => {
+        if (!reportText.trim()) {
+            return alert("Por favor, preencha as anotações no Parecer Técnico antes de marcar como inconclusivo.");
+        }
+
+        setIsInconclusiveSubmitting(true);
+        try {
+            const { error } = await supabase
+                .from('evaluation_requests')
+                .update({
+                    status: 'PENDING_CEES', // Retorna para a fila original
+                    return_reason: `Avaliação Inconclusiva: ${reportText}`,
+                    evaluation_date: null,
+                    assessor_id: null,
+                    assessor_2_id: null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', selectedRequest.id);
+
+            if (error) throw error;
+
+            alert('Atendimento marcado como inconclusivo. Todas as anotações foram salvas e a solicitação retornou para novo agendamento.');
+            closeModal();
+            fetchRequests();
+        } catch (err: any) {
+            console.error(err);
+            alert('Erro ao processar: ' + err.message);
+        } finally {
+            setIsInconclusiveSubmitting(false);
+        }
+    };
+
     const closeModal = () => {
         setSelectedRequest(null);
         setReportText('');
         setReportFile(null);
+        setReassessmentNeeded(false);
+        setReassessmentPeriod('6 meses');
     };
 
     return (
@@ -277,7 +316,7 @@ export default function AssessorDashboard() {
                                 </label>
 
                                 <label className="flex flex-col gap-2">
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">Anexar Relatório Final Assinado (PDF)</span>
+                                    <span className="bold text-slate-800 dark:text-slate-200">Anexar Relatório Final Assinado (PDF)</span>
                                     <input 
                                         type="file"
                                         accept=".pdf,application/pdf"
@@ -295,16 +334,64 @@ export default function AssessorDashboard() {
                                         "
                                     />
                                 </label>
+
+                                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 rounded-xl space-y-3">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={reassessmentNeeded}
+                                            onChange={e => setReassessmentNeeded(e.target.checked)}
+                                            className="w-5 h-5 rounded border-yellow-400 text-yellow-600 focus:ring-yellow-500"
+                                        />
+                                        <span className="font-bold text-yellow-800 dark:text-yellow-400">Há necessidade de reavaliação?</span>
+                                    </label>
+                                    
+                                    {reassessmentNeeded && (
+                                        <div className="flex items-center gap-4 animate-in slide-in-from-left-2 transition-all">
+                                            <span className="text-sm text-yellow-700 dark:text-yellow-500">Período de espera:</span>
+                                            <div className="flex gap-2">
+                                                {['6 meses', '1 ano'].map(period => (
+                                                    <button
+                                                        key={period}
+                                                        type="button"
+                                                        onClick={() => setReassessmentPeriod(period)}
+                                                        className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${
+                                                            reassessmentPeriod === period 
+                                                            ? 'bg-yellow-600 border-yellow-600 text-white shadow-sm' 
+                                                            : 'bg-white dark:bg-slate-900 border-yellow-200 text-yellow-700 hover:border-yellow-400'
+                                                        }`}
+                                                    >
+                                                        {period}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 shrink-0">
-                            <Button variant="ghost" onClick={closeModal} disabled={submitting}>
-                                Cancelar
-                            </Button>
-                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleComplete} isLoading={submitting} icon="check_circle">
-                                Concluir Avaliação
-                            </Button>
+                        <div className="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-between gap-3 shrink-0">
+                            <div className="flex gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300" 
+                                    onClick={handleInconclusive}
+                                    isLoading={isInconclusiveSubmitting}
+                                    disabled={submitting}
+                                    icon="warning"
+                                >
+                                    Inconclusivo
+                                </Button>
+                            </div>
+                            <div className="flex gap-3">
+                                <Button variant="ghost" onClick={closeModal} disabled={submitting || isInconclusiveSubmitting}>
+                                    Sair
+                                </Button>
+                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleComplete} isLoading={submitting} disabled={isInconclusiveSubmitting} icon="check_circle">
+                                    Concluir Avaliação
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
