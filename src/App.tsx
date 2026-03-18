@@ -84,8 +84,9 @@ const AppRoutes = () => {
               <Route path="staff" element={<StaffPage />} />
               <Route path="allotment" element={<Allotment />} />
               <Route path="students" element={<Students />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="gestao-cees" element={<CeesManagement />} />
+               <Route path="reports" element={<Reports />} />
+               <Route path="solicitacao-avaliacao" element={<PublicEvaluationRequest />} />
+               <Route path="gestao-cees" element={<CeesManagement />} />
               <Route path="assessor" element={<AssessorDashboard />} />
               <Route path="calendario-cees" element={<CeesCalendar />} />
               <Route path="access" element={<Access />} />

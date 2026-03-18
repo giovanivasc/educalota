@@ -42,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
             '/gestao-cees': 'cees', // Acesso para CEES
             '/assessor': 'assessor', // Meu painel
             '/calendario-cees': 'calendar', // Permissão específica
+            '/solicitacao-avaliacao': 'schools', // Mesma permissão de escolas ou acesso geral
             '/consulta-equipe': 'consulta', // Consulta Equipe Pública Local
             '/access': 'admin',
             '/system': 'admin'
@@ -77,6 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: dashboardIcon, isImage: true },
         { path: '/consulta-equipe', label: 'Consulta Equipe', icon: 'search', isImage: false, isLucide: false },
+        { path: '/solicitacao-avaliacao', label: 'Solicitar Avaliação', icon: 'assignment_add', isImage: false, isLucide: false },
         { path: '/schools', label: 'Escolas', icon: schoolsIcon, isImage: true },
         { path: '/staff', label: 'Profissionais', icon: staffIcon, isImage: true },
         { path: '/students', label: 'Estudantes', icon: studentsIcon, isImage: true },
