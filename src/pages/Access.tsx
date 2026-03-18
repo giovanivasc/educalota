@@ -192,9 +192,14 @@ const Access: React.FC = () => {
                   onClick={() => handleSelectUser(u)}
                   className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedUser?.id === u.id ? 'bg-primary/10 border-primary text-primary' : 'bg-slate-50 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:border-slate-800'}`}
                 >
-                  <p className="font-medium text-sm truncate">{u.email}</p>
-                  <span className="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full mt-1 inline-block">
-                    {u.role}
+                  <p className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                    {u.name || u.email?.split('@')[0]}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate mb-1">
+                    {u.email}
+                  </p>
+                  <span className="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full inline-block font-medium">
+                    {u.role === 'ADMIN' ? 'Administrador' : u.role}
                   </span>
                 </button>
               ))
