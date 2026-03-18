@@ -35,7 +35,8 @@ const Access: React.FC = () => {
     { id: 'reports', title: 'Relatórios', desc: 'Acesso aos relatórios', icon: 'bar_chart', color: 'bg-green-100 text-green-600' },
     { id: 'admin', title: 'Acesso Total', desc: 'Privilégios administrativos', icon: 'shield', color: 'bg-red-100 text-red-600' },
     { id: 'assessor', title: 'CEES: Minhas Avaliações', desc: 'Acesso ao painel do assessor e relatórios', icon: 'clinical_notes', color: 'bg-emerald-100 text-emerald-600' },
-    { id: 'consulta', title: 'Consulta Equipe', desc: 'Acesso à busca pública de alunos', icon: 'search', color: 'bg-yellow-100 text-yellow-600' }
+    { id: 'consulta', title: 'Consulta Equipe', desc: 'Acesso à busca pública de alunos', icon: 'search', color: 'bg-yellow-100 text-yellow-600' },
+    { id: 'calendar', title: 'Calendário CEES', desc: 'Agendar avaliações e triagem', icon: 'calendar_month', color: 'bg-amber-100 text-amber-600' }
   ];
 
   // Carregar os usuários ao abrir a página

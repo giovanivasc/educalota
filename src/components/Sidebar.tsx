@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
             '/reports': 'reports', // Assume reports access
             '/gestao-cees': 'cees', // Acesso para CEES
             '/assessor': 'assessor', // Meu painel
-            '/calendario-cees': 'cees', // Mesmo acesso da Gestão
+            '/calendario-cees': 'calendar', // Permissão específica
             '/consulta-equipe': 'consulta', // Consulta Equipe Pública Local
             '/access': 'admin',
             '/system': 'admin'
@@ -133,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                     ))}
 
                     {/* Avaliações CEES Menu Dropdown */}
-                    {(hasPermission('/gestao-cees') || hasPermission('/assessor')) && (
+                    {(hasPermission('/gestao-cees') || hasPermission('/assessor') || hasPermission('/calendario-cees')) && (
                         <>
                             <button
                                 onClick={() => setIsAvaliacoesOpen(!isAvaliacoesOpen)}
@@ -161,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                                             <span className="text-sm">Solicitações</span>
                                         </NavLink>
                                     )}
-                                    {hasPermission('/gestao-cees') && (
+                                    {hasPermission('/calendario-cees') && (
                                         <NavLink
                                             to="/calendario-cees"
                                             className={({ isActive }) =>
