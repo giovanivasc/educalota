@@ -95,7 +95,8 @@ const Access: React.FC = () => {
         const { error } = await supabase.rpc('update_user_access', {
           target_user_id: selectedUser.id,
           new_role: role,
-          new_permissions: permissions
+          new_permissions: permissions,
+          new_name: name
         });
 
         if (error) throw error;
