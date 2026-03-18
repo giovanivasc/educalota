@@ -19,6 +19,7 @@ import { PublicConsulta } from './pages/PublicConsulta';
 import PublicEvaluationRequest from './pages/PublicEvaluationRequest';
 import CeesManagement from './pages/CeesManagement';
 import AssessorDashboard from './pages/AssessorDashboard';
+import CeesCalendar from './pages/CeesCalendar';
 
 const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -76,6 +77,7 @@ const AppRoutes = () => {
               <Route path="reports" element={<Reports />} />
               <Route path="gestao-cees" element={<CeesManagement />} />
               <Route path="assessor" element={<AssessorDashboard />} />
+              <Route path="calendario-cees" element={<CeesCalendar />} />
               <Route path="access" element={<Access />} />
               <Route path="system" element={<div className="p-8 text-center text-slate-500">Configurações do Sistema (Em desenvolvimento)</div>} />
               {/* Catch-all dentro do app redireciona para dashboard */}

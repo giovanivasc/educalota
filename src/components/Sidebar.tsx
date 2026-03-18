@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ClipboardCheck, ChevronDown, ChevronRight, Inbox, UserCheck } from 'lucide-react';
+import { ClipboardCheck, ChevronDown, ChevronRight, Inbox, UserCheck, Calendar } from 'lucide-react';
 import { User } from '../types';
 import { ProfileSettingsModal } from './ProfileSettingsModal';
 import dashboardIcon from '../assets/icons/dashboard-icon.png';
@@ -37,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
             '/reports': 'reports', // Assume reports access
             '/gestao-cees': 'cees', // Acesso para CEES
             '/assessor': 'assessor', // Meu painel
+            '/calendario-cees': 'cees', // Mesmo acesso da Gestão
             '/consulta-equipe': 'consulta', // Consulta Equipe Pública Local
             '/access': 'admin',
             '/system': 'admin'
@@ -158,6 +159,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                                         >
                                             <Inbox className="w-4 h-4" />
                                             <span className="text-sm">Solicitações</span>
+                                        </NavLink>
+                                    )}
+                                    {hasPermission('/gestao-cees') && (
+                                        <NavLink
+                                            to="/calendario-cees"
+                                            className={({ isActive }) =>
+                                                `flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`
+                                            }
+                                        >
+                                            <Calendar className="w-4 h-4" />
+                                            <span className="text-sm">Calendário</span>
                                         </NavLink>
                                     )}
                                     {hasPermission('/assessor') && (
