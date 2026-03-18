@@ -94,6 +94,17 @@ export default function AssessorDashboard() {
                     final_report_file_url: final_report_file_url,
                     reassessment_needed: reassessmentNeeded,
                     reassessment_period: reassessmentNeeded ? reassessmentPeriod : null,
+                    history: [
+                        ...(selectedRequest.history || []),
+                        {
+                            date: new Date().toISOString(),
+                            action: 'FINALIZAÇÃO',
+                            result: 'Finalizado',
+                            description: `Avaliação concluída com parecer técnico. ${reassessmentNeeded ? 'Reavaliação necessária em ' + reassessmentPeriod : 'Sem necessidade de reavaliação'}`,
+                            actor: user?.user_metadata?.name || user?.email,
+                            assessors: `${usersMap[selectedRequest.assessor_id] || 'Assessor 1'} ${selectedRequest.assessor_2_id ? ' e ' + (usersMap[selectedRequest.assessor_2_id] || 'Assessor 2') : ''}`
+                        }
+                    ],
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', selectedRequest.id);
@@ -126,6 +137,17 @@ export default function AssessorDashboard() {
                     evaluation_date: null,
                     assessor_id: null,
                     assessor_2_id: null,
+                    history: [
+                        ...(cancellingRequest.history || []),
+                        {
+                            date: new Date().toISOString(),
+                            action: 'CANCELAMENTO',
+                            result: 'Agendamento Cancelado',
+                            description: `Cancelado em campo. Motivo: ${cancelReason}`,
+                            actor: user?.user_metadata?.name || user?.email,
+                            assessors: `${usersMap[cancellingRequest.assessor_id] || 'Assessor 1'} ${cancellingRequest.assessor_2_id ? ' e ' + (usersMap[cancellingRequest.assessor_2_id] || 'Assessor 2') : ''}`
+                        }
+                    ],
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', cancellingRequest.id);
@@ -154,11 +176,22 @@ export default function AssessorDashboard() {
             const { error } = await supabase
                 .from('evaluation_requests')
                 .update({
-                    status: 'PENDING_CEES', // Retorna para a fila original
+                    status: 'INCONCLUSIVE', // Novo status sugerido pelo usuário
                     return_reason: `Avaliação Inconclusiva: ${reportText}`,
                     evaluation_date: null,
                     assessor_id: null,
                     assessor_2_id: null,
+                    history: [
+                        ...(selectedRequest.history || []),
+                        {
+                            date: new Date().toISOString(),
+                            action: 'INCONCLUSIVO',
+                            result: 'Inconclusivo',
+                            description: `Atendimento realizado mas sem conclusão. Notas: ${reportText.substring(0, 100)}...`,
+                            actor: user?.user_metadata?.name || user?.email,
+                            assessors: `${usersMap[selectedRequest.assessor_id] || 'Assessor 1'} ${selectedRequest.assessor_2_id ? ' e ' + (usersMap[selectedRequest.assessor_2_id] || 'Assessor 2') : ''}`
+                        }
+                    ],
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', selectedRequest.id);
