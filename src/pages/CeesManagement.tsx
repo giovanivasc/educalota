@@ -24,12 +24,13 @@ export default function CeesManagement() {
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            // Filtrando para mostrar apenas os pendentes ou agendados, do mais antigo para o mais recente.
+            // Filtrando para mostrar apenas os pendentes, agendados, inconclusivos ou DEVOLVIDOS.
+            // Ordenando pelo primeiro recebimento ASC (FIFO - Oldest at top)
             const { data, error } = await supabase
                 .from('evaluation_requests')
                 .select('*, schools(name)')
-                .in('status', ['PENDING_CEES', 'SCHEDULED', 'INCONCLUSIVE'])
-                .order('created_at', { ascending: true });
+                .in('status', ['PENDING_CEES', 'SCHEDULED', 'INCONCLUSIVE', 'RETURNED'])
+                .order('first_received_at', { ascending: true });
 
             if (error) throw error;
             setRequests(data || []);
@@ -168,7 +169,7 @@ export default function CeesManagement() {
                 <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
                     <h2 className="font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
                         <span className="material-symbols-outlined text-primary">pending_actions</span>
-                        Solicitações Pendentes e Agendadas
+                        Solicitações em Aberto
                     </h2>
                     <Button variant="ghost" icon="refresh" onClick={fetchRequests} isLoading={loading}>
                         Atualizar
@@ -180,6 +181,7 @@ export default function CeesManagement() {
                         <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
                             <tr>
                                 <th className="px-6 py-4">Protocolo</th>
+                                <th className="px-6 py-4">Recebido em</th>
                                 <th className="px-6 py-4">Escola</th>
                                 <th className="px-6 py-4">Aluno</th>
                                 <th className="px-6 py-4">Tipo</th>
@@ -190,21 +192,28 @@ export default function CeesManagement() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading && requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                                         <span className="material-symbols-outlined animate-spin text-3xl mb-2 text-primary">sync</span>
                                         <p>Carregando solicitações...</p>
                                     </td>
                                 </tr>
                             ) : requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                                         Nenhuma solicitação encontrada no momento.
                                     </td>
                                 </tr>
                             ) : (
                                 requests.map(req => (
-                                    <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">{req.protocol_number}</td>
+                                    <tr key={req.id} className={`transition-colors transition-opacity ${
+                                        req.status === 'RETURNED' ? 'bg-slate-50/50 dark:bg-slate-900/30 opacity-60 grayscale-[0.5]' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                                    }`}>
+                                        <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">
+                                            {req.protocol_number}
+                                        </td>
+                                        <td className="px-6 py-4 text-[11px] font-medium text-slate-500">
+                                            {req.first_received_at ? new Date(req.first_received_at).toLocaleDateString() : 'N/A'}
+                                        </td>
                                         <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{req.schools?.name || 'Escola não vinculada'}</td>
                                         <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{req.student_name}</td>
                                         <td className="px-6 py-4">
@@ -215,15 +224,17 @@ export default function CeesManagement() {
                                                 req.status === 'PENDING_CEES' ? 'bg-blue-100 text-blue-700' :
                                                 req.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-700' :
                                                 req.status === 'INCONCLUSIVE' ? 'bg-orange-100 text-orange-700' :
+                                                req.status === 'RETURNED' ? 'bg-red-50 text-red-600 grayscale' :
                                                 'bg-slate-100 text-slate-700'
                                                 }`}>
                                                 {req.status === 'PENDING_CEES' ? 'Aguardando Análise' :
                                                  req.status === 'SCHEDULED' ? 'Agendado' : 
-                                                 req.status === 'INCONCLUSIVE' ? 'Inconclusivo' : req.status}
+                                                 req.status === 'INCONCLUSIVE' ? 'Inconclusivo' : 
+                                                 req.status === 'RETURNED' ? 'Devolvido' : req.status}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <Button size="sm" variant="secondary" onClick={() => setSelectedRequest(req)}>
+                                            <Button size="sm" variant={req.status === 'RETURNED' ? 'ghost' : 'secondary'} onClick={() => setSelectedRequest(req)}>
                                                 Analisar
                                             </Button>
                                         </td>
@@ -256,7 +267,7 @@ export default function CeesManagement() {
                             <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                                 <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
                                     <span className="material-symbols-outlined text-primary">history</span>
-                                    Histórico de Movimentações
+                                    Histórico de Movimentações (Log)
                                 </h3>
                                 <div className="space-y-3">
                                     {selectedRequest.history && selectedRequest.history.length > 0 ? (

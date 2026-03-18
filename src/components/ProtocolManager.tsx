@@ -155,6 +155,7 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
                     methodological_observations: methodologicalObs,
                     authorization_file_url: fileUrl,
                     status: 'PENDING_CEES',
+                    first_received_at: requestData.first_received_at || new Date().toISOString(),
                     history: [
                         ...(requestData.history || []),
                         {
@@ -172,14 +173,16 @@ export default function ProtocolManager({ onCancel }: ProtocolManagerProps) {
 
             if (error) throw error;
 
+            const now = new Date().toISOString();
             setRequestData({
                 ...requestData,
                 status: 'PENDING_CEES',
                 authorization_file_url: fileUrl,
+                first_received_at: requestData.first_received_at || now,
                 history: [
                     ...(requestData.history || []),
                     {
-                        date: new Date().toISOString(),
+                        date: now,
                         action: 'ENVIO',
                         result: 'Encaminhado',
                         description: `Solicitação enviada pela escola para triagem.`,

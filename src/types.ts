@@ -122,6 +122,7 @@ export interface EvaluationRequest {
   final_report_text?: string;
   final_report_file_url?: string;
   history?: any[];
+  first_received_at?: string;
 
   created_at: string;
   updated_at: string;
