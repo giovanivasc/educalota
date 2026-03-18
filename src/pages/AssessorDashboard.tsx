@@ -2,12 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function AssessorDashboard() {
     const { user } = useAuth();
-    const [requests, setRequests] = useState<any[]>([]);
-    const [usersMap, setUsersMap] = useState<Record<string, string>>({});
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+
+    const { data: usersMap = {} } = useQuery({
+        queryKey: ['users_map'],
+        queryFn: async () => {
+            const { data: usersData } = await supabase.rpc('get_all_users');
+            const map: Record<string, string> = {};
+            usersData?.forEach((u: any) => {
+                map[u.id] = u.name || u.email?.split('@')[0] || 'Assessor';
+            });
+            return map;
+        }
+    });
+
+    const { data: requests = [], isLoading: loading } = useQuery({
+        queryKey: ['evaluation_requests', 'assessor', user?.id],
+        queryFn: fetchRequests,
+        enabled: !!user
+    });
     
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
     const [cancellingRequest, setCancellingRequest] = useState<any | null>(null);
@@ -28,36 +45,18 @@ export default function AssessorDashboard() {
         'Turma dispensada'
     ];
 
-    const fetchRequests = async () => {
-        if (!user) return;
-        setLoading(true);
-        try {
-            const { data: usersData } = await supabase.rpc('get_all_users');
-            const map: Record<string, string> = {};
-            usersData?.forEach((u: any) => {
-                map[u.id] = u.name || u.email?.split('@')[0] || 'Assessor';
-            });
-            setUsersMap(map);
-
-            const { data, error } = await supabase
-                .from('evaluation_requests')
-                .select('*, schools(name)')
-                .eq('status', 'SCHEDULED')
-                .or(`assessor_id.eq.${user.id},assessor_2_id.eq.${user.id}`)
-                .order('evaluation_date', { ascending: true });
-            
-            if (error) throw error;
-            setRequests(data || []);
-        } catch (err) {
-            console.error('Erro ao buscar avaliações:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchRequests();
-    }, [user]);
+    async function fetchRequests() {
+        if (!user) return [];
+        const { data, error } = await supabase
+            .from('evaluation_requests')
+            .select('*, schools(name)')
+            .eq('status', 'SCHEDULED')
+            .or(`assessor_id.eq.${user.id},assessor_2_id.eq.${user.id}`)
+            .order('evaluation_date', { ascending: true });
+        
+        if (error) throw error;
+        return data || [];
+    }
 
     const handleComplete = async () => {
         if (!reportText.trim()) {
@@ -112,8 +111,8 @@ export default function AssessorDashboard() {
             if (updateError) throw updateError;
             
             alert('Avaliação concluída com sucesso!');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
             closeModal();
-            fetchRequests();
         } catch (err) {
             console.error('Erro ao concluir avaliação:', err);
             alert('Erro ao concluir avaliação.');
@@ -155,9 +154,9 @@ export default function AssessorDashboard() {
             if (error) throw error;
 
             alert('Atendimento cancelado com sucesso.');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
             setCancellingRequest(null);
             setCancelReason('');
-            fetchRequests();
         } catch (err: any) {
             console.error(err);
             alert('Erro ao cancelar atendimento: ' + err.message);
@@ -199,8 +198,8 @@ export default function AssessorDashboard() {
             if (error) throw error;
 
             alert('Atendimento marcado como inconclusivo. Todas as anotações foram salvas e a solicitação retornou para novo agendamento.');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
             closeModal();
-            fetchRequests();
         } catch (err: any) {
             console.error(err);
             alert('Erro ao processar: ' + err.message);
@@ -218,7 +217,7 @@ export default function AssessorDashboard() {
     };
 
     return (
-        <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Meu Painel (Assessor)</h1>
                 <p className="text-slate-500 dark:text-slate-400">Suas avaliações agendadas aguardando atendimento.</p>
@@ -293,7 +292,7 @@ export default function AssessorDashboard() {
             )}
 
             {selectedRequest && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 shrink-0">
                             <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
@@ -343,7 +342,7 @@ export default function AssessorDashboard() {
                                     <textarea 
                                         value={reportText}
                                         onChange={e => setReportText(e.target.value)}
-                                        className="w-full h-40 p-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                                        className="w-full h-40 p-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-y text-base"
                                         placeholder="Descreva o parecer detalhado e conclusões..."
                                     />
                                 </label>
@@ -432,7 +431,7 @@ export default function AssessorDashboard() {
 
             {/* MODAL DE CANCELAMENTO */}
             {cancellingRequest && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in-95 overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-red-50 dark:bg-red-900/10 shrink-0">
                             <h2 className="text-xl font-bold flex items-center gap-2 text-red-700 dark:text-red-400">
@@ -454,7 +453,7 @@ export default function AssessorDashboard() {
                                 <select 
                                     value={cancelReason}
                                     onChange={(e) => setCancelReason(e.target.value)}
-                                    className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                    className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all text-base"
                                 >
                                     <option value="">Selecione um motivo...</option>
                                     {cancelReasons.map(r => (

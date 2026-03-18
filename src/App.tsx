@@ -5,6 +5,16 @@ import Layout from './components/Layout';
 // import { MOCK_USER } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UserRole } from './types';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: true,
+      staleTime: 1000 * 60 * 5,
+    },
+  },
+});
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -92,9 +102,11 @@ const AppRoutes = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

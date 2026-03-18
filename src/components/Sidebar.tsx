@@ -25,6 +25,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isAvaliacoesOpen, setIsAvaliacoesOpen] = useState(false);
 
+    const handleLinkClick = () => {
+        if (isMobileOpen && onMobileClose) onMobileClose();
+    };
+
     // Map path to permission id
 
     const getPermissionId = (path: string) => {
@@ -115,6 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                         <NavLink
                             key={item.path}
                             to={item.path}
+                            onClick={handleLinkClick}
                             className={({ isActive }) =>
                                 `flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors group ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'
                                 }`
@@ -151,8 +156,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                             {isAvaliacoesOpen && isOpen && (
                                 <div className="flex flex-col gap-1 pl-8 mb-2 animate-in slide-in-from-top-2">
                                     {hasPermission('/gestao-cees') && (
-                                        <NavLink
+                                         <NavLink
                                             to="/gestao-cees"
+                                            onClick={handleLinkClick}
                                             className={({ isActive }) =>
                                                 `flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`
                                             }
@@ -164,6 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                                     {hasPermission('/calendario-cees') && (
                                         <NavLink
                                             to="/calendario-cees"
+                                            onClick={handleLinkClick}
                                             className={({ isActive }) =>
                                                 `flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`
                                             }
@@ -175,6 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                                     {hasPermission('/assessor') && (
                                         <NavLink
                                             to="/assessor"
+                                            onClick={handleLinkClick}
                                             className={({ isActive }) =>
                                                 `flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`
                                             }
@@ -199,6 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                         <NavLink
                             key={item.path}
                             to={item.path}
+                            onClick={handleLinkClick}
                             className={({ isActive }) =>
                                 `flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors group ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'
                                 }`

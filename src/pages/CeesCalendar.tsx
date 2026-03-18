@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
+import { useQuery } from '@tanstack/react-query';
 
 const locales = {
   'pt-BR': ptBR,
@@ -19,61 +20,50 @@ const localizer = dateFnsLocalizer({
 });
 
 export default function CeesCalendar() {
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
-  const [assessors, setAssessors] = useState<any[]>([]);
 
-  const fetchEvents = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('evaluation_requests')
-        .select('*, schools(name)')
-        .not('evaluation_date', 'is', null)
-        .in('status', ['SCHEDULED', 'COMPLETED', 'INCONCLUSIVE']);
+  const { data: events = [], isLoading: loading } = useQuery({
+    queryKey: ['evaluation_requests', 'calendar'],
+    queryFn: fetchEvents
+  });
 
-      if (error) throw error;
+  const { data: assessors = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchAssessors
+  });
 
-      const calendarEvents = (data || []).map((req: any) => ({
-        id: req.id,
-        title: `${req.student_name} (${req.protocol_number})`,
-        start: new Date(req.evaluation_date),
-        end: new Date(new Date(req.evaluation_date).getTime() + 60 * 60 * 1000), // 1 hour duration
-        resource: req,
-      }));
+  async function fetchEvents() {
+    const { data, error } = await supabase
+      .from('evaluation_requests')
+      .select('*, schools(name)')
+      .not('evaluation_date', 'is', null)
+      .in('status', ['SCHEDULED', 'COMPLETED', 'INCONCLUSIVE']);
 
-      setEvents(calendarEvents);
-    } catch (err) {
-      console.error('Erro ao buscar eventos:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (error) throw error;
 
-  const fetchAssessors = async () => {
-    try {
-      const { data, error } = await supabase.rpc('get_all_users');
-      if (error) throw error;
-      setAssessors(data || []);
-    } catch (err) {
-      console.error('Erro ao buscar assessores:', err);
-    }
-  };
+    return (data || []).map((req: any) => ({
+      id: req.id,
+      title: `${req.student_name} (${req.protocol_number})`,
+      start: new Date(req.evaluation_date),
+      end: new Date(new Date(req.evaluation_date).getTime() + 60 * 60 * 1000), // 1 hour duration
+      resource: req,
+    }));
+  }
 
-  useEffect(() => {
-    fetchEvents();
-    fetchAssessors();
-  }, []);
+  async function fetchAssessors() {
+    const { data, error } = await supabase.rpc('get_all_users');
+    if (error) throw error;
+    return data || [];
+  }
 
   const getAssessorNames = (req: any) => {
     const names = [];
     if (req.assessor_id) {
-      const a1 = assessors.find(u => u.id === req.assessor_id);
+      const a1 = (assessors as any[]).find(u => u.id === req.assessor_id);
       names.push(a1?.name || 'Assessor 1');
     }
     if (req.assessor_2_id) {
-      const a2 = assessors.find(u => u.id === req.assessor_2_id);
+      const a2 = (assessors as any[]).find(u => u.id === req.assessor_2_id);
       names.push(a2?.name || 'Assessor 2');
     }
     return names.length > 0 ? names.join(' e ') : 'Não atribuído';
@@ -86,7 +76,7 @@ export default function CeesCalendar() {
         <p className="text-slate-500 dark:text-slate-400">Acompanhe os agendamentos da equipe CEES.</p>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[500px]">
         {loading && (
             <div className="flex items-center justify-center p-8">
                 <span className="material-symbols-outlined animate-spin text-3xl text-primary">sync</span>

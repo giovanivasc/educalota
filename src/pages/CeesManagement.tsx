@@ -1,13 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { EvaluationRequest } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function CeesManagement() {
     const { user } = useAuth();
-    const [requests, setRequests] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+
+    const { data: requests = [] as any[], isLoading: loading, refetch: manualRefetch } = useQuery({
+        queryKey: ['evaluation_requests', 'cees_management'],
+        queryFn: fetchRequests
+    });
+
+    const { data: assessorsData = [] as any[] } = useQuery({
+        queryKey: ['assessors'],
+        queryFn: fetchAssessors
+    });
 
     // Modal state
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
@@ -18,51 +28,30 @@ export default function CeesManagement() {
     const [evaluationDate, setEvaluationDate] = useState('');
     const [assessorId, setAssessorId] = useState('');
     const [assessor2Id, setAssessor2Id] = useState('');
-    const [assessorsList, setAssessorsList] = useState<any[]>([]);
     const [actionLoading, setActionLoading] = useState(false);
 
-    const fetchRequests = async () => {
-        setLoading(true);
-        try {
-            // Filtrando para mostrar apenas os pendentes, agendados, inconclusivos ou DEVOLVIDOS.
-            // Ordenando pelo primeiro recebimento ASC (FIFO - Oldest at top)
-            const { data, error } = await supabase
-                .from('evaluation_requests')
-                .select('*, schools(name)')
-                .in('status', ['PENDING_CEES', 'SCHEDULED', 'INCONCLUSIVE', 'RETURNED'])
-                .order('first_received_at', { ascending: true });
+    async function fetchRequests() {
+        const { data, error } = await supabase
+            .from('evaluation_requests')
+            .select('*, schools(name)')
+            .in('status', ['PENDING_CEES', 'SCHEDULED', 'INCONCLUSIVE', 'RETURNED'])
+            .order('first_received_at', { ascending: true });
 
-            if (error) throw error;
-            setRequests(data || []);
-        } catch (err) {
-            console.error('Erro ao buscar solicitações:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        if (error) throw error;
+        return data || [];
+    }
 
-    const fetchAssessors = async () => {
-        try {
-            const { data, error } = await supabase.rpc('get_all_users');
-            if (error) throw error;
-            // Filter who can be assessor
-            const ceesUsers = (data || []).filter(u => 
-                u.role?.toUpperCase() === 'ASSESSOR' || 
-                u.permissions?.includes('assessor') ||
-                u.permissions?.includes('cees') || 
-                u.role?.toUpperCase() === 'ADMIN' ||
-                u.role?.toUpperCase() === 'COORDENADOR'
-            );
-            setAssessorsList(ceesUsers);
-        } catch (err) {
-            console.error('Erro ao buscar assessores:', err);
-        }
-    };
-
-    useEffect(() => {
-        fetchRequests();
-        fetchAssessors();
-    }, []);
+    async function fetchAssessors() {
+        const { data, error } = await supabase.rpc('get_all_users');
+        if (error) throw error;
+        return (data || []).filter((u: any) => 
+            u.role?.toUpperCase() === 'ASSESSOR' || 
+            u.permissions?.includes('assessor') ||
+            u.permissions?.includes('cees') || 
+            u.role?.toUpperCase() === 'ADMIN' ||
+            u.role?.toUpperCase() === 'COORDENADOR'
+        );
+    }
 
     const handleReturn = async () => {
         if (!returnReason.trim()) {
@@ -94,8 +83,8 @@ export default function CeesManagement() {
             if (error) throw error;
 
             alert('Solicitação devolvida para correção.');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
             closeModal();
-            fetchRequests();
         } catch (err) {
             console.error(err);
             alert('Erro ao devolver solicitação.');
@@ -120,7 +109,7 @@ export default function CeesManagement() {
                     status: 'SCHEDULED',
                     evaluation_date: evaluationDate,
                     assessor_id: assessorId,
-                    assessor_2_id: assessor2Id,
+                    assessor_2_id: assessor2Id || null,
                     history: [
                         ...(selectedRequest.history || []),
                         {
@@ -129,7 +118,7 @@ export default function CeesManagement() {
                             result: 'Agendado',
                             description: `Agendado para ${new Date(evaluationDate).toLocaleString()}`,
                             actor: user?.user_metadata?.name || user?.email,
-                            assessors: `${assessorsList.find(a => a.id === assessorId)?.name || 'Assessor 1'} ${assessor2Id ? ' e ' + (assessorsList.find(a => a.id === assessor2Id)?.name || 'Assessor 2') : ''}`
+                            assessors: `${assessorsData.find((a: any) => a.id === assessorId)?.name || 'Assessor 1'} ${assessor2Id ? ' e ' + (assessorsData.find((a: any) => a.id === assessor2Id)?.name || 'Assessor 2') : ''}`
                         }
                     ],
                     updated_at: new Date().toISOString()
@@ -139,8 +128,8 @@ export default function CeesManagement() {
             if (error) throw error;
 
             alert('Avaliação agendada com sucesso.');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
             closeModal();
-            fetchRequests();
         } catch (err) {
             console.error(err);
             alert('Erro ao agendar avaliação.');
@@ -159,7 +148,7 @@ export default function CeesManagement() {
     };
 
     return (
-        <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Centro de Comando CEES</h1>
                 <p className="text-slate-500 dark:text-slate-400">Gestão e agendamento de avaliações multiprofissionais.</p>
@@ -171,7 +160,7 @@ export default function CeesManagement() {
                         <span className="material-symbols-outlined text-primary">pending_actions</span>
                         Solicitações em Aberto
                     </h2>
-                    <Button variant="ghost" icon="refresh" onClick={fetchRequests} isLoading={loading}>
+                    <Button variant="ghost" icon="refresh" onClick={() => manualRefetch()} isLoading={loading}>
                         Atualizar
                     </Button>
                 </div>
@@ -180,13 +169,13 @@ export default function CeesManagement() {
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
                             <tr>
-                                <th className="px-6 py-4">Protocolo</th>
-                                <th className="px-6 py-4">Recebido em</th>
-                                <th className="px-6 py-4">Escola</th>
-                                <th className="px-6 py-4">Aluno</th>
-                                <th className="px-6 py-4">Tipo</th>
-                                <th className="px-6 py-4">Estado</th>
-                                <th className="px-6 py-4 text-right">Ações</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Protocolo</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Recebido em</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Escola</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Aluno</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Tipo</th>
+                                <th className="px-6 py-4 whitespace-nowrap">Estado</th>
+                                <th className="px-6 py-4 text-right whitespace-nowrap">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -204,22 +193,22 @@ export default function CeesManagement() {
                                     </td>
                                 </tr>
                             ) : (
-                                requests.map(req => (
+                                (requests as any[]).map(req => (
                                     <tr key={req.id} className={`transition-colors transition-opacity ${
                                         req.status === 'RETURNED' ? 'bg-slate-50/50 dark:bg-slate-900/30 opacity-60 grayscale-[0.5]' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
                                     }`}>
-                                        <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">
+                                        <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                                             {req.protocol_number}
                                         </td>
-                                        <td className="px-6 py-4 text-[11px] font-medium text-slate-500">
+                                        <td className="px-6 py-4 text-[11px] font-medium text-slate-500 whitespace-nowrap">
                                             {req.first_received_at ? new Date(req.first_received_at).toLocaleDateString() : 'N/A'}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{req.schools?.name || 'Escola não vinculada'}</td>
-                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{req.student_name}</td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{req.schools?.name || 'Escola não vinculada'}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">{req.student_name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="text-xs font-bold text-slate-500 uppercase">{req.request_type}</span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${
                                                 req.status === 'PENDING_CEES' ? 'bg-blue-100 text-blue-700' :
                                                 req.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-700' :
@@ -233,7 +222,7 @@ export default function CeesManagement() {
                                                  req.status === 'RETURNED' ? 'Devolvido' : req.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-4 text-right whitespace-nowrap">
                                             <Button size="sm" variant={req.status === 'RETURNED' ? 'ghost' : 'secondary'} onClick={() => setSelectedRequest(req)}>
                                                 Analisar
                                             </Button>
@@ -247,7 +236,7 @@ export default function CeesManagement() {
             </div>
 
             {selectedRequest && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
                         {/* Modal Header */}
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 shrink-0">
@@ -384,7 +373,7 @@ export default function CeesManagement() {
                                                 onChange={e => setReturnReason(e.target.value)}
                                                 placeholder="Ex: Documento de autorização ilegível. Favor reenviar com melhor resolução."
                                                 rows={3}
-                                                className="p-3 rounded-lg border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-red-500/20 resize-none"
+                                                className="p-3 rounded-lg border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none text-base"
                                             />
                                         </label>
                                         <div className="flex gap-2 justify-end">
@@ -401,7 +390,7 @@ export default function CeesManagement() {
                                                     type="datetime-local"
                                                     value={evaluationDate}
                                                     onChange={e => setEvaluationDate(e.target.value)}
-                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
+                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-base"
                                                 />
                                             </label>
                                             <label className="flex flex-col gap-2">
@@ -409,10 +398,10 @@ export default function CeesManagement() {
                                                 <select
                                                     value={assessorId}
                                                     onChange={e => setAssessorId(e.target.value)}
-                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
+                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-base"
                                                 >
                                                     <option value="">Selecione o(a) titular...</option>
-                                                    {assessorsList.map(a => (
+                                                    {assessorsData.map((a: any) => (
                                                         <option key={a.id} value={a.id}>{a.name || a.email?.split('@')[0]} ({a.role})</option>
                                                     ))}
                                                 </select>
@@ -422,10 +411,10 @@ export default function CeesManagement() {
                                                 <select
                                                     value={assessor2Id}
                                                     onChange={e => setAssessor2Id(e.target.value)}
-                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
+                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-base"
                                                 >
                                                     <option value="">Nenhum (Opcional)</option>
-                                                    {assessorsList.map(a => (
+                                                    {assessorsData.map((a: any) => (
                                                         <option key={a.id} value={a.id}>{a.name || a.email?.split('@')[0]} ({a.role})</option>
                                                     ))}
                                                 </select>
