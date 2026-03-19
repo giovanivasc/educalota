@@ -4,22 +4,23 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
-    Visibility, 
-    Assignment, 
-    FamilyRestroom, 
-    Groups, 
-    Visibility as VisibilityIcon, 
-    Person, 
-    ArrowBack, 
+    Eye, 
+    ClipboardList, 
+    Users, 
+    User, 
+    ArrowLeft, 
     Save, 
     CheckCircle, 
-    HistoryEdu,
-    Close,
-    School,
-    Event,
-    MoreVert,
-    AssignmentTurnedIn
-} from '@mui/icons-material';
+    History,
+    X,
+    GraduationCap,
+    Calendar,
+    MoreVertical,
+    CheckSquare,
+    PlayCircle,
+    Home,
+    Search
+} from 'lucide-react';
 
 type StepType = 'MAIN' | 'ANAMNESE' | 'ESCUTA' | 'OBSERVACAO' | 'INDIVIDUAL';
 
@@ -276,7 +277,7 @@ export default function AssessorDashboard() {
                 <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
             ) : requests.length === 0 ? (
                 <div className="bg-white dark:bg-slate-800 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <HistoryEdu className="text-6xl text-slate-200 mb-4" />
+                    <History className="text-6xl text-slate-200 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-slate-700">Tudo em dia!</h3>
                     <p className="text-slate-500">Nenhum atendimento agendado para você no momento.</p>
                 </div>
@@ -289,7 +290,7 @@ export default function AssessorDashboard() {
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-2">
                                         <div className={`p-2 rounded-xl ${req.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary'}`}>
-                                            <Event />
+                                            <Calendar />
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
@@ -300,20 +301,20 @@ export default function AssessorDashboard() {
                                             </p>
                                         </div>
                                     </div>
-                                    <button className="text-slate-400 hover:text-slate-600"><MoreVert /></button>
+                                    <button className="text-slate-400 hover:text-slate-600"><MoreVertical /></button>
                                 </div>
                                 <h3 className="text-lg font-black text-slate-800 dark:text-white mb-1 leading-tight group-hover:text-primary transition-colors">{req.student_name}</h3>
                                 <div className="flex items-center gap-2 mb-4">
-                                    <School className="text-slate-400 text-sm" />
+                                    <GraduationCap className="text-slate-400 text-sm" />
                                     <span className="text-sm text-slate-500 dark:text-slate-400 truncate">{req.schools?.name}</span>
                                 </div>
                                 <div className="space-y-2 mb-6 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl">
                                     <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 font-medium">
-                                        <Assignment className="text-[14px]" />
+                                        <ClipboardList className="text-[14px]" />
                                         Protocolo: <span className="font-bold">{req.protocol_number}</span>
                                     </p>
                                     <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 font-medium">
-                                        <Groups className="text-[14px]" />
+                                        <Users className="text-[14px]" />
                                         Equipe CEES
                                     </p>
                                 </div>
@@ -347,7 +348,7 @@ export default function AssessorDashboard() {
                         <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
                             <div className="flex items-center gap-3">
                                 <div className="size-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                                    <VisibilityIcon className="text-primary" />
+                                    <Eye className="text-primary" />
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-black text-slate-900 dark:text-white">Ficha do Estudante</h2>
@@ -355,14 +356,14 @@ export default function AssessorDashboard() {
                                 </div>
                             </div>
                             <button onClick={() => setIsFichaModalOpen(false)} className="size-10 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                                <Close />
+                                <X />
                             </button>
                         </div>
                         <div className="p-8 overflow-y-auto space-y-8 no-scrollbar">
                             <section className="grid grid-cols-2 gap-6">
                                 <div className="col-span-2 bg-primary/5 p-4 rounded-3xl border border-primary/10 flex items-center gap-4">
                                     <div className="bg-white dark:bg-slate-800 size-12 rounded-2xl flex items-center justify-center shadow-sm">
-                                        <Person className="text-primary" />
+                                        <User className="text-primary" />
                                     </div>
                                     <div>
                                         <p className="text-lg font-black text-slate-900 dark:text-white">{selectedRequest.student_name}</p>
@@ -381,7 +382,7 @@ export default function AssessorDashboard() {
 
                             <section className="space-y-4">
                                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Assignment className="text-sm" /> Resumo das Queixas
+                                    <ClipboardList className="text-sm" /> Resumo das Queixas
                                 </h4>
                                 <div className="space-y-3">
                                     {['pedagogical_observations', 'methodological_observations', 'relational_observations'].map(field => (
@@ -399,10 +400,10 @@ export default function AssessorDashboard() {
                                 <section>
                                     <a href={selectedRequest.authorization_file_url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/20 group hover:bg-blue-100 transition-colors">
                                         <div className="flex items-center gap-3">
-                                            <div className="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 shadow-sm"><VisibilityIcon /></div>
+                                            <div className="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 shadow-sm"><Eye /></div>
                                             <span className="text-sm font-bold text-blue-800 dark:text-blue-400">Ver Termo de Autorização Assinado</span>
                                         </div>
-                                        <ArrowBack className="rotate-180 text-blue-400 group-hover:translate-x-1 transition-transform" />
+                                        <ArrowLeft className="rotate-180 text-blue-400 group-hover:translate-x-1 transition-transform" />
                                     </a>
                                 </section>
                             )}
@@ -432,11 +433,11 @@ export default function AssessorDashboard() {
                                         </div>
                                         <h2 className="text-3xl font-black text-slate-900 dark:text-white leading-tight">{selectedRequest.student_name}</h2>
                                         <p className="text-slate-500 mt-1 flex items-center gap-2 font-medium">
-                                            <School className="text-sm" /> {selectedRequest.schools?.name}
+                                            <GraduationCap className="text-sm" /> {selectedRequest.schools?.name}
                                         </p>
                                     </div>
                                     <button onClick={() => setIsAttendanceHubOpen(false)} className="size-12 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors">
-                                        <Close className="text-slate-400" />
+                                        <X className="text-slate-400" />
                                     </button>
                                 </div>
 
@@ -445,10 +446,10 @@ export default function AssessorDashboard() {
                                         <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Etapas da Avaliação</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                             {[
-                                                { id: 'ANAMNESE', label: 'Escuta Família (Anamnese)', icon: <FamilyRestroom />, color: 'purple', col: 'anamnesis_data' },
-                                                { id: 'ESCUTA', label: 'Escuta Equipe Pedagógica', icon: <Groups />, color: 'blue', col: 'pedagogical_listening_data' },
-                                                { id: 'OBSERVACAO', label: 'Observação em Sala', icon: <VisibilityIcon />, color: 'emerald', col: 'classroom_observation_data' },
-                                                { id: 'INDIVIDUAL', label: 'Avaliação Individual', icon: <Person />, color: 'orange', col: 'individual_evaluation_data' }
+                                                { id: 'ANAMNESE', label: 'Escuta Família (Anamnese)', icon: <Users />, color: 'purple', col: 'anamnesis_data' },
+                                                { id: 'ESCUTA', label: 'Escuta Equipe Pedagógica', icon: <Search />, color: 'blue', col: 'pedagogical_listening_data' },
+                                                { id: 'OBSERVACAO', label: 'Observação em Sala', icon: <Eye />, color: 'emerald', col: 'classroom_observation_data' },
+                                                { id: 'INDIVIDUAL', label: 'Avaliação Individual', icon: <User />, color: 'orange', col: 'individual_evaluation_data' }
                                             ].map(step => {
                                                 const hasData = selectedRequest[step.col] && Object.keys(selectedRequest[step.col]).length > 0;
                                                 const completedByMe = selectedRequest[step.col]?.[user?.id]?.completed;
@@ -473,7 +474,7 @@ export default function AssessorDashboard() {
                                                             <div className="absolute top-4 right-4 flex -space-x-2">
                                                                 {Object.values(selectedRequest[step.col]).map((val: any, i: number) => (
                                                                     <div key={i} className="size-5 rounded-full bg-slate-200 border-2 border-white dark:border-slate-800 flex items-center justify-center overflow-hidden" title={val.assessor_name}>
-                                                                        <Person className="text-[10px] text-slate-500" />
+                                                                        <User className="text-[10px] text-slate-500" />
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -487,7 +488,7 @@ export default function AssessorDashboard() {
 
                                     <div className="bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-inner">
                                         <div className="flex items-center gap-3 mb-6">
-                                            <div className="size-10 rounded-2xl bg-primary text-white flex items-center justify-center"><AssignmentTurnedIn /></div>
+                                            <div className="size-10 rounded-2xl bg-primary text-white flex items-center justify-center"><CheckSquare /></div>
                                             <h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight">Parecer Técnico Final</h3>
                                         </div>
                                         <div className="space-y-6">
@@ -523,7 +524,7 @@ export default function AssessorDashboard() {
                                 {/* Header da Etapa */}
                                 <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
                                     <button onClick={() => setCurrentStep('MAIN')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold px-3 py-2 rounded-xl hover:bg-slate-100 transition-all">
-                                        <ArrowBack /> Voltar para Etapas
+                                        <ArrowLeft /> Voltar para Etapas
                                     </button>
                                     <div className="text-center flex-1 pr-10">
                                         <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Formulário de Campo</p>
@@ -540,7 +541,7 @@ export default function AssessorDashboard() {
                                     <div className="max-w-3xl mx-auto space-y-6">
                                         <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
                                             <div className="flex items-center gap-3 mb-6">
-                                                <div className="size-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center"><Assignment /></div>
+                                                <div className="size-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center"><ClipboardList /></div>
                                                 <h4 className="font-black text-slate-800 dark:text-slate-200">Anotações Provisórias da Etapa</h4>
                                             </div>
                                             <textarea 
@@ -570,7 +571,7 @@ export default function AssessorDashboard() {
                     <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-xl w-full max-w-md animate-in zoom-in-95 overflow-hidden">
                         <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700 bg-red-50 text-red-700 flex justify-between items-center">
                             <h2 className="text-lg font-black flex items-center gap-2">Cancelar Atendimento</h2>
-                            <button onClick={() => setCancellingRequest(null)}><Close /></button>
+                            <button onClick={() => setCancellingRequest(null)}><X /></button>
                         </div>
                         <div className="p-8 space-y-6">
                             <p className="text-slate-600 text-sm leading-relaxed">Deseja realmente cancelar o agendamento de <span className="font-bold text-slate-900 dark:text-white">{cancellingRequest.student_name}</span>?</p>
