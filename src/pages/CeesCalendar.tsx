@@ -193,7 +193,8 @@ export default function CeesCalendar() {
     };
   };
 
-  const CustomEvent: Components['event'] = ({ event }) => {
+  const CustomEvent: Components['event'] = ({ event: anyEvent }) => {
+    const event = anyEvent as any;
     const isMine = 
         (event.type === 'EVALUATION' && (event.resource.assessor_id === user?.id || event.resource.assessor_2_id === user?.id)) ||
         (event.type === 'ACTIVITY' && event.resource.participants?.includes(user?.id)) ||
@@ -255,6 +256,24 @@ export default function CeesCalendar() {
             if (error) throw error;
         }
         queryClient.invalidateQueries({ queryKey: ['cees_activities'] });
+
+        // Disparar Notificações para Participantes
+        if (actParticipants.length > 0) {
+            const notificationsToInsert = actParticipants
+                .filter(pid => pid !== user?.id) // Não notificar a si mesmo
+                .map(pid => ({
+                    user_id: pid,
+                    title: `Nova Atividade: ${actType}`,
+                    message: `Você foi adicionado à atividade: ${actTitle}.`,
+                    type: 'ATIVIDADE',
+                    link: '/calendario-cees'
+                }));
+            
+            if (notificationsToInsert.length > 0) {
+                await supabase.from('notifications').insert(notificationsToInsert);
+            }
+        }
+
         setIsEditModalOpen(false);
         resetActForm();
     } catch (err: any) {
@@ -352,7 +371,7 @@ export default function CeesCalendar() {
                     <Info className="w-5 h-5 text-primary" />
                     Detalhes da Atividade
                 </h2>
-                <button onClick={() => setIsViewModalOpen(false)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                <button onClick={() => setIsViewModalOpen(false)} title="Fechar Detalhes" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
                     <X className="w-5 h-5 text-slate-500" />
                 </button>
             </div>
@@ -449,7 +468,7 @@ export default function CeesCalendar() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-xl animate-in zoom-in-95 overflow-hidden">
             <div className={`px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center ${isEditMode ? 'bg-amber-50 text-amber-700' : 'bg-primary/10 text-primary'}`}>
                 <h2 className="font-bold flex items-center gap-2">{isEditMode ? <Edit className="w-5 h-5"/> : <Plus className="w-5 h-5"/>} {isEditMode ? 'Editar Atividade' : 'Nova Atividade de Equipe'}</h2>
-                <button onClick={() => setIsEditModalOpen(false)}><X className="w-5 h-5"/></button>
+                <button onClick={() => setIsEditModalOpen(false)} title="Fechar Formulário"><X className="w-5 h-5"/></button>
             </div>
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                 <label className="flex flex-col gap-1">
@@ -521,7 +540,7 @@ export default function CeesCalendar() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in-95 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-red-50 text-red-600 flex justify-between items-center">
                 <h2 className="font-bold flex items-center gap-2"><UserMinus className="w-5 h-5"/> Registrar Ausência</h2>
-                <button onClick={() => setIsAbsenceModalOpen(false)}><X className="w-5 h-5"/></button>
+                <button onClick={() => setIsAbsenceModalOpen(false)} title="Fechar Ausência"><X className="w-5 h-5"/></button>
             </div>
             <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">

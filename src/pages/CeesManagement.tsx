@@ -163,6 +163,20 @@ export default function CeesManagement() {
 
             alert('Avaliação agendada com sucesso.');
             queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
+            
+            // Disparar Notificações
+            const notify = async (targetId: string) => {
+                await supabase.from('notifications').insert({
+                    user_id: targetId,
+                    title: 'Nova Avaliação Agendada',
+                    message: `Você foi designado para avaliar ${selectedRequest.student_name} no dia ${new Date(evaluationDate).toLocaleString()}.`,
+                    type: 'AVALIACAO',
+                    link: '/assessor'
+                });
+            };
+            await notify(assessorId);
+            if (assessor2Id) await notify(assessor2Id);
+
             closeModal();
         } catch (err) {
             console.error(err);

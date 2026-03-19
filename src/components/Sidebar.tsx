@@ -169,18 +169,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobileOpen, onMobile
                                             <span className="text-sm">Solicitações</span>
                                         </NavLink>
                                     )}
-                                    {hasPermission('/calendario-cees') && (
-                                        <NavLink
-                                            to="/calendario-cees"
-                                            onClick={handleLinkClick}
-                                            className={({ isActive }) =>
-                                                `flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${isActive ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`
-                                            }
-                                        >
-                                            <Calendar className="w-4 h-4" />
-                                            <span className="text-sm">Calendário</span>
-                                        </NavLink>
-                                    )}
                                     {hasPermission('/assessor') && (
                                         <NavLink
                                             to="/assessor"
