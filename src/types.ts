@@ -130,6 +130,7 @@ export interface EvaluationRequest {
   classroom_observation_data?: any;
   individual_evaluation_data?: any;
   specialized_support?: string;
+  class_id?: string;
 
   created_at: string;
   updated_at: string;

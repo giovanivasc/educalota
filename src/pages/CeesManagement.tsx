@@ -48,12 +48,13 @@ export default function CeesManagement() {
     const [assessorId, setAssessorId] = useState('');
     const [assessor2Id, setAssessor2Id] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
+    const [migrationLoading, setMigrationLoading] = useState(false);
 
     async function fetchRequests() {
         const { data, error } = await supabase
             .from('evaluation_requests')
-            .select('*, schools(name)')
-            .in('status', ['PENDING_CEES', 'SCHEDULED', 'INCONCLUSIVE', 'RETURNED'])
+            .select('*, schools(name), class_id')
+            .in('status', ['PENDING_CEES', 'SCHEDULED', 'INCONCLUSIVE', 'RETURNED', 'COMPLETED'])
             .order('first_received_at', { ascending: true });
 
         if (error) throw error;
@@ -186,6 +187,64 @@ export default function CeesManagement() {
         }
     };
 
+    const handleMigrateStudent = async () => {
+        if (selectedRequest.student_id) {
+            return alert('Este aluno já possui matrícula efetivada no sistema.');
+        }
+
+        setMigrationLoading(true);
+        try {
+            const newStudent = {
+                name: selectedRequest.student_name,
+                birth_date: selectedRequest.student_birth_date,
+                school_id: selectedRequest.school_id,
+                class_id: selectedRequest.class_id,
+                series: selectedRequest.student_year_stage || selectedRequest.student_level,
+                possui_laudo: true,
+                cid: selectedRequest.cid_hipotese || 'A definir (CEES)',
+                needs_support: selectedRequest.specialized_support ? [selectedRequest.specialized_support] : [],
+                additional_info: `Migrado via protocolo CEES ${selectedRequest.protocol_number}. Parecer: ${selectedRequest.final_report_text || 'Sem parecer disponível'}`
+            };
+
+            const { data: insertedStudent, error: insertError } = await supabase
+                .from('students')
+                .insert([newStudent])
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+
+            const { error: updateReqError } = await supabase
+                .from('evaluation_requests')
+                .update({
+                    student_id: insertedStudent.id,
+                    history: [
+                        ...(selectedRequest.history || []),
+                        {
+                            date: new Date().toISOString(),
+                            action: 'MATRICULA',
+                            result: 'Efetivado',
+                            description: `Aluno matriculado e migrado para a base oficial de estudantes. ID: ${insertedStudent.id}`,
+                            actor: user?.user_metadata?.name || user?.email,
+                        }
+                    ]
+                })
+                .eq('id', selectedRequest.id);
+
+            if (updateReqError) throw updateReqError;
+
+            alert('Aluno migrado e efetivado com sucesso!');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
+            queryClient.invalidateQueries({ queryKey: ['students'] });
+            closeModal();
+        } catch (err: any) {
+            console.error(err);
+            alert('Erro ao migrar aluno: ' + err.message);
+        } finally {
+            setMigrationLoading(false);
+        }
+    };
+
     const closeModal = () => {
         setSelectedRequest(null);
         setActionType('NONE');
@@ -243,6 +302,7 @@ export default function CeesManagement() {
                             ) : (
                                 (requests as any[]).map(req => (
                                     <tr key={req.id} className={`transition-colors transition-opacity ${
+                                        req.status === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-900/10' :
                                         req.status === 'RETURNED' ? 'bg-slate-50/50 dark:bg-slate-900/30 opacity-60 grayscale-[0.5]' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
                                     }`}>
                                         <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
@@ -262,12 +322,14 @@ export default function CeesManagement() {
                                                 req.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-700' :
                                                 req.status === 'INCONCLUSIVE' ? 'bg-orange-100 text-orange-700' :
                                                 req.status === 'RETURNED' ? 'bg-red-50 text-red-600 grayscale' :
+                                                req.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
                                                 'bg-slate-100 text-slate-700'
                                                 }`}>
                                                 {req.status === 'PENDING_CEES' ? 'Aguardando Análise' :
                                                  req.status === 'SCHEDULED' ? 'Agendado' : 
                                                  req.status === 'INCONCLUSIVE' ? 'Inconclusivo' : 
-                                                 req.status === 'RETURNED' ? 'Devolvido' : req.status}
+                                                 req.status === 'RETURNED' ? 'Devolvido' : 
+                                                 req.status === 'COMPLETED' ? 'Concluído' : req.status}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right whitespace-nowrap">
@@ -403,7 +465,16 @@ export default function CeesManagement() {
                             <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
                                 <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Ações da CEES</h3>
 
-                                {actionType === 'NONE' ? (
+                                {selectedRequest.status === 'COMPLETED' ? (
+                                    <Button 
+                                        icon="person_add" 
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white w-full mt-4" 
+                                        onClick={handleMigrateStudent} 
+                                        isLoading={migrationLoading}
+                                    >
+                                        Efetivar Matrícula do Aluno (Migrar para Estudantes)
+                                    </Button>
+                                ) : actionType === 'NONE' ? (
                                     <div className="flex flex-wrap gap-3">
                                         <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20" icon="assignment_return" onClick={() => setActionType('RETURN')}>
                                             Devolver para Correção

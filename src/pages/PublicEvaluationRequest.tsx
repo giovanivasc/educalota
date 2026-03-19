@@ -330,6 +330,7 @@ export default function PublicEvaluationRequest() {
                 other_special_ed_students_disabilities: otherSpecialEdStudentsDisabilities,
                 responsible_name: responsibleName,
                 responsible_phone: responsiblePhone,
+                class_id: classId,
                 status: 'DRAFT',
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
