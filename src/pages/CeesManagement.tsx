@@ -19,6 +19,25 @@ export default function CeesManagement() {
         queryFn: fetchAssessors
     });
 
+    const { data: absences = [] as any[] } = useQuery({
+        queryKey: ['cees_absences'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('cees_absences').select('*');
+            if (error) throw error;
+            return data || [];
+        }
+    });
+
+    const getAbsence = (userId: string, dateStr: string) => {
+        if (!userId || !dateStr) return null;
+        const target = dateStr.split('T')[0]; // "YYYY-MM-DD"
+        return absences.find(abs => 
+            abs.user_id === userId && 
+            target >= abs.start_date && 
+            target <= abs.end_date
+        );
+    };
+
     // Modal state
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
 
@@ -99,6 +118,21 @@ export default function CeesManagement() {
         }
         if (!assessorId) {
             return alert("Selecione o assessor responsável.");
+        }
+
+        // Validação de Ausências
+        const abs1 = getAbsence(assessorId, evaluationDate);
+        if (abs1) {
+            const name = assessorsData.find(a => a.id === assessorId)?.name || 'Assessor';
+            return alert(`Erro: O assessor ${name} registrou ausência neste período (Motivo: ${abs1.reason}). Escolha outra data ou outro profissional.`);
+        }
+
+        if (assessor2Id) {
+            const abs2 = getAbsence(assessor2Id, evaluationDate);
+            if (abs2) {
+                const name = assessorsData.find(a => a.id === assessor2Id)?.name || 'Assessor 2';
+                return alert(`Erro: O assessor secundário ${name} registrou ausência neste período (Motivo: ${abs2.reason}). Escolha outra data ou outro profissional.`);
+            }
         }
 
         setActionLoading(true);
@@ -401,9 +435,14 @@ export default function CeesManagement() {
                                                     className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-base"
                                                 >
                                                     <option value="">Selecione o(a) titular...</option>
-                                                    {assessorsData.map((a: any) => (
-                                                        <option key={a.id} value={a.id}>{a.name || a.email?.split('@')[0]} ({a.role})</option>
-                                                    ))}
+                                                    {assessorsData.map((a: any) => {
+                                                        const isAbsent = !!getAbsence(a.id, evaluationDate);
+                                                        return (
+                                                            <option key={a.id} value={a.id} className={isAbsent ? 'text-red-500 italic' : ''}>
+                                                                {a.name || a.email?.split('@')[0]} ({a.role}){isAbsent ? ' - AUSENTE' : ''}
+                                                            </option>
+                                                        );
+                                                    })}
                                                 </select>
                                             </label>
                                             <label className="flex flex-col gap-2">
@@ -414,9 +453,14 @@ export default function CeesManagement() {
                                                     className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-base"
                                                 >
                                                     <option value="">Nenhum (Opcional)</option>
-                                                    {assessorsData.map((a: any) => (
-                                                        <option key={a.id} value={a.id}>{a.name || a.email?.split('@')[0]} ({a.role})</option>
-                                                    ))}
+                                                    {assessorsData.map((a: any) => {
+                                                        const isAbsent = !!getAbsence(a.id, evaluationDate);
+                                                        return (
+                                                            <option key={a.id} value={a.id} className={isAbsent ? 'text-red-500 italic' : ''}>
+                                                                {a.name || a.email?.split('@')[0]} ({a.role}){isAbsent ? ' - AUSENTE' : ''}
+                                                            </option>
+                                                        );
+                                                    })}
                                                 </select>
                                             </label>
                                         </div>

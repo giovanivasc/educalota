@@ -127,3 +127,23 @@ export interface EvaluationRequest {
   created_at: string;
   updated_at: string;
 }
+
+export interface CeesActivity {
+  id: string;
+  title: string;
+  activity_type: string;
+  location: string;
+  start_time: string;
+  end_time: string;
+  color: string;
+  participants: string[];
+  created_by?: string;
+}
+
+export interface CeesAbsence {
+  id: string;
+  user_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+}

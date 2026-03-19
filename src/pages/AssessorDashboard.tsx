@@ -256,7 +256,7 @@ export default function AssessorDashboard() {
                                 <div className="space-y-2 mb-6">
                                     <p className="text-sm flex items-center gap-2 text-slate-600 dark:text-slate-300">
                                         <span className="material-symbols-outlined text-[16px]">group</span>
-                                        Equipa: {usersMap[req.assessor_id] || 'Assessor 1'} {req.assessor_2_id ? `e ${usersMap[req.assessor_2_id] || 'Assessor 2'}` : ''}
+                                        Equipe: {usersMap[req.assessor_id] || 'Assessor 1'} {req.assessor_2_id ? `e ${usersMap[req.assessor_2_id] || 'Assessor 2'}` : ''}
                                     </p>
                                     <p className="text-sm flex items-center gap-2 text-slate-600 dark:text-slate-300">
                                         <span className="material-symbols-outlined text-[16px]">school</span>
