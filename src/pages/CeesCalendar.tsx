@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Star, Plus, UserMinus, Trash2, Edit } from 'lucide-react';
+import { Star, Plus, UserMinus, Trash2, Edit, X, Info, Calendar as CalendarIcon, MapPin, Users } from 'lucide-react';
 
 const locales = {
   'pt-BR': ptBR,
@@ -49,10 +49,11 @@ export default function CeesCalendar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  
+  // States
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
-
-  // Modals state
-  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export default function CeesCalendar() {
   const [absReason, setAbsReason] = useState('');
   const [submittingAbs, setSubmittingAbs] = useState(false);
 
-  // 1. Fetch Multiple Sources
+  // 1. Fetch Data
   const { data: evaluations = [] } = useQuery({
     queryKey: ['evaluation_requests', 'calendar'],
     queryFn: async () => {
@@ -158,7 +159,7 @@ export default function CeesCalendar() {
     return evs;
   }, [evaluations, activities, absences, usersMap]);
 
-  // 3. Smart Styling
+  // 3. Styling Logic
   const eventStyleGetter = (event: any) => {
     const isMine = 
         (event.type === 'EVALUATION' && (event.resource.assessor_id === user?.id || event.resource.assessor_2_id === user?.id)) ||
@@ -186,7 +187,6 @@ export default function CeesCalendar() {
             }
         };
     }
-
     return {
         className: `${opacityClass} ${borderClass} border-none rounded text-white text-[10px] md:text-xs font-bold px-1.5 py-0.5 shadow-sm`,
         style: { backgroundColor: bgColor }
@@ -207,7 +207,33 @@ export default function CeesCalendar() {
     );
   };
 
-  const handleCreateActivity = async () => {
+  // 4. Handlers
+  const onSelectEvent = (event: any) => {
+    setSelectedEvent(event);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEditClick = () => {
+    if (selectedEvent?.type !== 'ACTIVITY') return;
+    const act = selectedEvent.resource;
+    setActTitle(act.title);
+    setActType(act.activity_type);
+    setActLocation(act.location || '');
+    setActStartTime(new Date(act.start_time).toISOString().slice(0, 16));
+    setActEndTime(new Date(act.end_time).toISOString().slice(0, 16));
+    setActParticipants(act.participants || []);
+    setIsEditMode(true);
+    setEditingId(act.id);
+    setIsViewModalOpen(false);
+    setIsEditModalOpen(true);
+  };
+
+  const resetActForm = () => {
+    setActTitle(''); setActType('Reunião'); setActLocation(''); setActStartTime(''); setActEndTime(''); setActParticipants([]);
+    setIsEditMode(false); setEditingId(null);
+  };
+
+  const handleSaveActivity = async () => {
     if (!actTitle || !actStartTime || !actEndTime) return alert('Preencha os campos obrigatórios!');
     setSubmittingAct(true);
     try {
@@ -221,18 +247,15 @@ export default function CeesCalendar() {
             participants: actParticipants,
             created_by: user?.id
         };
-
         if (isEditMode && editingId) {
             const { error } = await supabase.from('cees_activities').update(payload).eq('id', editingId);
             if (error) throw error;
-            alert('Atividade atualizada!');
         } else {
             const { error } = await supabase.from('cees_activities').insert(payload);
             if (error) throw error;
         }
-
         queryClient.invalidateQueries({ queryKey: ['cees_activities'] });
-        setIsActivityModalOpen(false);
+        setIsEditModalOpen(false);
         resetActForm();
     } catch (err: any) {
         alert('Erro: ' + err.message);
@@ -247,14 +270,14 @@ export default function CeesCalendar() {
         const { error } = await supabase.from('cees_activities').delete().eq('id', id);
         if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ['cees_activities'] });
-        setIsActivityModalOpen(false);
-        resetActForm();
+        setIsViewModalOpen(false);
+        setSelectedEvent(null);
     } catch (err: any) {
         alert('Erro ao excluir: ' + err.message);
     }
   };
 
-  const handleCreateAbsence = async () => {
+  const handleSaveAbsence = async () => {
     if (!absStartDate || !absEndDate || !absReason) return alert('Preencha os campos obrigatórios!');
     setSubmittingAbs(true);
     try {
@@ -267,9 +290,9 @@ export default function CeesCalendar() {
         if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ['cees_absences'] });
         setIsAbsenceModalOpen(false);
-        resetAbsForm();
+        setAbsStartDate(''); setAbsEndDate(''); setAbsReason('');
     } catch (err: any) {
-        alert('Erro ao salvar: ' + err.message);
+        alert('Erro: ' + err.message);
     } finally {
         setSubmittingAbs(false);
     }
@@ -281,39 +304,10 @@ export default function CeesCalendar() {
         const { error } = await supabase.from('cees_absences').delete().eq('id', id);
         if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ['cees_absences'] });
+        setIsViewModalOpen(false);
         setSelectedEvent(null);
     } catch (err: any) {
         alert('Erro ao excluir: ' + err.message);
-    }
-  };
-
-  const resetActForm = () => {
-    setActTitle(''); setActType('Reunião'); setActLocation(''); setActStartTime(''); setActEndTime(''); setActParticipants([]);
-    setIsEditMode(false); setEditingId(null);
-  };
-
-  const resetAbsForm = () => {
-    setAbsStartDate(''); setAbsEndDate(''); setAbsReason('');
-  };
-
-  const openEditActivity = (act: any) => {
-    setActTitle(act.title);
-    setActType(act.activity_type);
-    setActLocation(act.location || '');
-    // Format dates for datetime-local input (YYYY-MM-DDTHH:mm)
-    setActStartTime(new Date(act.start_time).toISOString().slice(0, 16));
-    setActEndTime(new Date(act.end_time).toISOString().slice(0, 16));
-    setActParticipants(act.participants || []);
-    setIsEditMode(true);
-    setEditingId(act.id);
-    setIsActivityModalOpen(true);
-  };
-
-  const onSelectEvent = (event: any) => {
-    if (event.type === 'ACTIVITY') {
-        openEditActivity(event.resource);
-    } else {
-        setSelectedEvent(event);
     }
   };
 
@@ -321,15 +315,15 @@ export default function CeesCalendar() {
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Time Hub CEES</h1>
-            <p className="text-slate-500 dark:text-slate-400">Gestão e sincronização da equipe.</p>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Time Hub Equipe CEES</h1>
+            <p className="text-slate-500 dark:text-slate-400">Gestão de tempo e coordenação da equipe técnica.</p>
         </div>
         <div className="flex gap-2">
             <Button variant="outline" className="bg-white dark:bg-slate-800" icon="event_busy" onClick={() => setIsAbsenceModalOpen(true)}>
-                Ausência
+                Registrar Ausência
             </Button>
-            <Button variant="primary" icon="add" onClick={() => { resetActForm(); setIsActivityModalOpen(true); }}>
-                Atividade
+            <Button variant="primary" icon="add" onClick={() => { resetActForm(); setIsEditModalOpen(true); }}>
+                Nova Atividade
             </Button>
         </div>
       </div>
@@ -349,86 +343,137 @@ export default function CeesCalendar() {
         />
       </div>
 
-      {/* Modal de Detalhes (Leitura/Absença) */}
-      {selectedEvent && (
+      {/* 5. Modal de Visualização (Read-Only) */}
+      {isViewModalOpen && selectedEvent && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in-95 overflow-hidden">
-            <div className={`px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center ${selectedEvent.type === 'ABSENCE' ? 'bg-red-50 dark:bg-red-900/20' : 'bg-slate-50 dark:bg-slate-900/50'}`}>
+            <div className={`px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center ${selectedEvent.type === 'ABSENCE' ? 'bg-red-50 text-red-700' : 'bg-slate-50 dark:bg-slate-900/50'}`}>
                 <h2 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">{selectedEvent.type === 'ABSENCE' ? 'event_busy' : 'info'}</span>
-                    {selectedEvent.type === 'ABSENCE' ? 'Ausência de Equipe' : 'Detalhes do Agendamento'}
+                    <Info className="w-5 h-5 text-primary" />
+                    Detalhes da Atividade
                 </h2>
-                <button onClick={() => setSelectedEvent(null)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                    <span className="material-symbols-outlined text-slate-500">close</span>
+                <button onClick={() => setIsViewModalOpen(false)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                    <X className="w-5 h-5 text-slate-500" />
                 </button>
             </div>
-            <div className="p-6 space-y-4">
-                <p className="font-bold text-lg text-slate-900 dark:text-white">{selectedEvent.title}</p>
-                {selectedEvent.type === 'EVALUATION' && (
-                    <>
-                        {selectedEvent.resource.protocol_number && <p className="text-sm"><span className="text-slate-500 font-bold text-[10px] uppercase">Protocolo:</span> <strong>{selectedEvent.resource.protocol_number}</strong></p>}
-                        {selectedEvent.resource.schools?.name && <p className="text-sm"><span className="text-slate-500 font-bold text-[10px] uppercase">Escola:</span> <strong>{selectedEvent.resource.schools.name}</strong></p>}
-                    </>
-                )}
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl space-y-2">
-                    <p className="text-sm"><strong>Início:</strong> {selectedEvent.start.toLocaleString('pt-BR')}</p>
-                    <p className="text-sm"><strong>Fim:</strong> {selectedEvent.end.toLocaleString('pt-BR')}</p>
+            
+            <div className="p-6 space-y-6">
+                <div>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight">{selectedEvent.title}</h3>
+                    {selectedEvent.type === 'ACTIVITY' && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <span 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: ACTIVITY_COLORS[selectedEvent.resource.activity_type] || '#6b7280' }}
+                            ></span>
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                {selectedEvent.resource.activity_type}
+                            </span>
+                        </div>
+                    )}
                 </div>
-                {selectedEvent.type === 'ABSENCE' && selectedEvent.resource.reason && (
-                    <div className="bg-red-50/50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/20">
-                        <span className="text-[10px] font-black uppercase text-red-600 block mb-1">Motivo:</span>
-                        <p className="text-sm text-slate-700 dark:text-slate-300">{selectedEvent.resource.reason}</p>
+
+                <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                        <CalendarIcon className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                        <div className="text-sm">
+                            <p className="text-slate-600 dark:text-slate-300"><strong>Início:</strong> {selectedEvent.start.toLocaleString('pt-BR')}</p>
+                            <p className="text-slate-600 dark:text-slate-300"><strong>Fim:</strong> {selectedEvent.end.toLocaleString('pt-BR')}</p>
+                        </div>
+                    </div>
+
+                    {selectedEvent.resource.location && (
+                        <div className="flex items-center gap-3">
+                            <MapPin className="w-5 h-5 text-slate-400 shrink-0" />
+                            <p className="text-sm text-slate-600 dark:text-slate-300"><strong>Local:</strong> {selectedEvent.resource.location}</p>
+                        </div>
+                    )}
+
+                    {selectedEvent.type === 'EVALUATION' && (
+                        <div className="bg-primary/5 p-3 rounded-xl border border-primary/10">
+                            <p className="text-sm text-primary font-bold">Protocolo: {selectedEvent.resource.protocol_number}</p>
+                            <p className="text-xs text-slate-500 mt-1">Escola: {selectedEvent.resource.schools?.name}</p>
+                        </div>
+                    )}
+
+                    {selectedEvent.type === 'ABSENCE' && (
+                        <div className="bg-red-50/50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/20">
+                            <p className="text-xs font-black uppercase text-red-600 mb-1">Motivo da Ausência:</p>
+                            <p className="text-sm text-slate-700 dark:text-slate-300 italic">{selectedEvent.resource.reason}</p>
+                        </div>
+                    )}
+                </div>
+
+                {selectedEvent.resource.participants && (
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Users className="w-4 h-4 text-slate-400" />
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Participantes da Equipe</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {selectedEvent.resource.participants.map((pid: string) => (
+                                <span key={pid} className="px-2 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                                    {usersMap[pid]}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex justify-between gap-2">
+
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
                 <div>
-                   {selectedEvent.type === 'ABSENCE' && (user?.id === selectedEvent.resource.user_id || user?.role === 'ADMIN' || user?.role === 'COORDENADOR') && (
-                       <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" icon="delete" onClick={() => handleDeleteAbsence(selectedEvent.id)}>Excluir</Button>
-                   )}
+                    {(selectedEvent.type === 'ACTIVITY' || (selectedEvent.type === 'ABSENCE' && (user?.id === selectedEvent.resource.user_id || user?.role === 'ADMIN'))) && (
+                         <Button variant="outline" className="text-red-500 border-red-100 hover:bg-red-50" icon="delete" onClick={() => selectedEvent.type === 'ACTIVITY' ? handleDeleteActivity(selectedEvent.id) : handleDeleteAbsence(selectedEvent.id)}>
+                            Excluir
+                         </Button>
+                    )}
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => setSelectedEvent(null)}>Fechar</Button>
-                    {selectedEvent.type === 'EVALUATION' && <Button variant="primary" onClick={() => navigate('/assessor')}>Painel Assessor</Button>}
+                    <Button variant="ghost" onClick={() => setIsViewModalOpen(false)}>Fechar</Button>
+                    {selectedEvent.type === 'ACTIVITY' && (
+                        <Button variant="primary" icon="edit" onClick={handleEditClick}>Editar</Button>
+                    )}
+                    {selectedEvent.type === 'EVALUATION' && (
+                        <Button variant="primary" onClick={() => navigate('/assessor')}>Ir para Painel</Button>
+                    )}
                 </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Atividade (Editar/Criar) */}
-      {isActivityModalOpen && (
+      {/* 6. Modal Formulário (Edit/Create Activity) */}
+      {isEditModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-xl animate-in zoom-in-95 overflow-hidden">
             <div className={`px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center ${isEditMode ? 'bg-amber-50 text-amber-700' : 'bg-primary/10 text-primary'}`}>
-                <h2 className="font-bold flex items-center gap-2">{isEditMode ? <Edit className="w-5 h-5"/> : <Plus className="w-5 h-5"/>} {isEditMode ? 'Editar Atividade' : 'Nova Atividade Equipe'}</h2>
-                <button onClick={() => setIsActivityModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
+                <h2 className="font-bold flex items-center gap-2">{isEditMode ? <Edit className="w-5 h-5"/> : <Plus className="w-5 h-5"/>} {isEditMode ? 'Editar Atividade' : 'Nova Atividade de Equipe'}</h2>
+                <button onClick={() => setIsEditModalOpen(false)}><X className="w-5 h-5"/></button>
             </div>
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                 <label className="flex flex-col gap-1">
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Título da Atividade *</span>
-                    <input value={actTitle} onChange={e => setActTitle(e.target.value)} className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none text-base"/>
+                    <input value={actTitle} onChange={e => setActTitle(e.target.value)} className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20 text-base" placeholder="Ex: Reunião de Planejamento Mensal"/>
                 </label>
                 <div className="grid grid-cols-2 gap-4">
                     <label className="flex flex-col gap-1">
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Tipo de Atividade</span>
-                        <select value={actType} onChange={e => setActType(e.target.value)} className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none text-base">
-                            {Object.keys(ACTIVITY_COLORS).map(type => (
-                                <option key={type} value={type}>{type}</option>
-                            ))}
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Tipo</span>
+                        <select value={actType} onChange={e => setActType(e.target.value)} className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20 text-base">
+                            {Object.keys(ACTIVITY_COLORS).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </label>
                     <div className="flex flex-col gap-1">
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Cor Padrão</span>
-                        <div className="h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 flex items-center px-4 gap-2">
-                            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS[actType] || ACTIVITY_COLORS['Outros'] }}></div>
-                            <span className="text-xs font-mono">{ACTIVITY_COLORS[actType] || ACTIVITY_COLORS['Outros']}</span>
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Cor Identificadora</span>
+                        <div className="h-11 w-full rounded-xl border border-slate-200 dark:border-slate-700 flex items-center px-4 gap-2 bg-slate-50 dark:bg-slate-900/50">
+                            <span className="w-4 h-4 rounded-full" style={{ backgroundColor: ACTIVITY_COLORS[actType] || '#6b7280' }}></span>
+                            <span className="text-xs font-bold text-slate-500 uppercase">{actType}</span>
                         </div>
                     </div>
                 </div>
                 <label className="flex flex-col gap-1">
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Local</span>
-                    <input value={actLocation} onChange={e => setActLocation(e.target.value)} className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none text-base"/>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Localização</span>
+                    <input value={actLocation} onChange={e => setActLocation(e.target.value)} className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20 text-base" placeholder="Ex: Sala de Reuniões 02 / Online"/>
                 </label>
                 <div className="grid grid-cols-2 gap-4">
                     <label className="flex flex-col gap-1">
@@ -441,10 +486,10 @@ export default function CeesCalendar() {
                     </label>
                 </div>
                 <div>
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">Participantes</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">Participantes da Equipe</span>
                     <div className="grid grid-cols-2 gap-2 h-32 overflow-y-auto p-2 border border-slate-100 dark:border-slate-800 rounded-xl">
                         {assessors.map((a: any) => (
-                            <label key={a.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-1 rounded transition-colors">
+                            <label key={a.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-1.5 rounded transition-colors group">
                                 <input 
                                     type="checkbox" 
                                     checked={actParticipants.includes(a.id)}
@@ -452,36 +497,31 @@ export default function CeesCalendar() {
                                         if (e.target.checked) setActParticipants([...actParticipants, a.id]);
                                         else setActParticipants(actParticipants.filter(id => id !== a.id));
                                     }}
-                                    className="w-4 h-4 rounded text-primary"
+                                    className="w-4 h-4 rounded text-primary border-slate-300 focus:ring-primary/20"
                                 />
-                                <span className="truncate">{a.name || a.email?.split('@')[0]}</span>
+                                <span className="truncate group-hover:text-primary transition-colors">{a.name || a.email?.split('@')[0]}</span>
                             </label>
                         ))}
                     </div>
                 </div>
             </div>
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
-                <div>
-                    {isEditMode && editingId && (
-                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" icon="delete" onClick={() => handleDeleteActivity(editingId)}>Excluir</Button>
-                    )}
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => setIsActivityModalOpen(false)}>Cancelar</Button>
-                    <Button variant="primary" onClick={handleCreateActivity} isLoading={submittingAct}>{isEditMode ? 'Salvar Alterações' : 'Salvar Atividade'}</Button>
-                </div>
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                <Button variant="ghost" onClick={() => setIsEditModalOpen(false)}>Cancelar</Button>
+                <Button variant="primary" onClick={handleSaveActivity} isLoading={submittingAct}>
+                    {isEditMode ? 'Salvar Alterações' : 'Criar Atividade'}
+                </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Ausência (Apenas Criação - Exclusão feita no detalhe) */}
+      {/* 7. Modal Ausência */}
       {isAbsenceModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in-95 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-red-50 text-red-600 flex justify-between items-center">
                 <h2 className="font-bold flex items-center gap-2"><UserMinus className="w-5 h-5"/> Registrar Ausência</h2>
-                <button onClick={() => setIsAbsenceModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
+                <button onClick={() => setIsAbsenceModalOpen(false)}><X className="w-5 h-5"/></button>
             </div>
             <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -495,13 +535,13 @@ export default function CeesCalendar() {
                     </label>
                 </div>
                 <label className="flex flex-col gap-1">
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Motivo *</span>
-                    <textarea value={absReason} onChange={e => setAbsReason(e.target.value)} rows={3} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20 text-base resize-none" placeholder="Ex: Licença Médica, Férias, etc."/>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Motivo da Ausência *</span>
+                    <textarea value={absReason} onChange={e => setAbsReason(e.target.value)} rows={3} className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/20 text-base resize-none" placeholder="Ex: Licença Saúde, Férias, Viagem Institucional"/>
                 </label>
             </div>
             <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
                 <Button variant="ghost" onClick={() => setIsAbsenceModalOpen(false)}>Cancelar</Button>
-                <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleCreateAbsence} isLoading={submittingAbs}>Salvar Ausência</Button>
+                <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleSaveAbsence} isLoading={submittingAbs}>Salvar Registro</Button>
             </div>
           </div>
         </div>
