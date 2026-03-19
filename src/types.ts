@@ -81,7 +81,7 @@ export interface AllotmentRecord {
 }
 
 export type RequestType = 'AVALIACAO' | 'REAVALIACAO' | 'INTERVENCAO';
-export type RequestStatus = 'DRAFT' | 'PENDING_CEES' | 'RETURNED' | 'SCHEDULED' | 'INCONCLUSIVE' | 'CANCELLED' | 'COMPLETED';
+export type RequestStatus = 'DRAFT' | 'PENDING_CEES' | 'RETURNED' | 'SCHEDULED' | 'IN_PROGRESS' | 'INCONCLUSIVE' | 'CANCELLED' | 'COMPLETED';
 
 export interface EvaluationRequest {
   id: string;
@@ -123,6 +123,12 @@ export interface EvaluationRequest {
   final_report_file_url?: string;
   history?: any[];
   first_received_at?: string;
+
+  // Novos campos de fluxo de avaliação
+  anamnesis_data?: any;
+  pedagogical_listening_data?: any;
+  classroom_observation_data?: any;
+  individual_evaluation_data?: any;
 
   created_at: string;
   updated_at: string;
