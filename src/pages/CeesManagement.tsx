@@ -394,17 +394,17 @@ export default function CeesManagement() {
                         </div>
 
                         {/* Modal Body - Scrollable */}
-                        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                        <div className="p-4 overflow-y-auto space-y-4 flex-1">
                             
                             {/* Histórico */}
-                            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary">history</span>
+                            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <h3 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-sm">history</span>
                                     Histórico de Movimentações (Log)
                                 </h3>
-                                <div className="space-y-3">
+                                <div className="space-y-1.5">
                                     {selectedRequest.history && selectedRequest.history.length > 0 ? (
-                                        <div className="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                                        <div className="space-y-1.5 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                                             {selectedRequest.history.slice().reverse().map((event: any, idx: number) => (
                                                 <div key={idx} className="pl-6 relative">
                                                     <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full bg-white dark:bg-slate-800 border-2 border-primary z-10 shadow-sm"></div>
@@ -443,8 +443,8 @@ export default function CeesManagement() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Info Aluno */}
-                                <div className="space-y-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                                    <h3 className="font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Informações do Aluno</h3>
+                                <div className="space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">Informações do Aluno</h3>
                                     <p className="text-sm"><span className="text-slate-500">Nome:</span> <strong className="text-slate-700 dark:text-slate-300">{selectedRequest.student_name}</strong></p>
                                     <p className="text-sm"><span className="text-slate-500">Data Nasc.:</span> <strong className="text-slate-700 dark:text-slate-300">{selectedRequest.student_birth_date}</strong></p>
                                     {selectedRequest.student_level && <p className="text-sm"><span className="text-slate-500">Etapa:</span> <strong className="text-slate-700 dark:text-slate-300">{selectedRequest.student_level}</strong></p>}
@@ -452,8 +452,8 @@ export default function CeesManagement() {
                                 </div>
 
                                 {/* Info Escola/Responsável */}
-                                <div className="space-y-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                                    <h3 className="font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Escola & Responsável</h3>
+                                <div className="space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                                    <h3 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">Escola & Responsável</h3>
                                     <p className="text-sm"><span className="text-slate-500">Escola:</span> <strong className="text-slate-700 dark:text-slate-300">{selectedRequest.schools?.name || 'N/A'}</strong></p>
                                     <p className="text-sm"><span className="text-slate-500">Tipo de Pedido:</span> <strong className="text-slate-700 dark:text-slate-300">{selectedRequest.request_type}</strong></p>
                                     <p className="text-sm"><span className="text-slate-500">Resp. Legal:</span> <strong className="text-slate-700 dark:text-slate-300">{selectedRequest.responsible_name}</strong></p>
@@ -462,21 +462,21 @@ export default function CeesManagement() {
                             </div>
 
                             {/* Questionário */}
-                            <div className="space-y-4">
-                                <h3 className="font-bold text-slate-800 dark:text-slate-200">Questionário e Observações:</h3>
+                            <div className="space-y-3">
+                                <h3 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">Questionário e Observações:</h3>
 
-                                <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
-                                    <h4 className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-1">Pedagógicas</h4>
+                                <div className="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-800 space-y-1">
+                                    <h4 className="text-xs uppercase font-bold text-blue-800 dark:text-blue-300 mb-1">Pedagógicas</h4>
                                     <p className="text-sm text-slate-700 dark:text-slate-300">{selectedRequest.pedagogical_observations}</p>
                                 </div>
 
-                                <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-800">
-                                    <h4 className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-1">Relacionais/Comportamentais</h4>
+                                <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-800 space-y-1">
+                                    <h4 className="text-xs uppercase font-bold text-amber-800 dark:text-amber-300 mb-1">Relacionais/Comportamentais</h4>
                                     <p className="text-sm text-slate-700 dark:text-slate-300">{selectedRequest.relational_observations}</p>
                                 </div>
 
-                                <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800">
-                                    <h4 className="text-sm font-bold text-emerald-800 dark:text-emerald-300 mb-1">Metodológicas (Acessibilidade)</h4>
+                                <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800 space-y-1">
+                                    <h4 className="text-xs uppercase font-bold text-emerald-800 dark:text-emerald-300 mb-1">Metodológicas (Acessibilidade)</h4>
                                     <p className="text-sm text-slate-700 dark:text-slate-300">{selectedRequest.methodological_observations}</p>
                                 </div>
                             </div>
@@ -497,16 +497,16 @@ export default function CeesManagement() {
 
                             {/* Bloco de Parecer Técnico para Concluídos */}
                             {selectedRequest.status === 'COMPLETED' && (
-                                <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/50 p-6 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/50 p-3 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
-                                        <span className="material-symbols-outlined font-bold">check_circle</span>
-                                        <h3 className="font-bold text-lg">Resultado da Avaliação</h3>
+                                        <span className="material-symbols-outlined font-bold text-sm">check_circle</span>
+                                        <h3 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2 w-full">Resultado da Avaliação</h3>
                                     </div>
 
-                                    <div className="space-y-3">
+                                    <div className="space-y-2">
                                         <div>
-                                            <h4 className="text-xs font-black uppercase text-emerald-700/70 dark:text-emerald-500/50 mb-1">Parecer Técnico</h4>
-                                            <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-emerald-100 dark:border-emerald-900/30 text-slate-700 dark:text-slate-300 text-sm leading-relaxed shadow-sm">
+                                            <h4 className="text-xs uppercase font-bold text-emerald-700/70 dark:text-emerald-500/50 mb-1">Parecer Técnico</h4>
+                                            <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/30 text-slate-700 dark:text-slate-300 text-sm leading-relaxed shadow-sm">
                                                 {selectedRequest.final_report_text || 'Sem parecer técnico registrado.'}
                                             </div>
                                         </div>
@@ -534,8 +534,8 @@ export default function CeesManagement() {
                             )}
 
                             {/* Área de Ações CEES */}
-                            <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Ações da CEES</h3>
+                            <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                                <h3 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">Ações da CEES</h3>
 
                                 {selectedRequest.status === 'COMPLETED' ? (
                                     <Button 
@@ -558,13 +558,13 @@ export default function CeesManagement() {
                                 ) : actionType === 'RETURN' ? (
                                     <div className="space-y-4 bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30 animate-in slide-in-from-top-2">
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-bold text-red-800 dark:text-red-400">Motivo da Devolução *</span>
+                                            <span className="text-xs font-bold text-red-800 dark:text-red-400 uppercase">Motivo da Devolução *</span>
                                             <textarea
                                                 value={returnReason}
                                                 onChange={e => setReturnReason(e.target.value)}
                                                 placeholder="Ex: Documento de autorização ilegível. Favor reenviar com melhor resolução."
-                                                rows={3}
-                                                className="p-3 rounded-lg border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none text-base"
+                                                rows={2}
+                                                className="p-3 rounded-lg border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none text-sm"
                                             />
                                         </label>
                                         <div className="flex gap-2 justify-end">
@@ -575,21 +575,21 @@ export default function CeesManagement() {
                                 ) : actionType === 'SCHEDULE' ? (
                                     <div className="space-y-4 bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 animate-in slide-in-from-top-2">
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <label className="flex flex-col gap-2">
-                                                <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Data e Hora Sugerida *</span>
+                                            <label className="flex flex-col gap-1">
+                                                <span className="text-[11px] font-bold text-purple-800 dark:text-purple-400 uppercase">Data e Hora Sugerida *</span>
                                                 <input
                                                     type="datetime-local"
                                                     value={evaluationDate}
                                                     onChange={e => setEvaluationDate(e.target.value)}
-                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-base"
+                                                    className="px-3 h-9 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-sm"
                                                 />
                                             </label>
-                                            <label className="flex flex-col gap-2">
-                                                <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Assessor 1 (Titular) *</span>
+                                            <label className="flex flex-col gap-1">
+                                                <span className="text-[11px] font-bold text-purple-800 dark:text-purple-400 uppercase">Assessor 1 (Titular) *</span>
                                                 <select
                                                     value={assessorId}
                                                     onChange={e => setAssessorId(e.target.value)}
-                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-base"
+                                                    className="px-3 h-9 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-sm"
                                                 >
                                                     <option value="">Selecione o(a) titular...</option>
                                                     {assessorsData.map((a: any) => {
@@ -602,12 +602,12 @@ export default function CeesManagement() {
                                                     })}
                                                 </select>
                                             </label>
-                                            <label className="flex flex-col gap-2">
-                                                <span className="text-sm font-bold text-purple-800 dark:text-purple-400">Assessor 2 (Acompanhante)</span>
+                                            <label className="flex flex-col gap-1">
+                                                <span className="text-[11px] font-bold text-purple-800 dark:text-purple-400 uppercase">Assessor 2 (Acompanhante)</span>
                                                 <select
                                                     value={assessor2Id}
                                                     onChange={e => setAssessor2Id(e.target.value)}
-                                                    className="px-4 h-11 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-base"
+                                                    className="px-3 h-9 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-sm"
                                                 >
                                                     <option value="">Nenhum (Opcional)</option>
                                                     {assessorsData.map((a: any) => {

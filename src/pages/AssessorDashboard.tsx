@@ -405,29 +405,29 @@ export default function AssessorDashboard() {
             {isFichaModalOpen && selectedRequest && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 animate-in fade-in">
                     <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
-                        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
                             <div className="flex items-center gap-3">
                                 <div className="size-10 rounded-2xl bg-primary/10 flex items-center justify-center">
                                     <Eye className="text-primary" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Ficha do Estudante</h2>
-                                    <p className="text-xs text-slate-500">Dados cadastrados pela Unidade Escolar</p>
+                                    <h2 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Ficha do Estudante</h2>
+                                    <p className="text-[10px] text-slate-500">Dados cadastrados pela Unidade Escolar</p>
                                 </div>
                             </div>
                             <button onClick={() => setIsFichaModalOpen(false)} className="size-10 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
                                 <X />
                             </button>
                         </div>
-                        <div className="p-8 overflow-y-auto space-y-8 no-scrollbar">
-                            <section className="grid grid-cols-2 gap-6">
-                                <div className="col-span-2 bg-primary/5 p-4 rounded-3xl border border-primary/10 flex items-center gap-4">
-                                    <div className="bg-white dark:bg-slate-800 size-12 rounded-2xl flex items-center justify-center shadow-sm">
+                        <div className="p-4 overflow-y-auto space-y-4 no-scrollbar">
+                            <section className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2 bg-primary/5 p-3 rounded-2xl border border-primary/10 flex items-center gap-4">
+                                    <div className="bg-white dark:bg-slate-800 size-10 rounded-xl flex items-center justify-center shadow-sm">
                                         <User className="text-primary" />
                                     </div>
                                     <div>
-                                        <p className="text-lg font-black text-slate-900 dark:text-white">{selectedRequest.student_name}</p>
-                                        <p className="text-xs font-bold text-primary uppercase tracking-widest">Protocolo {selectedRequest.protocol_number}</p>
+                                        <p className="text-base font-black text-slate-900 dark:text-white">{selectedRequest.student_name}</p>
+                                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Protocolo {selectedRequest.protocol_number}</p>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
@@ -440,15 +440,15 @@ export default function AssessorDashboard() {
                                 </div>
                             </section>
 
-                            <section className="space-y-4">
-                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <section className="space-y-3">
+                                <h4 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2 flex items-center gap-2">
                                     <ClipboardList className="text-sm" /> Resumo das Queixas
                                 </h4>
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {['pedagogical_observations', 'methodological_observations', 'relational_observations'].map(field => (
                                         selectedRequest[field] && (
-                                            <div key={field} className="p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                                <p className="text-[10px] font-black text-primary uppercase mb-1">{field.replace('_observations', '').replace('pedagogical', 'Pedagógica').replace('methodological', 'Metodológica').replace('relational', 'Relacional')}</p>
+                                            <div key={field} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                                                <p className="text-xs uppercase font-bold text-primary mb-1">{field.replace('_observations', '').replace('pedagogical', 'Pedagógica').replace('methodological', 'Metodológica').replace('relational', 'Relacional')}</p>
                                                 <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{selectedRequest[field]}</p>
                                             </div>
                                         )
@@ -468,7 +468,7 @@ export default function AssessorDashboard() {
                                 </section>
                             )}
                         </div>
-                        <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                        <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
                             <Button variant="ghost" onClick={() => setIsFichaModalOpen(false)}>Fechar</Button>
                             <Button variant="primary" icon="play_arrow" onClick={() => handleStartAttendance(selectedRequest)}>
                                 {selectedRequest.status === 'IN_PROGRESS' ? 'Continuar Atendimento' : 'Iniciar Atendimento'}
@@ -485,25 +485,25 @@ export default function AssessorDashboard() {
                         {currentStep === 'MAIN' ? (
                             <div className="flex flex-col h-full animate-in zoom-in-95 duration-300">
                                 {/* Header do Hub */}
-                                <div className="px-8 py-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start">
+                                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black rounded-lg uppercase">Atendimento em Campo</span>
                                             <span className="text-slate-400 text-[10px] font-bold">#{selectedRequest.protocol_number}</span>
                                         </div>
-                                        <h2 className="text-3xl font-black text-slate-900 dark:text-white leading-tight">{selectedRequest.student_name}</h2>
-                                        <p className="text-slate-500 mt-1 flex items-center gap-2 font-medium">
+                                        <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">{selectedRequest.student_name}</h2>
+                                        <p className="text-slate-500 mt-0.5 flex items-center gap-2 font-medium text-sm">
                                             <GraduationCap className="text-sm" /> {selectedRequest.schools?.name}
                                         </p>
                                     </div>
-                                    <button onClick={() => { setIsAttendanceHubOpen(false); setSpecializedSupport(''); }} className="size-12 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors">
+                                    <button onClick={() => { setIsAttendanceHubOpen(false); setSpecializedSupport(''); }} className="size-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors">
                                         <X className="text-slate-400" />
                                     </button>
                                 </div>
 
-                                <div className="flex-1 p-8 overflow-y-auto space-y-10 no-scrollbar">
+                                <div className="flex-1 p-4 overflow-y-auto space-y-6 no-scrollbar">
                                     <div>
-                                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Etapas da Avaliação</h3>
+                                        <h3 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">Etapas da Avaliação</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                             {[
                                                 { id: 'ANAMNESE', label: 'Escuta Família (Anamnese)', icon: <Users />, color: 'purple', col: 'anamnesis_data' },
@@ -518,7 +518,7 @@ export default function AssessorDashboard() {
                                                     <button 
                                                         key={step.id} 
                                                         onClick={() => openStep(step.id as StepType)}
-                                                        className={`bg-white dark:bg-slate-800 p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center text-center group relative ${
+                                                        className={`bg-white dark:bg-slate-800 p-4 rounded-3xl border-2 transition-all flex flex-col items-center text-center group relative ${
                                                             completedByMe ? 'border-emerald-500 shadow-emerald-100 dark:shadow-none bg-emerald-50/30' : 
                                                             hasData ? 'border-slate-300 shadow-sm' : 'border-slate-100 dark:border-slate-800 hover:border-primary/50 hover:shadow-xl'
                                                         }`}
@@ -529,7 +529,7 @@ export default function AssessorDashboard() {
                                                         }`}>
                                                             {step.icon}
                                                         </div>
-                                                        <span className="text-sm font-black text-slate-800 dark:text-slate-200 leading-tight">{step.label}</span>
+                                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">{step.label}</span>
                                                         {hasData && (
                                                             <div className="absolute top-4 right-4 flex -space-x-2">
                                                                 {Object.values(selectedRequest[step.col]).map((val: any, i: number) => (
@@ -546,24 +546,24 @@ export default function AssessorDashboard() {
                                         </div>
                                     </div>
 
-                                    <div className="bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-inner">
-                                        <div className="flex items-center gap-3 mb-6">
+                                    <div className="bg-slate-50 dark:bg-slate-900/50 rounded-3xl p-4 border border-slate-100 dark:border-slate-800 shadow-inner">
+                                        <div className="flex items-center gap-3 mb-4">
                                             <div className="size-10 rounded-2xl bg-primary text-white flex items-center justify-center"><CheckSquare /></div>
-                                            <h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight">Parecer Técnico Final</h3>
+                                            <h3 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Parecer Técnico Final</h3>
                                         </div>
-                                        <div className="space-y-6">
+                                        <div className="space-y-4">
                                             <textarea 
                                                 value={reportText} onChange={e => setReportText(e.target.value)}
-                                                className="w-full h-40 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-base placeholder:italic"
+                                                className="w-full h-32 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm placeholder:italic"
                                                 placeholder="Após concluir todas as etapas, descreva aqui o parecer técnico final..."
                                             />
                                             
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Necessita de Suporte Especializado?</label>
+                                            <div className="space-y-1">
+                                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Necessita de Suporte Especializado?</label>
                                                 <select 
                                                     value={specializedSupport}
                                                     onChange={(e) => setSpecializedSupport(e.target.value)}
-                                                    className="w-full h-14 px-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold"
+                                                    className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold"
                                                 >
                                                     <option value="">Selecione uma opção...</option>
                                                     <option value="Atendido por Mediador">Atendido por Mediador</option>
@@ -591,9 +591,9 @@ export default function AssessorDashboard() {
                                                     <span className="text-sm font-bold text-slate-700">Necessita Reavaliação?</span>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-end gap-3 pt-4">
-                                                <Button variant="outline" className="text-orange-600 border-orange-100" onClick={handleInconclusive} isLoading={isInconclusiveSubmitting}>Inconclusivo</Button>
-                                                <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700 h-14 px-8 rounded-2xl text-lg font-black shadow-lg shadow-emerald-200 dark:shadow-none" icon="check_circle" onClick={handleComplete} isLoading={submitting}>Concluir Avaliação</Button>
+                                            <div className="flex justify-end gap-3 pt-2">
+                                                <Button variant="outline" size="sm" className="text-orange-600 border-orange-100" onClick={handleInconclusive} isLoading={isInconclusiveSubmitting}>Inconclusivo</Button>
+                                                <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-700 h-12 px-6 rounded-xl text-base font-black shadow-lg shadow-emerald-200 dark:shadow-none" icon="check_circle" onClick={handleComplete} isLoading={submitting}>Concluir Avaliação</Button>
                                             </div>
                                         </div>
                                     </div>
@@ -602,42 +602,42 @@ export default function AssessorDashboard() {
                         ) : (
                             <div className="flex flex-col h-full animate-in slide-in-from-right duration-500 bg-slate-50 dark:bg-slate-900">
                                 {/* Header da Etapa */}
-                                <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
-                                    <button onClick={() => setCurrentStep('MAIN')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold px-3 py-2 rounded-xl hover:bg-slate-100 transition-all">
-                                        <ArrowLeft /> Voltar para Etapas
+                                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
+                                    <button onClick={() => setCurrentStep('MAIN')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold px-3 py-2 rounded-xl hover:bg-slate-100 transition-all text-sm">
+                                        <ArrowLeft className="size-4" /> Voltar
                                     </button>
                                     <div className="text-center flex-1 pr-10">
                                         <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Formulário de Campo</p>
-                                        <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none">
-                                            {currentStep === 'ANAMNESE' && 'Escuta com a Família (Anamnese)'}
-                                            {currentStep === 'ESCUTA' && 'Escuta da Equipe Pedagógica'}
-                                            {currentStep === 'OBSERVACAO' && 'Observação em Sala de Aula'}
-                                            {currentStep === 'INDIVIDUAL' && 'Avaliação Individual do Estudante'}
+                                        <h3 className="text-sm font-black text-slate-900 dark:text-white leading-none">
+                                            {currentStep === 'ANAMNESE' && 'Anamnese'}
+                                            {currentStep === 'ESCUTA' && 'Equipe Pedagógica'}
+                                            {currentStep === 'OBSERVACAO' && 'Observação'}
+                                            {currentStep === 'INDIVIDUAL' && 'Avaliação Individual'}
                                         </h3>
                                     </div>
                                 </div>
 
-                                <div className="flex-1 p-8 overflow-y-auto no-scrollbar">
-                                    <div className="max-w-3xl mx-auto space-y-6">
-                                        <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
-                                            <div className="flex items-center gap-3 mb-6">
-                                                <div className="size-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center"><ClipboardList /></div>
-                                                <h4 className="font-black text-slate-800 dark:text-slate-200">Anotações Provisórias da Etapa</h4>
+                                <div className="flex-1 p-4 overflow-y-auto no-scrollbar">
+                                    <div className="max-w-3xl mx-auto space-y-4">
+                                        <div className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="size-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center"><ClipboardList className="size-4"/></div>
+                                                <h4 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Anotações da Etapa</h4>
                                             </div>
                                             <textarea 
                                                 value={stepNotes} 
                                                 onChange={e => setStepNotes(e.target.value)}
-                                                className="w-full h-[50vh] p-8 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border-none outline-none focus:ring-4 focus:ring-primary/10 text-lg leading-relaxed shadow-inner"
-                                                placeholder="Digite aqui livremente suas anotações, observações e descobertas desta etapa..."
+                                                className="w-full h-[40vh] p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border-none outline-none focus:ring-4 focus:ring-primary/10 text-sm leading-relaxed shadow-inner"
+                                                placeholder="Digite aqui livremente suas anotações..."
                                             />
-                                            <p className="text-[10px] text-slate-400 mt-4 italic text-center uppercase tracking-widest font-bold">O trabalho salvo aqui fica visível para os outros assessores da equipe desta avaliação.</p>
+                                            <p className="text-[10px] text-slate-400 mt-4 italic text-center uppercase tracking-widest font-bold">O trabalho salvo aqui fica visível para os outros assessores da equipe.</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="p-8 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-center gap-4">
-                                    <Button variant="ghost" className="h-14 px-8 rounded-2xl" onClick={() => setCurrentStep('MAIN')}>Cancelar</Button>
-                                    <Button variant="primary" className="h-14 px-12 rounded-2xl text-lg font-black shadow-xl" icon="save" onClick={handleSaveStep} isLoading={isSavingStep}>Salvar e Voltar</Button>
+                                <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-center gap-4">
+                                    <Button variant="ghost" className="h-10 px-6 rounded-xl" onClick={() => setCurrentStep('MAIN')}>Cancelar</Button>
+                                    <Button variant="primary" className="h-10 px-8 rounded-xl text-sm font-black shadow-xl" icon="save" onClick={handleSaveStep} isLoading={isSavingStep}>Salvar e Voltar</Button>
                                 </div>
                             </div>
                         )}
@@ -677,43 +677,43 @@ export default function AssessorDashboard() {
             {isViewParecerOpen && selectedRequest && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 animate-in fade-in">
                     <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
-                        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-900/50">
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-900/50">
                             <div className="flex items-center gap-3">
                                 <div className="size-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
                                     <CheckCircle />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Parecer Técnico Concluído</h2>
-                                    <p className="text-xs text-slate-500">Protocolo {selectedRequest.protocol_number}</p>
+                                    <h2 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Parecer Técnico Concluído</h2>
+                                    <p className="text-[10px] text-slate-500">Protocolo {selectedRequest.protocol_number}</p>
                                 </div>
                             </div>
                             <button onClick={() => { setIsViewParecerOpen(false); setSelectedRequest(null); }} className="size-10 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
                                 <X />
                             </button>
                         </div>
-                        <div className="p-8 overflow-y-auto space-y-6 no-scrollbar">
-                            <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Estudante</p>
-                                <p className="text-lg font-black text-slate-900 dark:text-white">{selectedRequest.student_name}</p>
-                                <p className="text-sm text-slate-500 italic mt-1">{selectedRequest.schools?.name}</p>
+                        <div className="p-4 overflow-y-auto space-y-4 no-scrollbar">
+                            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                <p className="text-xs uppercase font-bold text-slate-400 mb-1">Estudante</p>
+                                <p className="text-base font-black text-slate-900 dark:text-white">{selectedRequest.student_name}</p>
+                                <p className="text-sm text-slate-500 italic mt-0.5">{selectedRequest.schools?.name}</p>
                             </div>
 
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <div className="space-y-3">
+                                <h4 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2 flex items-center gap-2">
                                     <ClipboardList className="text-sm" /> Parecer Técnico Final
                                 </h4>
-                                <div className="p-6 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/10 dark:text-emerald-300 rounded-3xl border border-emerald-100 dark:border-emerald-800/50">
+                                <div className="p-4 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/10 dark:text-emerald-300 rounded-2xl border border-emerald-100 dark:border-emerald-800/50">
                                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{selectedRequest.final_report_text || 'Nenhum texto de parecer disponível.'}</p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-800">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Suporte Indicado</p>
+                                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <p className="text-xs uppercase font-bold text-slate-400 mb-1">Suporte Indicado</p>
                                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{selectedRequest.specialized_support || 'Não informado'}</p>
                                 </div>
-                                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-800">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Reavaliação</p>
+                                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <p className="text-xs uppercase font-bold text-slate-400 mb-1">Reavaliação</p>
                                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{selectedRequest.reassessment_needed ? `Necessária (${selectedRequest.reassessment_period})` : 'Não necessária'}</p>
                                 </div>
                             </div>
@@ -733,7 +733,7 @@ export default function AssessorDashboard() {
                                 </a>
                             )}
                         </div>
-                        <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
+                        <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
                             <Button variant="primary" onClick={() => { setIsViewParecerOpen(false); setSelectedRequest(null); }}>Fechar</Button>
                         </div>
                     </div>
