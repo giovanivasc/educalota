@@ -129,6 +129,7 @@ export interface EvaluationRequest {
   pedagogical_listening_data?: any;
   classroom_observation_data?: any;
   individual_evaluation_data?: any;
+  specialized_support?: string;
 
   created_at: string;
   updated_at: string;

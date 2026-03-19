@@ -43,6 +43,7 @@ export default function AssessorDashboard() {
     const [isInconclusiveSubmitting, setIsInconclusiveSubmitting] = useState(false);
     const [reassessmentNeeded, setReassessmentNeeded] = useState(false);
     const [reassessmentPeriod, setReassessmentPeriod] = useState('6 meses');
+    const [specializedSupport, setSpecializedSupport] = useState('');
 
     // Step UI State
     const [stepNotes, setStepNotes] = useState('');
@@ -154,6 +155,7 @@ export default function AssessorDashboard() {
 
     const handleComplete = async () => {
         if (!reportText.trim()) return alert("Por favor, preencha o Parecer Técnico Final.");
+        if (!specializedSupport) return alert('Por favor, selecione a necessidade de suporte especializado.');
         
         setSubmitting(true);
         try {
@@ -175,13 +177,14 @@ export default function AssessorDashboard() {
                     final_report_file_url: final_report_file_url,
                     reassessment_needed: reassessmentNeeded,
                     reassessment_period: reassessmentNeeded ? reassessmentPeriod : null,
+                    specialized_support: specializedSupport,
                     history: [
                         ...(selectedRequest.history || []),
                         {
                             date: new Date().toISOString(),
                             action: 'FINALIZAÇÃO',
                             result: 'Finalizado',
-                            description: 'Avaliação concluída com parecer técnico.',
+                            description: `Avaliação concluída com parecer técnico. Suporte indicado: ${specializedSupport}.`,
                             actor: user?.user_metadata?.name || user?.email,
                             assessors: `${usersMap[selectedRequest.assessor_id] || 'Assessor 1'} ${selectedRequest.assessor_2_id ? ' e ' + (usersMap[selectedRequest.assessor_2_id] || 'Assessor 2') : ''}`
                         }
@@ -195,6 +198,7 @@ export default function AssessorDashboard() {
             queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
             setIsAttendanceHubOpen(false);
             setSelectedRequest(null);
+            setSpecializedSupport('');
         } catch (err) {
             console.error(err);
             alert('Erro ao concluir avaliação.');
@@ -436,7 +440,7 @@ export default function AssessorDashboard() {
                                             <GraduationCap className="text-sm" /> {selectedRequest.schools?.name}
                                         </p>
                                     </div>
-                                    <button onClick={() => setIsAttendanceHubOpen(false)} className="size-12 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors">
+                                    <button onClick={() => { setIsAttendanceHubOpen(false); setSpecializedSupport(''); }} className="size-12 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors">
                                         <X className="text-slate-400" />
                                     </button>
                                 </div>
@@ -497,6 +501,26 @@ export default function AssessorDashboard() {
                                                 className="w-full h-40 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-base placeholder:italic"
                                                 placeholder="Após concluir todas as etapas, descreva aqui o parecer técnico final..."
                                             />
+                                            
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Necessita de Suporte Especializado?</label>
+                                                <select 
+                                                    value={specializedSupport}
+                                                    onChange={(e) => setSpecializedSupport(e.target.value)}
+                                                    className="w-full h-14 px-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold"
+                                                >
+                                                    <option value="">Selecione uma opção...</option>
+                                                    <option value="Atendido por Mediador">Atendido por Mediador</option>
+                                                    <option value="Atendido por Cuidador">Atendido por Cuidador</option>
+                                                    <option value="Atendido por Prof. Braille">Atendido por Prof. Braille</option>
+                                                    <option value="Atendido por Prof. Bilíngue">Atendido por Prof. Bilíngue</option>
+                                                    <option value="Necessita de avaliação">Necessita de avaliação</option>
+                                                    <option value="Não necessita">Não necessita</option>
+                                                    <option value="Atendimento domiciliar">Atendimento domiciliar</option>
+                                                    <option value="Mediação exclusiva">Mediação exclusiva</option>
+                                                </select>
+                                            </div>
+
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-primary transition-colors">
                                                     <div className="flex items-center gap-3">
