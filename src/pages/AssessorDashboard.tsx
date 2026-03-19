@@ -45,6 +45,12 @@ export default function AssessorDashboard() {
     const [reassessmentPeriod, setReassessmentPeriod] = useState('6 meses');
     const [specializedSupport, setSpecializedSupport] = useState('');
 
+    // Tab state
+    const [activeTab, setActiveTab] = useState<'PENDENTES' | 'ANDAMENTO' | 'CONCLUIDO'>('PENDENTES');
+
+    // View Modal for Completed
+    const [isViewParecerOpen, setIsViewParecerOpen] = useState(false);
+
     // Step UI State
     const [stepNotes, setStepNotes] = useState('');
     const [isSavingStep, setIsSavingStep] = useState(false);
@@ -68,7 +74,7 @@ export default function AssessorDashboard() {
             const { data, error } = await supabase
                 .from('evaluation_requests')
                 .select('*, schools(name)')
-                .in('status', ['SCHEDULED', 'IN_PROGRESS'])
+                .in('status', ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED'])
                 .or(`assessor_id.eq.${user.id},assessor_2_id.eq.${user.id}`)
                 .order('evaluation_date', { ascending: true });
             
@@ -274,7 +280,32 @@ export default function AssessorDashboard() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Painel do Assessor</h1>
-                <p className="text-slate-500 dark:text-slate-400">Atendimentos agendados e em andamento.</p>
+                <p className="text-slate-500 dark:text-slate-400">Atendimentos agendados, em andamento e concluídos.</p>
+            </div>
+
+            <div className="flex space-x-6 border-b border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar pt-2">
+                {[
+                    { id: 'PENDENTES', label: 'Pendentes', status: 'SCHEDULED' },
+                    { id: 'ANDAMENTO', label: 'Em Andamento', status: 'IN_PROGRESS' },
+                    { id: 'CONCLUIDO', label: 'Concluído', status: 'COMPLETED' }
+                ].map(tab => {
+                    const count = requests.filter(r => r.status === tab.status).length;
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`py-4 px-2 text-sm font-black transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
+                                isActive ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'
+                            }`}
+                        >
+                            {tab.label}
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                {count}
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
             
             {loading ? (
@@ -287,18 +318,31 @@ export default function AssessorDashboard() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {requests.map(req => (
+                    {requests
+                        .filter(req => {
+                            if (activeTab === 'PENDENTES') return req.status === 'SCHEDULED';
+                            if (activeTab === 'ANDAMENTO') return req.status === 'IN_PROGRESS';
+                            return req.status === 'COMPLETED';
+                        })
+                        .map(req => (
                         <div key={req.id} className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow group">
-                            <div className={`h-2 ${req.status === 'IN_PROGRESS' ? 'bg-amber-400' : 'bg-primary'}`}></div>
+                            <div className={`h-2 ${
+                                req.status === 'COMPLETED' ? 'bg-emerald-500' :
+                                req.status === 'IN_PROGRESS' ? 'bg-amber-400' : 'bg-primary'
+                            }`}></div>
                             <div className="p-6 flex-1">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-2">
-                                        <div className={`p-2 rounded-xl ${req.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary'}`}>
-                                            <Calendar />
+                                        <div className={`p-2 rounded-xl ${
+                                            req.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
+                                            req.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary'
+                                        }`}>
+                                            {req.status === 'COMPLETED' ? <CheckCircle /> : <Calendar />}
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
-                                                {req.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Agendado'}
+                                                {req.status === 'COMPLETED' ? 'Concluído' :
+                                                 req.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Agendado'}
                                             </p>
                                             <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                                                 {req.evaluation_date ? new Date(req.evaluation_date).toLocaleDateString() : 'N/A'}
@@ -323,22 +367,34 @@ export default function AssessorDashboard() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="px-6 pb-6 pt-2 grid grid-cols-2 gap-3">
-                                <Button 
-                                    className="bg-primary hover:bg-primary-dark shadow-sm"
-                                    onClick={() => { setSelectedRequest(req); setIsFichaModalOpen(true); }}
-                                    icon="visibility"
-                                >
-                                    Ver Ficha
-                                </Button>
-                                <Button 
-                                    variant="outline"
-                                    className="border-red-100 text-red-500 hover:bg-red-50"
-                                    onClick={() => setCancellingRequest(req)}
-                                    icon="cancel"
-                                >
-                                    Cancelar
-                                </Button>
+                            <div className={`px-6 pb-6 pt-2 ${req.status === 'COMPLETED' ? 'flex flex-col' : 'grid grid-cols-2 gap-3'}`}>
+                                {req.status === 'COMPLETED' ? (
+                                    <Button 
+                                        className="bg-emerald-600 hover:bg-emerald-700 shadow-sm w-full"
+                                        onClick={() => { setSelectedRequest(req); setIsViewParecerOpen(true); }}
+                                        icon="description"
+                                    >
+                                        Ver Parecer Final
+                                    </Button>
+                                ) : (
+                                    <>
+                                        <Button 
+                                            className="bg-primary hover:bg-primary-dark shadow-sm"
+                                            onClick={() => { setSelectedRequest(req); setIsFichaModalOpen(true); }}
+                                            icon="visibility"
+                                        >
+                                            Ver Ficha
+                                        </Button>
+                                        <Button 
+                                            variant="outline"
+                                            className="border-red-100 text-red-500 hover:bg-red-50"
+                                            onClick={() => setCancellingRequest(req)}
+                                            icon="cancel"
+                                        >
+                                            Cancelar
+                                        </Button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -613,6 +669,72 @@ export default function AssessorDashboard() {
                                 <Button className="flex-1 bg-slate-100 text-slate-600 rounded-2xl" onClick={() => setCancellingRequest(null)}>Manter</Button>
                                 <Button className="flex-1 bg-red-600 text-white rounded-2xl shadow-lg shadow-red-100" onClick={handleCancel} isLoading={cancelling}>Confirmar</Button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* MODAL DE VISUALIZAÇÃO DE PARECER (READ-ONLY) */}
+            {isViewParecerOpen && selectedRequest && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 animate-in fade-in">
+                    <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95">
+                        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-900/50">
+                            <div className="flex items-center gap-3">
+                                <div className="size-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                    <CheckCircle />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Parecer Técnico Concluído</h2>
+                                    <p className="text-xs text-slate-500">Protocolo {selectedRequest.protocol_number}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => { setIsViewParecerOpen(false); setSelectedRequest(null); }} className="size-10 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                <X />
+                            </button>
+                        </div>
+                        <div className="p-8 overflow-y-auto space-y-6 no-scrollbar">
+                            <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Estudante</p>
+                                <p className="text-lg font-black text-slate-900 dark:text-white">{selectedRequest.student_name}</p>
+                                <p className="text-sm text-slate-500 italic mt-1">{selectedRequest.schools?.name}</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <ClipboardList className="text-sm" /> Parecer Técnico Final
+                                </h4>
+                                <div className="p-6 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/10 dark:text-emerald-300 rounded-3xl border border-emerald-100 dark:border-emerald-800/50">
+                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{selectedRequest.final_report_text || 'Nenhum texto de parecer disponível.'}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Suporte Indicado</p>
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{selectedRequest.specialized_support || 'Não informado'}</p>
+                                </div>
+                                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Reavaliação</p>
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{selectedRequest.reassessment_needed ? `Necessária (${selectedRequest.reassessment_period})` : 'Não necessária'}</p>
+                                </div>
+                            </div>
+
+                            {selectedRequest.final_report_file_url && (
+                                <a 
+                                    href={selectedRequest.final_report_file_url} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10 group hover:bg-primary/10 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-primary shadow-sm"><CheckCircle /></div>
+                                        <span className="text-sm font-bold text-primary">Abrir PDF do Parecer Assinado</span>
+                                    </div>
+                                    <ArrowLeft className="rotate-180 text-primary group-hover:translate-x-1 transition-transform" />
+                                </a>
+                            )}
+                        </div>
+                        <div className="p-8 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
+                            <Button variant="primary" onClick={() => { setIsViewParecerOpen(false); setSelectedRequest(null); }}>Fechar</Button>
                         </div>
                     </div>
                 </div>

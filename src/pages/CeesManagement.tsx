@@ -38,6 +38,9 @@ export default function CeesManagement() {
         );
     };
 
+    // Tab state
+    const [activeTab, setActiveTab] = useState<'ANALISE' | 'ANDAMENTO' | 'CONCLUIDO'>('ANALISE');
+
     // Modal state
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
 
@@ -272,6 +275,31 @@ export default function CeesManagement() {
                     </Button>
                 </div>
 
+                <div className="px-6 py-2 border-b border-slate-100 dark:border-slate-700 flex space-x-6 overflow-x-auto no-scrollbar">
+                    {[
+                        { id: 'ANALISE', label: 'Em Análise', statuses: ['PENDING_CEES', 'RETURNED', 'INCONCLUSIVE'] },
+                        { id: 'ANDAMENTO', label: 'Em Andamento', statuses: ['SCHEDULED', 'IN_PROGRESS'] },
+                        { id: 'CONCLUIDO', label: 'Concluidos', statuses: ['COMPLETED'] }
+                    ].map(tab => {
+                        const count = requests.filter(r => tab.statuses.includes(r.status)).length;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`py-4 px-2 text-sm font-black transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
+                                    isActive ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'
+                                }`}
+                            >
+                                {tab.label}
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                    {count}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+
                 <div className="overflow-x-auto w-full max-w-[100vw] shadow-sm rounded-lg">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
@@ -300,7 +328,13 @@ export default function CeesManagement() {
                                     </td>
                                 </tr>
                             ) : (
-                                (requests as any[]).map(req => (
+                                (requests as any[])
+                                    .filter(req => {
+                                        if (activeTab === 'ANALISE') return ['PENDING_CEES', 'RETURNED', 'INCONCLUSIVE'].includes(req.status);
+                                        if (activeTab === 'ANDAMENTO') return ['SCHEDULED', 'IN_PROGRESS'].includes(req.status);
+                                        return req.status === 'COMPLETED';
+                                    })
+                                    .map(req => (
                                     <tr key={req.id} className={`transition-colors transition-opacity ${
                                         req.status === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-900/10' :
                                         req.status === 'RETURNED' ? 'bg-slate-50/50 dark:bg-slate-900/30 opacity-60 grayscale-[0.5]' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
