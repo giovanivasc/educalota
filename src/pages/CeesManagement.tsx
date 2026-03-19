@@ -368,7 +368,7 @@ export default function CeesManagement() {
                                         </td>
                                         <td className="px-6 py-4 text-right whitespace-nowrap">
                                             <Button size="sm" variant={req.status === 'RETURNED' ? 'ghost' : 'secondary'} onClick={() => setSelectedRequest(req)}>
-                                                Analisar
+                                                {req.status === 'COMPLETED' ? 'Ver Processo' : 'Analisar'}
                                             </Button>
                                         </td>
                                     </tr>
@@ -494,6 +494,44 @@ export default function CeesManagement() {
                                     <span className="material-symbols-outlined text-slate-400 text-sm ml-auto">open_in_new</span>
                                 </a>
                             </div>
+
+                            {/* Bloco de Parecer Técnico para Concluídos */}
+                            {selectedRequest.status === 'COMPLETED' && (
+                                <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/50 p-6 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
+                                        <span className="material-symbols-outlined font-bold">check_circle</span>
+                                        <h3 className="font-bold text-lg">Resultado da Avaliação</h3>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <h4 className="text-xs font-black uppercase text-emerald-700/70 dark:text-emerald-500/50 mb-1">Parecer Técnico</h4>
+                                            <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-emerald-100 dark:border-emerald-900/30 text-slate-700 dark:text-slate-300 text-sm leading-relaxed shadow-sm">
+                                                {selectedRequest.final_report_text || 'Sem parecer técnico registrado.'}
+                                            </div>
+                                        </div>
+
+                                        {selectedRequest.specialized_support && (
+                                            <div className="flex items-center gap-2 bg-emerald-100/50 dark:bg-emerald-900/30 px-3 py-2 rounded-lg border border-emerald-200/50 dark:border-emerald-800/30">
+                                                <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Suporte Indicado:</span>
+                                                <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">{selectedRequest.specialized_support}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {selectedRequest.final_report_file_url && (
+                                        <a
+                                            href={selectedRequest.final_report_file_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2 mt-4 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-emerald-600/20"
+                                        >
+                                            <span className="material-symbols-outlined">print</span>
+                                            Imprimir / Baixar Relatório Assinado (PDF)
+                                        </a>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Área de Ações CEES */}
                             <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
