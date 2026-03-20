@@ -407,6 +407,27 @@ export default function AssessorDashboard() {
 
             if (error) throw error;
             alert('Pedido de desbloqueio enviado com sucesso.');
+            
+            // DISPARAR NOTIFICAÇÕES PARA GESTORES
+            try {
+                const { data: allUsers } = await supabase.rpc('get_all_users');
+                const managers = (allUsers || []).filter((u: any) => u.role === 'ADMIN' || u.role === 'DIRETOR');
+                
+                const notifications = managers.map((manager: any) => ({
+                    user_id: manager.id,
+                    title: 'Pedido de Desbloqueio de Avaliação',
+                    message: `O assessor ${user?.user_metadata?.name || user?.email} solicitou a edição do protocolo ${selectedRequest.protocol_number} (${selectedRequest.student_name}).`,
+                    type: 'SISTEMA',
+                    link: '/cees'
+                }));
+
+                if (notifications.length > 0) {
+                    await supabase.from('notifications').insert(notifications);
+                }
+            } catch (notifyErr) {
+                console.error("Erro ao notificar gestores:", notifyErr);
+            }
+
             queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
             setIsUnlockModalOpen(false);
             setUnlockReason('');
@@ -450,7 +471,9 @@ export default function AssessorDashboard() {
             </div>
             
             {loading ? (
-                <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
+                <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
             ) : requests.length === 0 ? (
                 <div className="bg-white dark:bg-slate-800 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-700 shadow-sm">
                     <History className="text-6xl text-slate-200 mx-auto mb-4" />
@@ -465,117 +488,133 @@ export default function AssessorDashboard() {
                             if (activeTab === 'ANDAMENTO') return req.status === 'IN_PROGRESS';
                             return req.status === 'COMPLETED';
                         })
-                        .map(req => (
-                        <div key={req.id} className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow group">
-                            <div className={`h-2 ${
-                                req.status === 'COMPLETED' ? 'bg-emerald-500' :
-                                req.status === 'IN_PROGRESS' ? 'bg-amber-400' : 'bg-primary'
-                            }`}></div>
-                            <div className="p-6 flex-1">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`p-2 rounded-xl ${
-                                            req.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
-                                            req.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary'
-                                        }`}>
-                                            {req.status === 'COMPLETED' ? <CheckCircle /> : <Calendar />}
+                        .map(req => {
+                            const isPendingUnlock = req.status === 'COMPLETED' && req.unlock_requested;
+                            return (
+                                <div key={req.id} className={`bg-white dark:bg-slate-800 rounded-3xl border shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all group relative ${
+                                    isPendingUnlock 
+                                    ? 'border-amber-400 dark:border-amber-500 ring-2 ring-amber-400/20' 
+                                    : 'border-slate-200 dark:border-slate-700'
+                                }`}>
+                                    {isPendingUnlock && (
+                                        <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1 shadow-sm z-10">
+                                            <span className="material-symbols-outlined text-[14px]">lock_open</span> 
+                                            Aguardando Desbloqueio
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
-                                                {req.status === 'COMPLETED' ? 'Concluído' :
-                                                 req.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Agendado'}
+                                    )}
+                                    <div className={`h-2 ${
+                                        req.status === 'COMPLETED' ? 'bg-emerald-500' :
+                                        req.status === 'IN_PROGRESS' ? 'bg-amber-400' : 'bg-primary'
+                                    }`}></div>
+                                    
+                                    <div className="p-6 flex-1">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`p-2 rounded-xl ${
+                                                    req.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
+                                                    req.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary'
+                                                }`}>
+                                                    {req.status === 'COMPLETED' ? <CheckCircle /> : <Calendar />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
+                                                        {req.status === 'COMPLETED' ? 'Concluído' : req.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Agendado'}
+                                                    </p>
+                                                    <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                                                        {req.evaluation_date ? new Date(req.evaluation_date).toLocaleDateString() : 'N/A'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="relative">
+                                                <button 
+                                                    onClick={() => setActiveDropdownId(activeDropdownId === req.id ? null : req.id)}
+                                                    className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
+                                                >
+                                                    <MoreVertical />
+                                                </button>
+                                                {activeDropdownId === req.id && (
+                                                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-50 animate-in fade-in zoom-in-95">
+                                                        <div className="p-1">
+                                                            {req.status === 'COMPLETED' && !req.unlock_requested && (
+                                                                <button 
+                                                                    onClick={() => { setSelectedRequest(req); setIsUnlockModalOpen(true); setActiveDropdownId(null); }}
+                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-black text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                                                >
+                                                                    <History className="size-4" />
+                                                                    Solicitar Permissão de Alteração
+                                                                </button>
+                                                            )}
+                                                            <button 
+                                                                className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                                                                onClick={() => setActiveDropdownId(null)}
+                                                            >
+                                                                <CheckSquare className="size-4" />
+                                                                Outras Ações
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <h3 className="text-lg font-black text-slate-800 dark:text-white mb-1 leading-tight group-hover:text-primary transition-colors">{req.student_name}</h3>
+                                        
+                                        {req.unlock_requested && (
+                                            <div className="mb-2">
+                                                <span className="bg-amber-100 text-amber-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase flex items-center gap-1 w-fit">
+                                                    <History className="size-2.5" />
+                                                    Desbloqueio Solicitado (Aguardando)
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <GraduationCap className="text-slate-400 text-sm" />
+                                            <span className="text-sm text-slate-500 dark:text-slate-400 truncate">{req.schools?.name}</span>
+                                        </div>
+
+                                        <div className="space-y-2 mb-6 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl">
+                                            <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 font-medium">
+                                                <ClipboardList className="text-[14px]" />
+                                                Protocolo: <span className="font-bold">{req.protocol_number}</span>
                                             </p>
-                                            <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                                                {req.evaluation_date ? new Date(req.evaluation_date).toLocaleDateString() : 'N/A'}
+                                            <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 font-medium">
+                                                <Users className="text-[14px]" />
+                                                Equipe CEES
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="relative">
-                                        <button 
-                                            onClick={() => setActiveDropdownId(activeDropdownId === req.id ? null : req.id)}
-                                            className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
-                                        >
-                                            <MoreVertical />
-                                        </button>
-                                        {activeDropdownId === req.id && (
-                                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-50 animate-in fade-in zoom-in-95">
-                                                <div className="p-1">
-                                                    {req.status === 'COMPLETED' && !req.unlock_requested && (
-                                                        <button 
-                                                            onClick={() => { setSelectedRequest(req); setIsUnlockModalOpen(true); setActiveDropdownId(null); }}
-                                                            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-black text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                                                        >
-                                                            <History className="size-4" />
-                                                            Solicitar Permissão de Alteração
-                                                        </button>
-                                                    )}
-                                                    <button 
-                                                        className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                                                        onClick={() => setActiveDropdownId(null)}
-                                                    >
-                                                        <CheckSquare className="size-4" />
-                                                        Outras Ações
-                                                    </button>
-                                                </div>
-                                            </div>
+
+                                    <div className={`px-6 pb-6 pt-2 ${req.status === 'COMPLETED' ? 'flex flex-col' : 'grid grid-cols-2 gap-3'}`}>
+                                        {req.status === 'COMPLETED' ? (
+                                            <Button 
+                                                className="bg-emerald-600 hover:bg-emerald-700 shadow-sm w-full"
+                                                onClick={() => { setSelectedRequest(req); setIsViewParecerOpen(true); }}
+                                                icon="description"
+                                            >
+                                                Ver Parecer Final
+                                            </Button>
+                                        ) : (
+                                            <>
+                                                <Button 
+                                                    className="bg-primary hover:bg-primary-dark shadow-sm"
+                                                    onClick={() => { setSelectedRequest(req); setIsFichaModalOpen(true); }}
+                                                    icon="visibility"
+                                                >
+                                                    Ver Ficha
+                                                </Button>
+                                                <Button 
+                                                    variant="outline"
+                                                    className="border-red-100 text-red-500 hover:bg-red-50"
+                                                    onClick={() => setCancellingRequest(req)}
+                                                    icon="cancel"
+                                                />
+                                            </>
                                         )}
                                     </div>
                                 </div>
-                                <h3 className="text-lg font-black text-slate-800 dark:text-white mb-1 leading-tight group-hover:text-primary transition-colors">{req.student_name}</h3>
-                                {req.unlock_requested && (
-                                    <div className="mb-2">
-                                        <span className="bg-amber-100 text-amber-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase flex items-center gap-1 w-fit">
-                                            <History className="size-2.5" />
-                                            Desbloqueio Solicitado (Aguardando)
-                                        </span>
-                                    </div>
-                                )}
-                                <div className="flex items-center gap-2 mb-4">
-                                    <GraduationCap className="text-slate-400 text-sm" />
-                                    <span className="text-sm text-slate-500 dark:text-slate-400 truncate">{req.schools?.name}</span>
-                                </div>
-                                <div className="space-y-2 mb-6 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl">
-                                    <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 font-medium">
-                                        <ClipboardList className="text-[14px]" />
-                                        Protocolo: <span className="font-bold">{req.protocol_number}</span>
-                                    </p>
-                                    <p className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2 font-medium">
-                                        <Users className="text-[14px]" />
-                                        Equipe CEES
-                                    </p>
-                                </div>
-                            </div>
-                            <div className={`px-6 pb-6 pt-2 ${req.status === 'COMPLETED' ? 'flex flex-col' : 'grid grid-cols-2 gap-3'}`}>
-                                {req.status === 'COMPLETED' ? (
-                                    <Button 
-                                        className="bg-emerald-600 hover:bg-emerald-700 shadow-sm w-full"
-                                        onClick={() => { setSelectedRequest(req); setIsViewParecerOpen(true); }}
-                                        icon="description"
-                                    >
-                                        Ver Parecer Final
-                                    </Button>
-                                ) : (
-                                    <>
-                                        <Button 
-                                            className="bg-primary hover:bg-primary-dark shadow-sm"
-                                            onClick={() => { setSelectedRequest(req); setIsFichaModalOpen(true); }}
-                                            icon="visibility"
-                                        >
-                                            Ver Ficha
-                                        </Button>
-                                        <Button 
-                                            variant="outline"
-                                            className="border-red-100 text-red-500 hover:bg-red-50"
-                                            onClick={() => setCancellingRequest(req)}
-                                            icon="cancel"
-                                        >
-                                            Cancelar
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                            );
+                        })}
                 </div>
             )}
 
