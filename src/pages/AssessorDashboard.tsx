@@ -144,6 +144,12 @@ export default function AssessorDashboard() {
     const [reassessmentPeriod, setReassessmentPeriod] = useState('6 meses');
     const [specializedSupport, setSpecializedSupport] = useState('');
 
+    // Unlock request states
+    const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+    const [unlockReason, setUnlockReason] = useState('');
+    const [requestingUnlock, setRequestingUnlock] = useState(false);
+    const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+
     // Tab state
     const [activeTab, setActiveTab] = useState<'PENDENTES' | 'ANDAMENTO' | 'CONCLUIDO'>('PENDENTES');
 
@@ -376,6 +382,41 @@ export default function AssessorDashboard() {
         }
     };
 
+    const handleRequestUnlock = async () => {
+        if (!unlockReason.trim()) return alert("Descreva o motivo da alteração.");
+        setRequestingUnlock(true);
+        try {
+            const { error } = await supabase
+                .from('evaluation_requests')
+                .update({
+                    unlock_requested: true,
+                    unlock_reason: unlockReason,
+                    history: [
+                        ...(selectedRequest.history || []),
+                        {
+                            date: new Date().toISOString(),
+                            action: 'PEDIDO DE DESBLOQUEIO',
+                            result: 'Pendente Aprovação',
+                            description: `Solicitação de alteração: ${unlockReason}`,
+                            actor: user?.user_metadata?.name || user?.email,
+                        }
+                    ],
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', selectedRequest.id);
+
+            if (error) throw error;
+            alert('Pedido de desbloqueio enviado com sucesso.');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
+            setIsUnlockModalOpen(false);
+            setUnlockReason('');
+        } catch (err: any) {
+            alert('Erro ao solicitar desbloqueio: ' + err.message);
+        } finally {
+            setRequestingUnlock(false);
+        }
+    };
+
     return (
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-10">
             <div className="flex flex-col gap-2">
@@ -449,9 +490,46 @@ export default function AssessorDashboard() {
                                             </p>
                                         </div>
                                     </div>
-                                    <button className="text-slate-400 hover:text-slate-600"><MoreVertical /></button>
+                                    <div className="relative">
+                                        <button 
+                                            onClick={() => setActiveDropdownId(activeDropdownId === req.id ? null : req.id)}
+                                            className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
+                                        >
+                                            <MoreVertical />
+                                        </button>
+                                        {activeDropdownId === req.id && (
+                                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-50 animate-in fade-in zoom-in-95">
+                                                <div className="p-1">
+                                                    {req.status === 'COMPLETED' && !req.unlock_requested && (
+                                                        <button 
+                                                            onClick={() => { setSelectedRequest(req); setIsUnlockModalOpen(true); setActiveDropdownId(null); }}
+                                                            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-black text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                                        >
+                                                            <History className="size-4" />
+                                                            Solicitar Permissão de Alteração
+                                                        </button>
+                                                    )}
+                                                    <button 
+                                                        className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                                                        onClick={() => setActiveDropdownId(null)}
+                                                    >
+                                                        <CheckSquare className="size-4" />
+                                                        Outras Ações
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <h3 className="text-lg font-black text-slate-800 dark:text-white mb-1 leading-tight group-hover:text-primary transition-colors">{req.student_name}</h3>
+                                {req.unlock_requested && (
+                                    <div className="mb-2">
+                                        <span className="bg-amber-100 text-amber-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase flex items-center gap-1 w-fit">
+                                            <History className="size-2.5" />
+                                            Desbloqueio Solicitado (Aguardando)
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-2 mb-4">
                                     <GraduationCap className="text-slate-400 text-sm" />
                                     <span className="text-sm text-slate-500 dark:text-slate-400 truncate">{req.schools?.name}</span>
@@ -1100,6 +1178,81 @@ export default function AssessorDashboard() {
                         </div>
                         <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
                             <Button variant="primary" onClick={() => { setIsViewParecerOpen(false); setSelectedRequest(null); }}>Fechar</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL 4: SOLICITAÇÃO DE DESBLOQUEIO */}
+            {isUnlockModalOpen && selectedRequest && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-xl w-full max-w-md animate-in zoom-in-95 overflow-hidden">
+                        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700 bg-amber-50 text-amber-700 flex justify-between items-center">
+                            <h2 className="text-lg font-black flex items-center gap-2">Solicitar Reabertura</h2>
+                            <button onClick={() => setIsUnlockModalOpen(false)}><X /></button>
+                        </div>
+                        <div className="p-8 space-y-6">
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                Explique o motivo pelo qual você precisa alterar a avaliação de <span className="font-bold text-slate-900 dark:text-white">{selectedRequest.student_name}</span> após a conclusão.
+                            </p>
+                            <textarea 
+                                value={unlockReason} 
+                                onChange={e => setUnlockReason(e.target.value)}
+                                placeholder="Descreva aqui o motivo..."
+                                className="w-full h-32 p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 focus:border-primary outline-none text-sm leading-relaxed"
+                            />
+                            <div className="flex gap-3 pt-2">
+                                <Button className="flex-1 bg-slate-100 text-slate-600 rounded-2xl" onClick={() => setIsUnlockModalOpen(false)}>Cancelar</Button>
+                                <Button className="flex-1 bg-amber-600 text-white rounded-2xl shadow-lg shadow-amber-100" onClick={handleRequestUnlock} isLoading={requestingUnlock} icon="history">Solicitar</Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* MODAL DE DESBLOQUEIO */}
+            {isUnlockModalOpen && selectedRequest && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+                        <div className="p-8 space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="size-14 rounded-2xl bg-amber-100 flex items-center justify-center">
+                                    <History className="text-amber-600 size-7" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight">Solicitar Alteração</h2>
+                                    <p className="text-sm text-slate-500 font-medium">Esta avaliação já foi concluída.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="block space-y-2">
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">Justificativa da Alteração</span>
+                                    <textarea 
+                                        className="w-full p-4 rounded-3xl bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-700 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all resize-none text-sm font-medium min-h-[120px]"
+                                        placeholder="Descreva por que você precisa editar esta avaliação..."
+                                        value={unlockReason}
+                                        onChange={(e) => setUnlockReason(e.target.value)}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button 
+                                    variant="ghost" 
+                                    className="flex-1 rounded-2xl h-14 font-black" 
+                                    onClick={() => setIsUnlockModalOpen(false)}
+                                    disabled={requestingUnlock}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button 
+                                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-200 rounded-2xl h-14 font-black"
+                                    onClick={handleRequestUnlock}
+                                    isLoading={requestingUnlock}
+                                >
+                                    Enviar Pedido
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>

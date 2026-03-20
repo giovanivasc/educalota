@@ -131,6 +131,8 @@ export interface EvaluationRequest {
   individual_evaluation_data?: any;
   specialized_support?: string;
   class_id?: string;
+  unlock_requested?: boolean;
+  unlock_reason?: string;
 
   created_at: string;
   updated_at: string;

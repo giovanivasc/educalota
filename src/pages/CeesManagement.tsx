@@ -39,7 +39,7 @@ export default function CeesManagement() {
     };
 
     // Tab state
-    const [activeTab, setActiveTab] = useState<'ANALISE' | 'ANDAMENTO' | 'CONCLUIDO'>('ANALISE');
+    const [activeTab, setActiveTab] = useState<'ANALISE' | 'ANDAMENTO' | 'CONCLUIDO' | 'PEDIDOS'>('ANALISE');
 
     // Modal state
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
@@ -248,6 +248,75 @@ export default function CeesManagement() {
         }
     };
 
+    const handleApproveUnlock = async () => {
+        setActionLoading(true);
+        try {
+            const { error } = await supabase
+                .from('evaluation_requests')
+                .update({
+                    status: 'IN_PROGRESS',
+                    unlock_requested: false,
+                    unlock_reason: null,
+                    history: [
+                        ...(selectedRequest.history || []),
+                        {
+                            date: new Date().toISOString(),
+                            action: 'DESBLOQUEIO AUTORIZADO',
+                            result: 'Em Andamento',
+                            description: 'O Diretor/Admin autorizou a edição da avaliação.',
+                            actor: user?.user_metadata?.name || user?.email,
+                            role: user?.role === 'ADMIN' ? 'ADMIN' : 'DIRETOR'
+                        }
+                    ],
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', selectedRequest.id);
+
+            if (error) throw error;
+            alert('Desbloqueio autorizado com sucesso.');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
+            closeModal();
+        } catch (err: any) {
+            alert('Erro ao aprovar desbloqueio: ' + err.message);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleRejectUnlock = async () => {
+        setActionLoading(true);
+        try {
+            const { error } = await supabase
+                .from('evaluation_requests')
+                .update({
+                    unlock_requested: false,
+                    unlock_reason: null,
+                    history: [
+                        ...(selectedRequest.history || []),
+                        {
+                            date: new Date().toISOString(),
+                            action: 'DESBLOQUEIO RECUSADO',
+                            result: 'Mantido Concluído',
+                            description: 'O pedido de edição foi negado.',
+                            actor: user?.user_metadata?.name || user?.email,
+                            role: user?.role === 'ADMIN' ? 'ADMIN' : 'DIRETOR'
+                        }
+                    ],
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', selectedRequest.id);
+
+            if (error) throw error;
+            alert('Pedido de desbloqueio recusado.');
+            queryClient.invalidateQueries({ queryKey: ['evaluation_requests'] });
+            closeModal();
+        } catch (err: any) {
+            alert('Erro ao recusar desbloqueio: ' + err.message);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const closeModal = () => {
         setSelectedRequest(null);
         setActionType('NONE');
@@ -279,7 +348,7 @@ export default function CeesManagement() {
                     {[
                         { id: 'ANALISE', label: 'Em Análise', statuses: ['PENDING_CEES', 'RETURNED', 'INCONCLUSIVE'] },
                         { id: 'ANDAMENTO', label: 'Em Andamento', statuses: ['SCHEDULED', 'IN_PROGRESS'] },
-                        { id: 'CONCLUIDO', label: 'Concluidos', statuses: ['COMPLETED'] }
+                        { id: 'CONCLUIDO', label: 'Concluídos', statuses: ['COMPLETED'] }
                     ].map(tab => {
                         const count = requests.filter(r => tab.statuses.includes(r.status)).length;
                         const isActive = activeTab === tab.id;
@@ -298,6 +367,20 @@ export default function CeesManagement() {
                             </button>
                         );
                     })}
+
+                    {(user?.role === 'ADMIN' || user?.role === 'DIRETOR') && (
+                        <button
+                            onClick={() => setActiveTab('PEDIDOS')}
+                            className={`py-4 px-2 text-sm font-black transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
+                                activeTab === 'PEDIDOS' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'
+                            }`}
+                        >
+                            Pedidos de Alteração
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === 'PEDIDOS' ? 'bg-red-500 text-white shadow-lg shadow-red-100' : 'bg-slate-100 text-slate-500'}`}>
+                                {requests.filter(req => req.unlock_requested).length}
+                            </span>
+                        </button>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto w-full max-w-[100vw] shadow-sm rounded-lg">
@@ -331,7 +414,9 @@ export default function CeesManagement() {
                                     .filter(req => {
                                         if (activeTab === 'ANALISE') return ['PENDING_CEES', 'RETURNED', 'INCONCLUSIVE'].includes(req.status);
                                         if (activeTab === 'ANDAMENTO') return ['SCHEDULED', 'IN_PROGRESS'].includes(req.status);
-                                        return req.status === 'COMPLETED';
+                                        if (activeTab === 'CONCLUIDO') return req.status === 'COMPLETED';
+                                        if (activeTab === 'PEDIDOS') return req.unlock_requested === true;
+                                        return false;
                                     })
                                     .map(req => (
                                     <tr key={req.id} className={`transition-colors transition-opacity ${
@@ -363,8 +448,14 @@ export default function CeesManagement() {
                                             </span>
                                         </td>
                                         <td className="px-3 py-3 text-right whitespace-nowrap text-[13px]">
-                                            <Button size="sm" variant={req.status === 'RETURNED' ? 'ghost' : 'secondary'} onClick={() => setSelectedRequest(req)}>
-                                                {req.status === 'COMPLETED' ? 'Ver Processo' : 'Analisar'}
+                                            <Button 
+                                                size="sm" 
+                                                variant={activeTab === 'PEDIDOS' ? 'secondary' : (req.status === 'RETURNED' ? 'ghost' : 'secondary')} 
+                                                className={activeTab === 'PEDIDOS' ? "bg-amber-500 hover:bg-amber-600 text-white border-none" : ""}
+                                                onClick={() => setSelectedRequest(req)}
+                                            >
+                                                {activeTab === 'PEDIDOS' ? 'Analisar Pedido' : 
+                                                 activeTab === 'CONCLUIDO' ? 'Ver Processo' : 'Analisar'}
                                             </Button>
                                         </td>
                                     </tr>
@@ -526,6 +617,40 @@ export default function CeesManagement() {
                                             Imprimir / Baixar Relatório Assinado (PDF)
                                         </a>
                                     )}
+                                </div>
+                            )}
+
+                            {/* BLOCO DE DESBLOQUEIO (SE HOUVER PEDIDO) */}
+                            {selectedRequest.unlock_requested && (
+                                <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-900/30 space-y-4 mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="size-10 rounded-2xl bg-amber-100 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-amber-600">history</span>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-amber-900 dark:text-amber-200 uppercase tracking-widest leading-none">Solicitação de Desbloqueio</h4>
+                                            <p className="text-[10px] text-amber-700 font-bold uppercase mt-1">O Assessor deseja reabrir esta avaliação</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl shadow-inner italic text-sm text-slate-700 dark:text-slate-300">
+                                        "{selectedRequest.unlock_reason}"
+                                    </div>
+                                    <div className="flex gap-3 mt-2">
+                                        <Button 
+                                            className="flex-1 bg-white border border-red-200 text-red-600 hover:bg-red-50" 
+                                            onClick={handleRejectUnlock}
+                                            isLoading={actionLoading}
+                                        >
+                                            Recusar Pedido
+                                        </Button>
+                                        <Button 
+                                            className="flex-1 bg-amber-600 text-white shadow-lg shadow-amber-200" 
+                                            onClick={handleApproveUnlock}
+                                            isLoading={actionLoading}
+                                        >
+                                            Autorizar Desbloqueio
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
 
