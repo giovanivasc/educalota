@@ -553,7 +553,7 @@ const Students: React.FC = () => {
       <div className="flex relative">
         <div className="overflow-x-auto flex-1 w-full max-w-[100vw] shadow-sm rounded-lg">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
+            <thead className="bg-slate-50 dark:bg-slate-900 text-sm uppercase font-bold text-slate-500">
               <tr>
                 <th className="px-3 py-3 w-[40px] text-center">
                   <input
@@ -643,7 +643,7 @@ const Students: React.FC = () => {
                     {student.birthDate ? new Date(student.birthDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}
                   </td>
                   <td className="px-3 py-3">
-                    <span className="inline-flex rounded-lg bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 px-2 py-1 text-xs font-bold whitespace-nowrap">
+                    <span className="inline-flex rounded-lg bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 px-2 py-1 text-sm font-bold whitespace-nowrap">
                       {student.specialGroup || '-'}
                     </span>
                   </td>
@@ -753,7 +753,7 @@ const Students: React.FC = () => {
                   </div>
                 ) : (
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500 sticky top-0">
+                    <thead className="bg-slate-50 dark:bg-slate-900 text-sm uppercase font-bold text-slate-500 sticky top-0">
                       <tr>
                         <th className="px-6 py-4">Estudante</th>
                         <th className="px-6 py-4">Idade</th>
@@ -773,11 +773,11 @@ const Students: React.FC = () => {
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
                               <span className="font-medium text-slate-700 dark:text-slate-300">{student.schoolName}</span>
-                              <span className="text-xs text-slate-500">{student.series} ({student.modality})</span>
+                              <span className="text-sm text-slate-500">{student.series} ({student.modality})</span>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="inline-flex rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 text-xs font-bold">
+                            <span className="inline-flex rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 text-sm font-bold">
                               +{student.gap} anos
                             </span>
                           </td>

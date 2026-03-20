@@ -302,7 +302,7 @@ export default function CeesManagement() {
 
                 <div className="overflow-x-auto w-full max-w-[100vw] shadow-sm rounded-lg">
                     <table className="w-full text-left">
-                        <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
+                        <thead className="bg-slate-50 dark:bg-slate-900 text-sm uppercase font-bold text-slate-500">
                             <tr>
                                 <th className="px-6 py-4 whitespace-nowrap">Protocolo</th>
                                 <th className="px-6 py-4 whitespace-nowrap">Recebido em</th>
@@ -342,16 +342,16 @@ export default function CeesManagement() {
                                         <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                                             {req.protocol_number}
                                         </td>
-                                        <td className="px-6 py-4 text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                                        <td className="px-6 py-4 font-medium text-slate-500 whitespace-nowrap">
                                             {req.first_received_at ? new Date(req.first_received_at).toLocaleDateString() : 'N/A'}
                                         </td>
                                         <td className="px-6 py-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{req.schools?.name || 'Escola não vinculada'}</td>
                                         <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">{req.student_name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-xs font-bold text-slate-500 uppercase">{req.request_type}</span>
+                                            <span className="font-bold text-slate-500 uppercase">{req.request_type}</span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${
+                                            <span className={`px-2 py-1 rounded font-black uppercase ${
                                                 req.status === 'PENDING_CEES' ? 'bg-blue-100 text-blue-700' :
                                                 req.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-700' :
                                                 req.status === 'INCONCLUSIVE' ? 'bg-orange-100 text-orange-700' :
