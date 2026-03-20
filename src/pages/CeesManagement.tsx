@@ -302,28 +302,27 @@ export default function CeesManagement() {
 
                 <div className="overflow-x-auto w-full max-w-[100vw] shadow-sm rounded-lg">
                     <table className="w-full text-left">
-                        <thead className="bg-slate-50 dark:bg-slate-900 text-sm uppercase font-bold text-slate-500">
+                        <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase font-bold text-slate-500">
                             <tr>
-                                <th className="px-6 py-4 whitespace-nowrap">Protocolo</th>
-                                <th className="px-6 py-4 whitespace-nowrap">Recebido em</th>
-                                <th className="px-6 py-4 whitespace-nowrap">Escola</th>
-                                <th className="px-6 py-4 whitespace-nowrap">Aluno</th>
-                                <th className="px-6 py-4 whitespace-nowrap">Tipo</th>
-                                <th className="px-6 py-4 whitespace-nowrap">Estado</th>
-                                <th className="px-6 py-4 text-right whitespace-nowrap">Ações</th>
+                                <th className="px-3 py-3 whitespace-nowrap">Recebido em</th>
+                                <th className="px-3 py-3 whitespace-nowrap">Escola</th>
+                                <th className="px-3 py-3 whitespace-nowrap">Aluno</th>
+                                <th className="px-3 py-3 whitespace-nowrap">Tipo</th>
+                                <th className="px-3 py-3 whitespace-nowrap">Estado</th>
+                                <th className="px-3 py-3 text-right whitespace-nowrap">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading && requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
                                         <span className="material-symbols-outlined animate-spin text-3xl mb-2 text-primary">sync</span>
-                                        <p>Carregando solicitações...</p>
+                                        <p className="text-xs">Carregando solicitações...</p>
                                     </td>
                                 </tr>
                             ) : requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan={6} className="px-3 py-8 text-center text-slate-500 text-xs">
                                         Nenhuma solicitação encontrada no momento.
                                     </td>
                                 </tr>
@@ -339,19 +338,16 @@ export default function CeesManagement() {
                                         req.status === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-900/10' :
                                         req.status === 'RETURNED' ? 'bg-slate-50/50 dark:bg-slate-900/30 opacity-60 grayscale-[0.5]' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
                                     }`}>
-                                        <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                                            {req.protocol_number}
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-slate-500 whitespace-nowrap">
+                                        <td className="px-3 py-3 font-medium text-slate-500 whitespace-nowrap text-[13px]">
                                             {req.first_received_at ? new Date(req.first_received_at).toLocaleDateString() : 'N/A'}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{req.schools?.name || 'Escola não vinculada'}</td>
-                                        <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">{req.student_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-3 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap text-[13px]">{req.schools?.name || 'Escola não vinculada'}</td>
+                                        <td className="px-3 py-3 font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap text-[13px]">{req.student_name}</td>
+                                        <td className="px-3 py-3 whitespace-nowrap text-[13px]">
                                             <span className="font-bold text-slate-500 uppercase">{req.request_type}</span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 rounded font-black uppercase ${
+                                        <td className="px-3 py-3 whitespace-nowrap text-[13px]">
+                                            <span className={`px-2 py-1 rounded font-black uppercase text-[10px] ${
                                                 req.status === 'PENDING_CEES' ? 'bg-blue-100 text-blue-700' :
                                                 req.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-700' :
                                                 req.status === 'INCONCLUSIVE' ? 'bg-orange-100 text-orange-700' :
@@ -366,7 +362,7 @@ export default function CeesManagement() {
                                                  req.status === 'COMPLETED' ? 'Concluído' : req.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                                        <td className="px-3 py-3 text-right whitespace-nowrap text-[13px]">
                                             <Button size="sm" variant={req.status === 'RETURNED' ? 'ghost' : 'secondary'} onClick={() => setSelectedRequest(req)}>
                                                 {req.status === 'COMPLETED' ? 'Ver Processo' : 'Analisar'}
                                             </Button>
