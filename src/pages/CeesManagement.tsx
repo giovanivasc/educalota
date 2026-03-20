@@ -420,8 +420,9 @@ export default function CeesManagement() {
                                     })
                                     .map(req => (
                                     <tr key={req.id} className={`transition-colors transition-opacity ${
-                                        req.status === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-900/10' :
-                                        req.status === 'RETURNED' ? 'bg-slate-50/50 dark:bg-slate-900/30 opacity-60 grayscale-[0.5]' : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'
+                                        req.unlock_requested ? 'bg-amber-50/50 dark:bg-amber-900/20 border-l-4 border-l-amber-500' :
+                                        req.status === 'RETURNED' ? 'bg-slate-50/50 dark:bg-slate-900/30 opacity-60 grayscale-[0.5]' : 
+                                        'hover:bg-slate-50 dark:hover:bg-slate-900/50'
                                     }`}>
                                         <td className="px-3 py-3 font-medium text-slate-500 whitespace-nowrap text-[13px]">
                                             {req.first_received_at ? new Date(req.first_received_at).toLocaleDateString() : 'N/A'}
@@ -432,20 +433,29 @@ export default function CeesManagement() {
                                             <span className="font-bold text-slate-500 uppercase">{req.request_type}</span>
                                         </td>
                                         <td className="px-3 py-3 whitespace-nowrap text-[13px]">
-                                            <span className={`px-2 py-1 rounded font-black uppercase text-[10px] ${
-                                                req.status === 'PENDING_CEES' ? 'bg-blue-100 text-blue-700' :
-                                                req.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-700' :
-                                                req.status === 'INCONCLUSIVE' ? 'bg-orange-100 text-orange-700' :
-                                                req.status === 'RETURNED' ? 'bg-red-50 text-red-600 grayscale' :
-                                                req.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
-                                                'bg-slate-100 text-slate-700'
-                                                }`}>
-                                                {req.status === 'PENDING_CEES' ? 'Aguardando Análise' :
-                                                 req.status === 'SCHEDULED' ? 'Agendado' : 
-                                                 req.status === 'INCONCLUSIVE' ? 'Inconclusivo' : 
-                                                 req.status === 'RETURNED' ? 'Devolvido' : 
-                                                 req.status === 'COMPLETED' ? 'Concluído' : req.status}
-                                            </span>
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <span className={`px-2 py-1 rounded font-black uppercase text-[10px] ${
+                                                    req.status === 'PENDING_CEES' ? 'bg-blue-100 text-blue-700' :
+                                                    req.status === 'SCHEDULED' ? 'bg-purple-100 text-purple-700' :
+                                                    req.status === 'INCONCLUSIVE' ? 'bg-orange-100 text-orange-700' :
+                                                    req.status === 'RETURNED' ? 'bg-red-50 text-red-600 grayscale' :
+                                                    req.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
+                                                    'bg-slate-100 text-slate-700'
+                                                    }`}>
+                                                    {req.status === 'PENDING_CEES' ? 'Aguardando Análise' :
+                                                     req.status === 'SCHEDULED' ? 'Agendado' : 
+                                                     req.status === 'INCONCLUSIVE' ? 'Inconclusivo' : 
+                                                     req.status === 'RETURNED' ? 'Devolvido' : 
+                                                     req.status === 'COMPLETED' ? 'Concluído' : req.status}
+                                                </span>
+                                                
+                                                {req.unlock_requested && (
+                                                    <span className="px-2 py-1 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 font-black uppercase text-[9px] flex items-center gap-1 mt-1 shadow-sm border border-amber-200 dark:border-amber-900/30">
+                                                        <span className="material-symbols-outlined text-[13px]">lock_open</span>
+                                                        Pedido de Alteração
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-3 py-3 text-right whitespace-nowrap text-[13px]">
                                             <Button 
