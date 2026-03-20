@@ -3,6 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnamnesisData } from '../types';
+import { useEffect } from 'react';
+
 import { 
     Eye, 
     ClipboardList, 
@@ -24,6 +27,92 @@ import {
 
 type StepType = 'MAIN' | 'ANAMNESE' | 'ESCUTA' | 'OBSERVACAO' | 'INDIVIDUAL';
 
+const defaultAnamnesisData: AnamnesisData = {
+  attendanceDate: '', attendanceLocation: '',
+  motherName: '', motherContact: '', fatherName: '', fatherContact: '', respName: '', respContact: '',
+  hasSiblings: '', siblingsCount: '', familyComposition: [], familyCompositionOther: '',
+  familyDeficiency: '', familyDeficiencyDetails: '', fosterCare: '', socioEducative: '',
+  socioEducativeType: '', govPrograms: [], govProgramsOther: '', financialStatus: '',
+  familyPlanning: '', prenatal: '', prenatalStartMonth: '', vaccines: '', motherEmotional: '',
+  pregnancyEating: '', pregnancyDiseases: '', pregnancyDiseasesDetails: '', beforeBirth24h: [],
+  beforeBirthOther: '', gestationTime: '', birthType: '', birthComplications: '',
+  birthComplicationsDetails: '', riskPregnancy: '', atBirthCried: '', atBirthJaundice: '',
+  atBirthAnoxia: '', atBirthCyanotic: '', incubator: '', testsDone: [], testsAlterations: '',
+  testsAlterationsDetails: '', devHead: '', devSit: '', devCrawl: '', devStand: '',
+  devWalk: '', devBabble: '', devWords: '', habitsPacifier: '', habitsThumb: '',
+  habitsBreastMilk: '', foodComplement: false, foodSubstitute: false, foodIntroduction: '',
+  hasDeficiency: '', deficiencyCid: '', selectiveEating: '', selectiveEatingDetails: '',
+  restrictedEating: '', restrictedEatingDetails: '', sleepAgitated: '', constantCrying: '',
+  bitesNails: '', bitesNailsFreq: '', bruxism: '', otherManipulations: '', shortFrenulum: '',
+  surgery: '', surgeryDetails: '', trauma: '', traumaDetails: '', fainting: '',
+  convulsions: '', currentDiseases: '', currentDiseasesDetails: '', clinicalCare: [],
+  clinicalCareOther: '', medications: '', medicationsDetails: '', medicationsTime: [],
+  relationship: [], relationshipOther: '', tendencyToFall: '', tendencyToInjure: '',
+  tendencyToSelfHarm: '', objectManipulationDifficulty: '', otherDifficulties: '',
+  communicationType: [], screenTimeExcess: '', screenTimeDetails: '',
+  schoolAdaptationLimitation: '', schoolAdaptationDetails: '',
+  avdFeeding: '', avdDressing: '', avdHygiene: '', avdBladder: '', avdBowel: '',
+};
+
+const RenderInput = ({ label, name, value, onChange, placeholder = "", type = "text", className = "" }: any) => (
+    <div className={`space-y-1 ${className}`}>
+        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</label>
+        <input
+            type={type}
+            value={value}
+            onChange={(e) => onChange(name, e.target.value)}
+            placeholder={placeholder}
+            className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-4 focus:ring-primary/10 transition-all text-sm"
+        />
+    </div>
+);
+
+const RenderRadio = ({ label, name, value, options, onChange }: any) => (
+    <div className="space-y-2">
+        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</label>
+        <div className="flex flex-wrap gap-4 px-1">
+            {options.map((opt: string) => (
+                <label key={opt} className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                        type="radio"
+                        name={name}
+                        checked={value === opt}
+                        onChange={() => onChange(name, opt)}
+                        className="size-4 text-primary border-slate-300 focus:ring-primary"
+                    />
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">{opt}</span>
+                </label>
+            ))}
+        </div>
+    </div>
+);
+
+const RenderCheckboxGroup = ({ label, name, values, options, onChange }: any) => (
+    <div className="space-y-2">
+        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-1">
+            {options.map((opt: string) => (
+                <label key={opt} className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                        type="checkbox"
+                        checked={values.includes(opt)}
+                        onChange={(e) => {
+                            const newValues = e.target.checked 
+                                ? [...values, opt]
+                                : values.filter((v: string) => v !== opt);
+                            onChange(name, newValues);
+                        }}
+                        className="size-4 rounded text-primary border-slate-300 focus:ring-primary"
+                    />
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">{opt}</span>
+                </label>
+            ))}
+        </div>
+    </div>
+);
+
+
+
 export default function AssessorDashboard() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -34,6 +123,16 @@ export default function AssessorDashboard() {
     const [currentStep, setCurrentStep] = useState<StepType>('MAIN');
     
     const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+    const [anamnesisForm, setAnamnesisForm] = useState<AnamnesisData>(defaultAnamnesisData);
+
+    useEffect(() => {
+        if (selectedRequest?.anamnesis_data?.[user?.id]?.form) {
+            setAnamnesisForm(selectedRequest.anamnesis_data[user.id].form);
+        } else {
+            setAnamnesisForm(defaultAnamnesisData);
+        }
+    }, [selectedRequest, user?.id]);
+
     const [cancellingRequest, setCancellingRequest] = useState<any | null>(null);
     const [cancelReason, setCancelReason] = useState('');
     const [reportText, setReportText] = useState('');
@@ -134,7 +233,8 @@ export default function AssessorDashboard() {
             const newData = {
                 ...currentData,
                 [user.id]: {
-                    notes: stepNotes,
+                    notes: currentStep === 'ANAMNESE' ? 'Dados estruturados salvos no formulário.' : stepNotes,
+                    form: currentStep === 'ANAMNESE' ? anamnesisForm : null,
                     completed: true,
                     updated_at: new Date().toISOString(),
                     assessor_name: user?.user_metadata?.name || user?.email
@@ -618,22 +718,287 @@ export default function AssessorDashboard() {
                                 </div>
 
                                 <div className="flex-1 p-4 overflow-y-auto no-scrollbar">
-                                    <div className="max-w-3xl mx-auto space-y-4">
-                                        <div className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="size-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center"><ClipboardList className="size-4"/></div>
-                                                <h4 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Anotações da Etapa</h4>
+                                    <div className="max-w-4xl mx-auto space-y-6">
+                                        {currentStep === 'ANAMNESE' ? (
+                                            <>
+                                                {/* 1. Identificação */}
+                                                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+                                                    <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4 mb-4">
+                                                        <div className="size-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center"><User className="size-4"/></div>
+                                                        <h4 className="text-sm uppercase tracking-wider font-extrabold text-slate-600 dark:text-slate-300">1. Identificação do Atendimento</h4>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderInput label="Data do Atendimento" name="attendanceDate" value={anamnesisForm.attendanceDate} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} type="date" />
+                                                        <RenderRadio label="Local do Atendimento" name="attendanceLocation" value={anamnesisForm.attendanceLocation} options={['CEES', 'Unidade de Ensino']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+                                                </div>
+
+                                                {/* 2. Dados da Família */}
+                                                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+                                                    <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4 mb-4">
+                                                        <div className="size-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center"><Users className="size-4"/></div>
+                                                        <h4 className="text-sm uppercase tracking-wider font-extrabold text-slate-600 dark:text-slate-300">2. Estrutura e Dinâmica Familiar</h4>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderInput label="Nome da Mãe" name="motherName" value={anamnesisForm.motherName} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderInput label="Contato (Mãe)" name="motherContact" value={anamnesisForm.motherContact} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderInput label="Nome do Pai" name="fatherName" value={anamnesisForm.fatherName} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderInput label="Contato (Pai)" name="fatherContact" value={anamnesisForm.fatherContact} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderInput label="Responsável Legal" name="respName" value={anamnesisForm.respName} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderInput label="Contato (Resp.)" name="respContact" value={anamnesisForm.respContact} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Tem Irmãos?" name="hasSiblings" value={anamnesisForm.hasSiblings} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.hasSiblings === 'Sim' && <RenderInput label="Quantos?" name="siblingsCount" value={anamnesisForm.siblingsCount} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    </div>
+                                                    <RenderCheckboxGroup label="Composição Familiar (Quem mora na casa?)" name="familyComposition" values={anamnesisForm.familyComposition} options={['Mãe', 'Pai', 'Irmãos', 'Tios', 'Avós', 'Outros']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    {anamnesisForm.familyComposition.includes('Outros') && <RenderInput label="Especifique 'Outros'" name="familyCompositionOther" value={anamnesisForm.familyCompositionOther} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Casos de Deficiência na Família?" name="familyDeficiency" value={anamnesisForm.familyDeficiency} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.familyDeficiency === 'Sim' && <RenderInput label="Quem e qual?" name="familyDeficiencyDetails" value={anamnesisForm.familyDeficiencyDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Acolhimento Institucional/Familiar?" name="fosterCare" value={anamnesisForm.fosterCare} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Medida Socioeducativa?" name="socioEducative" value={anamnesisForm.socioEducative} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.socioEducative === 'Sim' && <RenderRadio label="Tipo de Medida" name="socioEducativeType" value={anamnesisForm.socioEducativeType} options={['Liberdade Assistida', 'Prestação de Serviço']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    </div>
+
+                                                    <RenderCheckboxGroup label="Programas do Governo" name="govPrograms" values={anamnesisForm.govPrograms} options={['Bolsa Família', 'BPC', 'Outros']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    {anamnesisForm.govPrograms.includes('Outros') && <RenderInput label="Especifique Programas" name="govProgramsOther" value={anamnesisForm.govProgramsOther} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    
+                                                    <RenderInput label="Situação Econômica / Profissões" name="financialStatus" value={anamnesisForm.financialStatus} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: Renda de 2 salários, pais desempregados, etc." />
+                                                </div>
+
+                                                {/* 3. Gestação e Parto */}
+                                                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+                                                    <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4 mb-4">
+                                                        <div className="size-8 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center"><History className="size-4"/></div>
+                                                        <h4 className="text-sm uppercase tracking-wider font-extrabold text-slate-600 dark:text-slate-300">3. Antecedentes (Gestação e Parto)</h4>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Gravidez Planejada?" name="familyPlanning" value={anamnesisForm.familyPlanning} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Fez Pré-Natal?" name="prenatal" value={anamnesisForm.prenatal} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {anamnesisForm.prenatal === 'Sim' && <RenderInput label="Iniciou no mês:" name="prenatalStartMonth" value={anamnesisForm.prenatalStartMonth} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                        <RenderRadio label="Vacinas em dia?" name="vaccines" value={anamnesisForm.vaccines} options={['Sim', 'Não', 'Incompleta']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+                                                    <RenderInput label="Estado Emocional da Mãe (Gestação)" name="motherEmotional" value={anamnesisForm.motherEmotional} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    <RenderInput label="Alimentação / Medicação (Gestação)" name="pregnancyEating" value={anamnesisForm.pregnancyEating} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Doenças na Gestação?" name="pregnancyDiseases" value={anamnesisForm.pregnancyDiseases} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.pregnancyDiseases === 'Sim' && <RenderInput label="Quais?" name="pregnancyDiseasesDetails" value={anamnesisForm.pregnancyDiseasesDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    </div>
+
+                                                    <RenderCheckboxGroup label="Ocorrências nas 24h pré-parto" name="beforeBirth24h" values={anamnesisForm.beforeBirth24h} options={['Dores', 'Corrimento', 'Hemorragia', 'Acidente', 'Eclampsia', 'Outros']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    {anamnesisForm.beforeBirth24h.includes('Outros') && <RenderInput label="Especifique" name="beforeBirthOther" value={anamnesisForm.beforeBirthOther} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                        <RenderInput label="Tempo Gestação" name="gestationTime" value={anamnesisForm.gestationTime} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: 38 semanas" />
+                                                        <RenderRadio label="Tipo Parto" name="birthType" value={anamnesisForm.birthType} options={['Normal', 'Cesárea']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Gravidez de Risco?" name="riskPregnancy" value={anamnesisForm.riskPregnancy} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Intercorrências no Parto?" name="birthComplications" value={anamnesisForm.birthComplications} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.birthComplications === 'Sim' && <RenderInput label="Quais?" name="birthComplicationsDetails" value={anamnesisForm.birthComplicationsDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                                        <RenderRadio label="Chorou?" name="atBirthCried" value={anamnesisForm.atBirthCried} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Icterícia?" name="atBirthJaundice" value={anamnesisForm.atBirthJaundice} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Anoxia?" name="atBirthAnoxia" value={anamnesisForm.atBirthAnoxia} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Cianótico?" name="atBirthCyanotic" value={anamnesisForm.atBirthCyanotic} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+                                                    
+                                                    <RenderRadio label="Precisou de Incubadora?" name="incubator" value={anamnesisForm.incubator} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    
+                                                    <RenderCheckboxGroup label="Testes Realizados" name="testsDone" values={anamnesisForm.testsDone} options={['Pezinho', 'Orelhinha', 'Olhinho', 'Coraçãozinho']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Alguma Alteração?" name="testsAlterations" value={anamnesisForm.testsAlterations} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.testsAlterations === 'Sim' && <RenderInput label="Especifique Alteração" name="testsAlterationsDetails" value={anamnesisForm.testsAlterationsDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    </div>
+                                                </div>
+
+                                                {/* 4. Desenvolvimento */}
+                                                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+                                                    <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4 mb-4">
+                                                        <div className="size-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center"><CheckSquare className="size-4"/></div>
+                                                        <h4 className="text-sm uppercase tracking-wider font-extrabold text-slate-600 dark:text-slate-300">4. Desenvolvimento Psicomotor e Linguagem</h4>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                                        <RenderInput label="Sustentou Cabeça" name="devHead" value={anamnesisForm.devHead} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: 3 m" />
+                                                        <RenderInput label="Sentou" name="devSit" value={anamnesisForm.devSit} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: 6 m" />
+                                                        <RenderInput label="Engatinhou" name="devCrawl" value={anamnesisForm.devCrawl} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: 8 m" />
+                                                        <RenderInput label="Ficou em pé" name="devStand" value={anamnesisForm.devStand} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: 10 m" />
+                                                        <RenderInput label="Andou" name="devWalk" value={anamnesisForm.devWalk} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: 1 ano" />
+                                                        <RenderInput label="Balbuciou" name="devBabble" value={anamnesisForm.devBabble} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: 6 m" />
+                                                        <RenderInput label="Primeiras Palavras" name="devWords" value={anamnesisForm.devWords} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} placeholder="Ex: 1 ano" />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                                                        <RenderRadio label="Chupeta?" name="habitsPacifier" value={anamnesisForm.habitsPacifier} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Chupa Dedo?" name="habitsThumb" value={anamnesisForm.habitsThumb} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Mamou peito?" name="habitsBreastMilk" value={anamnesisForm.habitsBreastMilk} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="flex flex-col gap-2">
+                                                            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Complemento / Substituto</label>
+                                                            <div className="flex gap-4">
+                                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                                    <input type="checkbox" checked={anamnesisForm.foodComplement} onChange={e => setAnamnesisForm({...anamnesisForm, foodComplement: e.target.checked})} className="size-4 rounded text-primary border-slate-300" />
+                                                                    <span className="text-sm font-medium text-slate-600">Complemento</span>
+                                                                </label>
+                                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                                    <input type="checkbox" checked={anamnesisForm.foodSubstitute} onChange={e => setAnamnesisForm({...anamnesisForm, foodSubstitute: e.target.checked})} className="size-4 rounded text-primary border-slate-300" />
+                                                                    <span className="text-sm font-medium text-slate-600">Substituto</span>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <RenderRadio label="Introdução Alimentar" name="foodIntroduction" value={anamnesisForm.foodIntroduction} options={['Antes dos 6 meses', 'Após os 6 meses']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+                                                </div>
+
+                                                {/* 5. Dados Adicionais Atuais */}
+                                                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+                                                    <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4 mb-4">
+                                                        <div className="size-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center"><Search className="size-4"/></div>
+                                                        <h4 className="text-sm uppercase tracking-wider font-extrabold text-slate-600 dark:text-slate-300">5. Dados Adicionais Atuais</h4>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Possui Deficiência?" name="hasDeficiency" value={anamnesisForm.hasDeficiency} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.hasDeficiency === 'Sim' && <RenderInput label="Qual/CID?" name="deficiencyCid" value={anamnesisForm.deficiencyCid} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+                                                            <RenderRadio label="Seletividade Alimentar?" name="selectiveEating" value={anamnesisForm.selectiveEating} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                            {anamnesisForm.selectiveEating === 'Sim' && <RenderInput label="Detalhes" name="selectiveEatingDetails" value={anamnesisForm.selectiveEatingDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                        </div>
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+                                                            <RenderRadio label="Restrição Alimentar?" name="restrictedEating" value={anamnesisForm.restrictedEating} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                            {anamnesisForm.restrictedEating === 'Sim' && <RenderInput label="Detalhes" name="restrictedEatingDetails" value={anamnesisForm.restrictedEatingDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Sono Agitado?" name="sleepAgitated" value={anamnesisForm.sleepAgitated} options={['Sim', 'Não', 'Às vezes']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Choro Constante?" name="constantCrying" value={anamnesisForm.constantCrying} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl space-y-4">
+                                                            <RenderRadio label="Roe Unhas?" name="bitesNails" value={anamnesisForm.bitesNails} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                            {anamnesisForm.bitesNails === 'Sim' && <RenderInput label="Frequência" name="bitesNailsFreq" value={anamnesisForm.bitesNailsFreq} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                        </div>
+                                                        <RenderRadio label="Bruxismo?" name="bruxism" value={anamnesisForm.bruxism} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderInput label="Outras Manipulações (Ex: tiques)" name="otherManipulations" value={anamnesisForm.otherManipulations} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Frênulo de Língua Curto?" name="shortFrenulum" value={anamnesisForm.shortFrenulum} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl space-y-4">
+                                                            <RenderRadio label="Já fez Cirurgia?" name="surgery" value={anamnesisForm.surgery} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                            {anamnesisForm.surgery === 'Sim' && <RenderInput label="Qual?" name="surgeryDetails" value={anamnesisForm.surgeryDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                        </div>
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl space-y-4">
+                                                            <RenderRadio label="Trauma/Internação?" name="trauma" value={anamnesisForm.trauma} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                            {anamnesisForm.trauma === 'Sim' && <RenderInput label="Detalhes" name="traumaDetails" value={anamnesisForm.traumaDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Desmaios?" name="fainting" value={anamnesisForm.fainting} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Convulsões?" name="convulsions" value={anamnesisForm.convulsions} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+
+                                                    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl space-y-4">
+                                                        <RenderRadio label="Doenças Atuais?" name="currentDiseases" value={anamnesisForm.currentDiseases} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.currentDiseases === 'Sim' && <RenderInput label="Quais?" name="currentDiseasesDetails" value={anamnesisForm.currentDiseasesDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                    </div>
+
+                                                    <RenderCheckboxGroup label="Atendimento Clínico Atual" name="clinicalCare" values={anamnesisForm.clinicalCare} options={['Fonoaudiologia', 'Psicologia', 'Psicoterapia', 'Terapia Ocupacional', 'Fisioterapia', 'Equoterapia', 'Outros']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    {anamnesisForm.clinicalCare.includes('Outros') && <RenderInput label="Especifique Atendimentos" name="clinicalCareOther" value={anamnesisForm.clinicalCareOther} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+
+                                                    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl space-y-4">
+                                                        <RenderRadio label="Faz uso de Medicação?" name="medications" value={anamnesisForm.medications} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        {anamnesisForm.medications === 'Sim' && (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <RenderInput label="Quais medicações?" name="medicationsDetails" value={anamnesisForm.medicationsDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                                <RenderCheckboxGroup label="Horários" name="medicationsTime" values={anamnesisForm.medicationsTime} options={['Manhã', 'Tarde', 'Noite']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <RenderCheckboxGroup label="Relacionamento / Lazer" name="relationship" values={anamnesisForm.relationship} options={['Com família', 'Com crianças', 'Sozinho', 'Gosta de brincar', 'Outros']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                        <RenderRadio label="Tende a cair?" name="tendencyToFall" value={anamnesisForm.tendencyToFall} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Tende a se machucar?" name="tendencyToInjure" value={anamnesisForm.tendencyToInjure} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Autolesão?" name="tendencyToSelfHarm" value={anamnesisForm.tendencyToSelfHarm} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <RenderRadio label="Dificuldade em manipular objetos?" name="objectManipulationDifficulty" value={anamnesisForm.objectManipulationDifficulty} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderInput label="Outras Dificuldades" name="otherDifficulties" value={anamnesisForm.otherDifficulties} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+
+                                                    <RenderCheckboxGroup label="Tipo de Comunicação" name="communicationType" values={anamnesisForm.communicationType} options={['Verbal', 'Não Verbal', 'Mista', 'Sinalizada']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl space-y-4">
+                                                            <RenderRadio label="Excesso de Telas?" name="screenTimeExcess" value={anamnesisForm.screenTimeExcess} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                            {anamnesisForm.screenTimeExcess === 'Sim' && <RenderInput label="Quantas horas/dia?" name="screenTimeDetails" value={anamnesisForm.screenTimeDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                        </div>
+                                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl space-y-4">
+                                                            <RenderRadio label="Limitação na Adaptação Escolar?" name="schoolAdaptationLimitation" value={anamnesisForm.schoolAdaptationLimitation} options={['Sim', 'Não']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                            {anamnesisForm.schoolAdaptationLimitation === 'Sim' && <RenderInput label="Que tipo?" name="schoolAdaptationDetails" value={anamnesisForm.schoolAdaptationDetails} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* 6. AVDs */}
+                                                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+                                                    <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4 mb-4">
+                                                        <div className="size-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center"><CheckSquare className="size-4"/></div>
+                                                        <h4 className="text-sm uppercase tracking-wider font-extrabold text-slate-600 dark:text-slate-300">6. Atividades de Vida Diária (AVDs)</h4>
+                                                    </div>
+                                                    <div className="space-y-6">
+                                                        <RenderRadio label="Alimentação" name="avdFeeding" value={anamnesisForm.avdFeeding} options={['Independente', 'Dependência parcial', 'Dependência completa']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Vestuário" name="avdDressing" value={anamnesisForm.avdDressing} options={['Independente', 'Dependência parcial', 'Dependência completa']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Higiene Pessoal" name="avdHygiene" value={anamnesisForm.avdHygiene} options={['Independente', 'Dependência parcial', 'Dependência completa']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Controle Esfincteriano (Bexiga)" name="avdBladder" value={anamnesisForm.avdBladder} options={['Independente', 'Dependência parcial', 'Dependência completa']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                        <RenderRadio label="Controle Esfincteriano (Intestino)" name="avdBowel" value={anamnesisForm.avdBowel} options={['Independente', 'Dependência parcial', 'Dependência completa']} onChange={(k:any,v:any)=>setAnamnesisForm({...anamnesisForm, [k]:v})} />
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="size-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center"><ClipboardList className="size-4"/></div>
+                                                    <h4 className="text-sm uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">Anotações da Etapa</h4>
+                                                </div>
+                                                <textarea 
+                                                    value={stepNotes} 
+                                                    onChange={e => setStepNotes(e.target.value)}
+                                                    className="w-full h-[40vh] p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border-none outline-none focus:ring-4 focus:ring-primary/10 text-sm leading-relaxed shadow-inner"
+                                                    placeholder="Digite aqui livremente suas anotações..."
+                                                />
+                                                <p className="text-[10px] text-slate-400 mt-4 italic text-center uppercase tracking-widest font-bold">O trabalho salvo aqui fica visível para os outros assessores da equipe.</p>
                                             </div>
-                                            <textarea 
-                                                value={stepNotes} 
-                                                onChange={e => setStepNotes(e.target.value)}
-                                                className="w-full h-[40vh] p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border-none outline-none focus:ring-4 focus:ring-primary/10 text-sm leading-relaxed shadow-inner"
-                                                placeholder="Digite aqui livremente suas anotações..."
-                                            />
-                                            <p className="text-[10px] text-slate-400 mt-4 italic text-center uppercase tracking-widest font-bold">O trabalho salvo aqui fica visível para os outros assessores da equipe.</p>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
+
 
                                 <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-center gap-4">
                                     <Button variant="ghost" className="h-10 px-6 rounded-xl" onClick={() => setCurrentStep('MAIN')}>Cancelar</Button>

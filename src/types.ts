@@ -155,3 +155,71 @@ export interface CeesAbsence {
   end_date: string;
   reason: string;
 }
+
+export interface AnamnesisData {
+  // 1. Identificação
+  attendanceDate: string;
+  attendanceLocation: 'CEES' | 'Unidade de Ensino' | '';
+  
+  // 2. Dados da Família
+  motherName: string; motherContact: string;
+  fatherName: string; fatherContact: string;
+  respName: string; respContact: string;
+  hasSiblings: string; siblingsCount: string;
+  familyComposition: string[]; // ['Mãe', 'Pai', 'Irmãos', 'Tios', 'Avós', 'Outros']
+  familyCompositionOther: string;
+  familyDeficiency: string; familyDeficiencyDetails: string;
+  fosterCare: string; // Sim / Não
+  socioEducative: string; socioEducativeType: string; // Liberdade Assistida / Prestação de Serviço
+  govPrograms: string[]; govProgramsOther: string;
+  financialStatus: string;
+
+  // 3. Gestação e Parto
+  familyPlanning: string;
+  prenatal: string; prenatalStartMonth: string;
+  vaccines: string;
+  motherEmotional: string;
+  pregnancyEating: string;
+  pregnancyDiseases: string; pregnancyDiseasesDetails: string;
+  beforeBirth24h: string[]; beforeBirthOther: string;
+  gestationTime: string;
+  birthType: string; // Normal / Cesárea
+  birthComplications: string; birthComplicationsDetails: string;
+  riskPregnancy: string;
+  atBirthCried: string; atBirthJaundice: string; atBirthAnoxia: string; atBirthCyanotic: string;
+  incubator: string;
+  testsDone: string[]; testsAlterations: string; testsAlterationsDetails: string;
+
+  // 4. Desenvolvimento
+  devHead: string; devSit: string; devCrawl: string; devStand: string; devWalk: string; devBabble: string; devWords: string;
+  habitsPacifier: string; habitsThumb: string; habitsBreastMilk: string;
+  foodComplement: boolean; foodSubstitute: boolean;
+  foodIntroduction: string; // Antes dos 6 meses / Após os 6 meses
+
+  // 5. Dados Adicionais Atuais
+  hasDeficiency: string; deficiencyCid: string;
+  selectiveEating: string; selectiveEatingDetails: string;
+  restrictedEating: string; restrictedEatingDetails: string;
+  sleepAgitated: string; // Sim / Não / Às vezes
+  constantCrying: string;
+  bitesNails: string; bitesNailsFreq: string;
+  bruxism: string;
+  otherManipulations: string;
+  shortFrenulum: string;
+  surgery: string; surgeryDetails: string;
+  trauma: string; traumaDetails: string;
+  fainting: string;
+  convulsions: string;
+  currentDiseases: string; currentDiseasesDetails: string;
+  clinicalCare: string[]; clinicalCareOther: string;
+  medications: string; medicationsDetails: string; medicationsTime: string[];
+  relationship: string[]; relationshipOther: string;
+  tendencyToFall: string; tendencyToInjure: string; tendencyToSelfHarm: string;
+  objectManipulationDifficulty: string; otherDifficulties: string;
+  communicationType: string[]; // Verbal, Não Verbal, Mista, Sinalizada
+  screenTimeExcess: string; screenTimeDetails: string;
+  schoolAdaptationLimitation: string; schoolAdaptationDetails: string;
+
+  // 6. AVDs
+  avdFeeding: string; avdDressing: string; avdHygiene: string; avdBladder: string; avdBowel: string;
+}
