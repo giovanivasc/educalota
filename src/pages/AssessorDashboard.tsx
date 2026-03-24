@@ -791,6 +791,7 @@ export default function AssessorDashboard() {
                                                     <option value="Não necessita">Não necessita</option>
                                                     <option value="Atendimento domiciliar">Atendimento domiciliar</option>
                                                     <option value="Mediação exclusiva">Mediação exclusiva</option>
+                                                    <option value="Somente AEE">Somente AEE</option>
                                                 </select>
                                             </div>
 

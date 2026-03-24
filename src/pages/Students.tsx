@@ -300,6 +300,10 @@ const Students: React.FC = () => {
       return 0;
     });
 
+  /* New State for Details Modal */
+  const [selectedStudentForModal, setSelectedStudentForModal] = useState<Student | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   /* New State for Multi-Selection */
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -462,7 +466,7 @@ const Students: React.FC = () => {
             <div className="space-y-3">
               <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Necessita de Suporte Especializado?</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {['Atendido por Mediador', 'Atendido por Cuidador', 'Atendido por Prof. Braille', 'Atendido por Prof. Bilíngue', 'Necessita de avaliação', 'Não necessita', 'Atendimento domiciliar', 'Mediação exclusiva'].map((item) => (
+                {['Atendido por Mediador', 'Atendido por Cuidador', 'Atendido por Prof. Braille', 'Atendido por Prof. Bilíngue', 'Necessita de avaliação', 'Não necessita', 'Atendimento domiciliar', 'Mediação exclusiva', 'Somente AEE'].map((item) => (
                   <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-primary/50 transition-colors ${formData.needsSupport.includes(item) ? 'bg-primary/5 border-primary' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800'}`}>
                     <input
                       type="checkbox"
@@ -500,6 +504,7 @@ const Students: React.FC = () => {
   }
 
   return (
+    <>
     <div className="mx-auto max-w-7xl space-y-8 pb-10">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -601,14 +606,13 @@ const Students: React.FC = () => {
                   className="px-3 py-3 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors select-none group"
                   onClick={() => handleSort('series')}
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 whitespace-nowrap">
                     Série / Turma
                     <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary transition-colors">
                       {sortConfig?.key === 'series' ? (sortConfig.direction === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
                     </span>
                   </div>
                 </th>
-                <th className="px-3 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
@@ -627,13 +631,16 @@ const Students: React.FC = () => {
                     />
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex items-center gap-2 font-bold truncate max-w-[300px]" title={student.name}>
+                    <div 
+                      className="flex items-center gap-2 font-bold truncate max-w-[300px] cursor-pointer text-primary hover:text-primary-dark transition-colors hover:underline"
+                      title={student.name + ' - Clique para ver detalhes'}
+                      onClick={() => { setSelectedStudentForModal(student); setShowDetailsModal(true); }}
+                    >
                       {student.name}
                       {student.additionalInfo && (
                         <span
-                          className="material-symbols-outlined text-[16px] text-blue-400 hover:text-blue-600 cursor-help transition-colors flex-shrink-0"
-                          title={student.additionalInfo}
-                          onClick={(e) => { e.stopPropagation(); alert(`Informações Adicionais:\n${student.additionalInfo}`); }}
+                          className="material-symbols-outlined text-[16px] text-blue-400 flex-shrink-0"
+                          title="Possui informações adicionais"
                         >
                           info
                         </span>
@@ -650,24 +657,6 @@ const Students: React.FC = () => {
                   </td>
                   <td className="px-3 py-3 text-slate-500 whitespace-nowrap">
                     {student.series}
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    <div className="flex justify-end gap-1">
-                      <button
-                        onClick={() => handleEdit(student)}
-                        className="text-slate-400 hover:text-primary transition-colors p-1"
-                        title="Editar"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(student.id)}
-                        className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                        title="Excluir"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">delete</span>
-                      </button>
-                    </div>
                   </td>
                 </tr>
               ))}
@@ -799,6 +788,103 @@ const Students: React.FC = () => {
         )
       }
     </div >
+
+      {/* Student Details Modal */}
+      {showDetailsModal && selectedStudentForModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-surface-dark rounded-3xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 border border-slate-100 dark:border-slate-800">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+              <h2 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">person</span>
+                </div>
+                Detalhes do Estudante
+              </h2>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
+                title="Fechar"
+              >
+                <span className="material-symbols-outlined text-slate-500 text-[20px]">close</span>
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Nome do Estudante</p>
+                <p className="text-lg font-black text-slate-900 dark:text-white">{selectedStudentForModal.name}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Data de Nasc.</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    {selectedStudentForModal.birthDate ? new Date(selectedStudentForModal.birthDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}
+                  </p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Série / Turma</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{selectedStudentForModal.series || '-'}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Diagnóstico / CID</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate" title={selectedStudentForModal.cid || ''}>{selectedStudentForModal.cid || '-'}</p>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-xl border border-orange-100 dark:border-orange-900/20">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-orange-400 mb-1">Grupo Educação Especial</p>
+                  <p className="text-sm font-bold text-orange-700 dark:text-orange-400 truncate" title={selectedStudentForModal.specialGroup || ''}>{selectedStudentForModal.specialGroup || '-'}</p>
+                </div>
+              </div>
+
+              {selectedStudentForModal.needsSupport && selectedStudentForModal.needsSupport.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Necessita de Suporte</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedStudentForModal.needsSupport.map((support, idx) => (
+                      <span key={idx} className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs px-2.5 py-1 rounded-lg font-bold border border-blue-100 dark:border-blue-800/50">
+                        {support}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+               {selectedStudentForModal.additionalInfo && (
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Informações Adicionais</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 whitespace-pre-wrap leading-relaxed">
+                    {selectedStudentForModal.additionalInfo}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-between gap-3">
+              <Button 
+                variant="secondary"
+                icon="delete"
+                className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                onClick={() => {
+                  handleDelete(selectedStudentForModal.id);
+                  setShowDetailsModal(false);
+                }}
+              >
+                Excluir
+              </Button>
+              <Button 
+                icon="edit"
+                onClick={() => {
+                  handleEdit(selectedStudentForModal);
+                  setShowDetailsModal(false);
+                }}
+              >
+                Editar Estudante
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
