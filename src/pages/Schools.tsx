@@ -1033,6 +1033,7 @@ const Schools: React.FC = () => {
                             <option>Deficiência Física</option>
                             <option>Deficiência Múltipla</option>
                             <option>Altas habilidades/superdotação</option>
+                            <option>Não se aplica</option>
                           </select>
                         </label>
                       </div>
