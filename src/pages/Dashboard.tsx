@@ -31,12 +31,12 @@ const Dashboard: React.FC = () => {
     try {
       // 1. Fetch Basic Counts and Distributions Data
       const [
-        { count: studentsCount, data: studentsData },
-        { count: schoolsCount },
-        { count: classesCount },
-        { count: staffCount, data: staffData },
-        { data: activeAllotments },
-        { data: recentAllotmentsData }
+        resStudents,
+        resSchools,
+        resClasses,
+        resStaff,
+        resActiveAllotments,
+        resRecentAllotments
       ] = await Promise.all([
         supabase.from('students').select('special_group', { count: 'exact' }),
         supabase.from('schools').select('*', { count: 'exact', head: true }),
@@ -45,6 +45,31 @@ const Dashboard: React.FC = () => {
         supabase.from('allotments').select('staff_id').eq('status', 'Ativo'),
         supabase.from('allotments').select('*').order('created_at', { ascending: false }).limit(5)
       ]);
+
+      // Check for errors in any of the results
+      const results = [
+        { name: 'students', ...resStudents },
+        { name: 'schools', ...resSchools },
+        { name: 'classes', ...resClasses },
+        { name: 'staff', ...resStaff },
+        { name: 'activeAllotments', ...resActiveAllotments },
+        { name: 'recentAllotments', ...resRecentAllotments }
+      ];
+
+      results.forEach(res => {
+        if (res.error) {
+          console.error(`Dashboard Diagnostic: Error fetching ${res.name}:`, res.error.message, res.error.details);
+        }
+      });
+
+      const studentsCount = resStudents.count;
+      const studentsData = resStudents.data;
+      const schoolsCount = resSchools.count;
+      const classesCount = resClasses.count;
+      const staffCount = resStaff.count;
+      const staffData = resStaff.data;
+      const activeAllotments = resActiveAllotments.data;
+      const recentAllotmentsData = resRecentAllotments.data;
 
       // Calculate Allotted Staff (Unique IDs)
       const uniqueAllottedStaff = new Set((activeAllotments || []).map((a: any) => a.staff_id)).size;
@@ -70,9 +95,6 @@ const Dashboard: React.FC = () => {
       staffData?.forEach((s: any) => {
         if (targetRoles.includes(s.role)) {
           roleCounts[s.role] = (roleCounts[s.role] || 0) + 1;
-        } else {
-          // Optional: Group others? Or ignore?
-          // roleCounts['Outros'] = (roleCounts['Outros'] || 0) + 1;
         }
       });
 
@@ -84,7 +106,7 @@ const Dashboard: React.FC = () => {
           role === 'Cuidador' ? '#60a5fa' :
             role.includes('Braille') ? '#818cf8' :
               role.includes('Bilíngue') ? '#a78bfa' : '#c084fc'
-      })).filter(d => d.value > 0); // Only show existing? Or show all 0? Showing > 0 is cleaner.
+      })).filter(d => d.value > 0);
 
       setStaffDistData(processedStaffDist.length > 0 ? processedStaffDist : [{ name: 'Sem dados', value: 0 }]);
 
@@ -96,10 +118,9 @@ const Dashboard: React.FC = () => {
         groupCounts[group] = (groupCounts[group] || 0) + 1;
       });
 
-      // Top groups + Others logic could be here, but for now map top 5
       const sortedGroups = Object.entries(groupCounts)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5) // Top 5
+        .slice(0, 5)
         .map(([name, value], index) => ({
           name: name.length > 15 ? name.substring(0, 15) + '...' : name,
           value,
@@ -125,6 +146,7 @@ const Dashboard: React.FC = () => {
       console.error('Error fetching dashboard data:', e);
     }
   };
+
 
   const fetchAllAllotments = async () => {
     setLoadingAllotments(true);
