@@ -49,7 +49,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      chunkSizeWarningLimit: 2000,
+      chunkSizeWarningLimit: 5000,
       rollupOptions: {
         output: {
           manualChunks(id) {
@@ -58,6 +58,10 @@ export default defineConfig(({ mode }) => {
               if (id.includes('@supabase')) return 'vendor-supabase';
               if (id.includes('recharts')) return 'vendor-charts';
               if (id.includes('lucide-react')) return 'vendor-icons';
+              if (id.includes('jspdf')) return 'vendor-pdf-base';
+              if (id.includes('xlsx')) return 'vendor-excel';
+              if (id.includes('html2canvas')) return 'vendor-canvas';
+              if (id.includes('@react-pdf/renderer')) return 'vendor-pdf-renderer';
               return 'vendor';
             }
           }
