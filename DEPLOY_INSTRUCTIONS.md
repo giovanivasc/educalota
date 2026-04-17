@@ -37,6 +37,7 @@ Este projeto já está configurado para ser implantado na **Vercel** de forma si
 
 ## Observações
 
-*   O projeto usa **TailwindCSS via CDN**, então não requer passo de build de CSS complexo.
-*   O roteamento utiliza (`HashRouter`), o que é compatível com qualquer hospedagem estática sem configurações extras de servidor.
+*   O projeto usa **Vite** como bundler — o CSS é processado e injetado automaticamente no build de produção via `dist/assets/vendor-*.css`.
+*   O roteamento utiliza **React Router com BrowserRouter** (não HashRouter). O arquivo `vercel.json` já contém a configuração de rewrite necessária para que as rotas SPA funcionem corretamente (todas as URLs redirecionam para `index.html`).
 *   Se ocorrerem erros de permissão no banco, certifique-se de que os scripts SQL de correção (`corrigir_permissoes_banco.sql`) foram rodados no Supabase.
+*   Os scripts SQL na pasta raiz do projeto precisam ser aplicados manualmente no **SQL Editor** do Supabase (Project → SQL Editor). Não há migração automática.

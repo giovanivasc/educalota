@@ -58,7 +58,12 @@ export default defineConfig(({ mode }) => {
             }
           }
         }
-      }
-    }
+      },
+      // Remove console.log e debugger automaticamente em builds de produção
+      minify: 'esbuild',
+    },
+    esbuild: {
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
+    },
   };
 });
