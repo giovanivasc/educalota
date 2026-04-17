@@ -392,11 +392,10 @@ const Schools: React.FC = () => {
         name: newSchool.name,
         region: newSchool.region,
         description: newSchool.description,
-        director_name: newSchool.director,
-        vice_director_name: newSchool.viceDirector,
-        codigo_escola: newSchool.codigoEscola,
-        telefone_diretor: newSchool.telefoneDiretor
-        // image_url: null 
+        director_name: newSchool.director || null,
+        vice_director_name: newSchool.viceDirector || null,
+        codigo_escola: newSchool.codigoEscola || null,
+        telefone_diretor: newSchool.telefoneDiretor || null
       };
 
       if (isEditingSchool && editingSchoolId) {
@@ -420,8 +419,8 @@ const Schools: React.FC = () => {
       setView('list');
 
     } catch (e: any) {
-      console.error(e);
-      alert('Erro ao salvar escola.');
+      console.error('Erro detalhado:', e);
+      alert('Erro ao salvar escola: ' + (e.message || 'Erro desconhecido'));
     } finally {
       setSaveSchoolLoading(false);
     }
