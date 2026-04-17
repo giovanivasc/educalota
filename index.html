@@ -9,73 +9,23 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#ffffff">
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-        rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            DEFAULT: '#1142d4',
-                            dark: '#0e36b0',
-                            light: '#e7ebfa'
-                        },
-                        background: {
-                            light: '#f6f6f8',
-                            dark: '#101522'
-                        },
-                        surface: {
-                            light: '#ffffff',
-                            dark: '#1a2236'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Inter', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
+    
+    <!-- Tailwind CDN desativado temporariamente para isolar erro de tela branca -->
+    <!-- <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script> -->
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
-        }
-
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-
-        .material-symbols-outlined.filled {
-            font-variation-settings: 'FILL' 1;
-        }
-
-        /* Hide scrollbars for a cleaner UI in specific areas */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            /* IE and Edge */
-        }
-
-        /* Support for modern browsers and Firefox */
-        @supports (scrollbar-width: none) {
-            .no-scrollbar {
-                scrollbar-width: none;
-            }
+            margin: 0;
+            padding: 0;
         }
     </style>
 </head>
 
-<body
-    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-200">
+<body class="bg-slate-50 text-slate-900 transition-colors duration-200">
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
 </body>
