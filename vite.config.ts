@@ -54,20 +54,19 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('react')) return 'vendor-react';
-              if (id.includes('@supabase')) return 'vendor-supabase';
-              if (id.includes('recharts')) return 'vendor-charts';
-              if (id.includes('lucide-react')) return 'vendor-icons';
-              if (id.includes('jspdf')) return 'vendor-pdf-base';
-              if (id.includes('xlsx')) return 'vendor-excel';
-              if (id.includes('html2canvas')) return 'vendor-canvas';
-              if (id.includes('@react-pdf/renderer')) return 'vendor-pdf-renderer';
+              // Agrupa bibliotecas de PDF e Excel que são as mais pesadas
+              if (id.includes('jspdf') || id.includes('@react-pdf') || id.includes('html2canvas')) {
+                return 'vendor-pdf';
+              }
+              if (id.includes('xlsx')) {
+                return 'vendor-excel';
+              }
+              // Deixa o resto para o chunk padrão vendor para evitar quebra de dependências
               return 'vendor';
             }
           }
         }
       },
-      // Remove console.log e debugger automaticamente em builds de produção
       minify: 'esbuild',
     },
     esbuild: {
